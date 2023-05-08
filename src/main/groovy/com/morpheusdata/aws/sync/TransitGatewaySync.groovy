@@ -1,0 +1,102 @@
+package com.morpheusdata.aws.sync
+
+import com.amazonaws.services.ec2.model.TransitGateway
+import com.morpheusdata.aws.AWSPlugin
+import com.morpheusdata.aws.utils.AmazonComputeUtility
+import com.morpheusdata.core.util.SyncTask
+import com.morpheusdata.model.AccountResource
+import com.morpheusdata.model.AccountResourceType
+import com.morpheusdata.model.Cloud
+import com.morpheusdata.model.ComputeZoneRegion
+import com.morpheusdata.model.projection.AccountResourceIdentityProjection
+import groovy.util.logging.Slf4j
+import io.reactivex.Observable
+import io.reactivex.Single
+
+@Slf4j
+class TransitGatewaySync extends InternalResourceSync{
+	public TransitGatewaySync(AWSPlugin plugin, Cloud cloud) {
+		this.plugin = plugin
+		this.cloud = cloud
+		this.morpheusContext = plugin.morpheusContext
+	}
+
+	def execute() {
+		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap {
+			final String regionCode = it.externalId
+			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false,it.externalId)
+			def apiList = AmazonComputeUtility.listTransitGateways([amazonClient: amazonClient],[:])
+			if(apiList.success) {
+				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.cloud.resource.listIdentityProjections(cloud.id,'aws.cloudFormation.ec2.transitGateway',regionCode)
+				SyncTask<AccountResourceIdentityProjection, TransitGateway, AccountResource> syncTask = new SyncTask<>(domainRecords, apiList.transitGateways as Collection<TransitGateway>)
+				return syncTask.addMatchFunction { AccountResourceIdentityProjection domainObject, TransitGateway data ->
+					domainObject.externalId == data.transitGatewayId
+				}.onDelete { removeItems ->
+					removeMissingResources(removeItems)
+				}.onUpdate { List<SyncTask.UpdateItem<AccountResource, TransitGateway>> updateItems ->
+					updateMatchedTransitGateways(updateItems,regionCode)
+				}.onAdd { itemsToAdd ->
+					addMissingTransitGateway(itemsToAdd, regionCode)
+
+				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<AccountResourceIdentityProjection, TransitGateway>> updateItems ->
+					return morpheusContext.cloud.resource.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+				}.observe()
+			} else {
+				log.error("Error Caching Transit Gateways for Region: {} - {}",regionCode,apiList.msg)
+				return Single.just(false).toObservable() //ignore invalid region
+			}
+		}.blockingSubscribe()
+	}
+
+	protected String getCategory() {
+		return "amazon.ec2.transit.gateways.${cloud.id}"
+	}
+
+	protected void addMissingTransitGateway(Collection<TransitGateway> addList, String region) {
+		def adds = []
+
+		for(TransitGateway cloudItem in addList) {
+			def name
+			def nameTag = cloudItem.getTags()?.find{it.getKey() == 'Name'}
+			name = nameTag?.value ?: cloudItem.transitGatewayId
+			def addConfig = [owner     :cloud.account, category:getCategory(), code:(getCategory() + '.' + cloudItem.transitGatewayId),
+							 externalId:cloudItem.transitGatewayId, zoneId:cloud.id, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.transitGateway'), resourceType:'TransitGateway',
+							 zoneName  : cloud.name, name: name, displayName: name
+			]
+			AccountResource newResource = new AccountResource(addConfig)
+			newResource.region = new ComputeZoneRegion(regionCode: region)
+			adds << newResource
+		}
+		if(adds) {
+			morpheusContext.cloud.resource.create(adds).blockingGet()
+		}
+	}
+
+	protected void updateMatchedTransitGateways(List<SyncTask.UpdateItem<AccountResource, TransitGateway>> updateList, String region) {
+		def updates = []
+		for(update in updateList) {
+			def masterItem = update.masterItem
+			def existingItem = update.existingItem
+			Boolean save = false
+			def name
+			def nameTag = masterItem.getTags()?.find{it.getKey() == 'Name'}
+			name = nameTag?.value ?: masterItem.transitGatewayId
+			if(existingItem.name != name) {
+				existingItem.name = name
+				save = true
+			}
+			if(existingItem.region?.code != region) {
+				existingItem.region = new ComputeZoneRegion(regionCode: region)
+				save = true
+			}
+
+
+			if(save) {
+				updates << existingItem
+			}
+		}
+		if(updates) {
+			morpheusContext.cloud.resource.save(updates).blockingGet()
+		}
+	}
+}

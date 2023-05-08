@@ -1,0 +1,378 @@
+buildscript {
+	repositories {
+		mavenLocal()
+		mavenCentral()
+		maven { url "https://plugins.gradle.org/m2/" }
+		maven { url "https://nexus.bertramlabs.com/content/repositories/snapshots" }
+		maven { url "https://nexus.bertramlabs.com/content/repositories/releases" }
+		maven { url "https://nexus.bertramlabs.com/content/repositories/publicReleases" }
+	}
+	dependencies {
+		classpath "com.github.jengelman.gradle.plugins:shadow:6.0.0"
+		classpath "io.github.gradle-nexus:publish-plugin:1.0.0"
+		classpath "com.bertramlabs.plugins:asset-pipeline-gradle:$assetPipelineVersion"
+	}
+}
+
+apply plugin: 'java'
+apply plugin: 'groovy'
+apply plugin: 'idea'
+apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'asset-pipeline'
+
+group = 'com.morpheusdata'
+ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
+
+repositories {
+	mavenLocal()
+	jcenter()
+	mavenCentral()
+	maven { url "https://nexus.bertramlabs.com/content/repositories/snapshots" }
+	maven { url "https://nexus.bertramlabs.com/content/repositories/releases" }
+	maven { url "https://nexus.bertramlabs.com/content/repositories/publicReleases" }
+}
+
+configurations {
+	provided
+}
+
+dependencies {
+	provided "com.morpheusdata:morpheus-plugin-api:0.14.0-SNAPSHOT"
+	provided "org.codehaus.groovy:groovy-all:$groovyVersion"
+
+	provided("com.bertramlabs.plugins:karman-core:${karmanVersion}") {
+		exclude module: 'groovy-all'
+	}
+
+	implementation 'commons-beanutils:commons-beanutils:1.9.3'
+	implementation "org.slf4j:slf4j-api:$slf4jVersion"
+	implementation "org.slf4j:slf4j-parent:$slf4jVersion"
+	implementation 'commons-net:commons-net:3.6'
+	implementation('com.amazonaws:aws-java-sdk:1.12.269') {
+        exclude module: 'aws-java-sdk-accessanalyzer'
+        exclude module: 'aws-java-sdk-acmpca'
+        exclude module: 'aws-java-sdk-alexaforbusiness'
+        exclude module: 'aws-java-sdk-amplify'
+        exclude module: 'aws-java-sdk-amplifybackend'
+        exclude module: 'aws-java-sdk-apigatewaymanagementapi'
+        exclude module: 'aws-java-sdk-apigatewayv2'
+        exclude module: 'aws-java-sdk-appconfig'
+        exclude module: 'aws-java-sdk-appflow'
+        exclude module: 'aws-java-sdk-appintegrations'
+        exclude module: 'aws-java-sdk-applicationautoscaling'
+        exclude module: 'aws-java-sdk-applicationcostprofiler'
+        exclude module: 'aws-java-sdk-applicationinsights'
+        exclude module: 'aws-java-sdk-appmesh'
+        exclude module: 'aws-java-sdk-appregistry'
+        exclude module: 'aws-java-sdk-apprunner'
+        exclude module: 'aws-java-sdk-appstream'
+        exclude module: 'aws-java-sdk-appsync'
+        exclude module: 'aws-java-sdk-athena'
+        exclude module: 'aws-java-sdk-auditmanager'
+        exclude module: 'aws-java-sdk-augmentedairuntime'
+        exclude module: 'aws-java-sdk-autoscalingplans'
+        exclude module: 'aws-java-sdk-backup'
+        exclude module: 'aws-java-sdk-batch'
+        exclude module: 'aws-java-sdk-bom'
+        exclude module: 'aws-java-sdk-braket'
+        exclude module: 'aws-java-sdk-budgets'
+        exclude module: 'aws-java-sdk-bundle'
+        exclude module: 'aws-java-sdk-chime'
+        exclude module: 'aws-java-sdk-chimesdkidentity'
+        exclude module: 'aws-java-sdk-chimesdkmessaging'
+        exclude module: 'aws-java-sdk-cloud9'
+        exclude module: 'aws-java-sdk-clouddirectory'
+        exclude module: 'aws-java-sdk-cloudfront'
+        exclude module: 'aws-java-sdk-cloudhsm'
+        exclude module: 'aws-java-sdk-cloudhsmv2'
+        exclude module: 'aws-java-sdk-cloudsearch'
+        exclude module: 'aws-java-sdk-cloudtrail'
+        exclude module: 'aws-java-sdk-code-generator'
+        exclude module: 'aws-java-sdk-codeartifact'
+        exclude module: 'aws-java-sdk-codebuild'
+        exclude module: 'aws-java-sdk-codecommit'
+        exclude module: 'aws-java-sdk-codedeploy'
+        exclude module: 'aws-java-sdk-codegen-maven-plugin'
+        exclude module: 'aws-java-sdk-codeguruprofiler'
+        exclude module: 'aws-java-sdk-codegurureviewer'
+        exclude module: 'aws-java-sdk-codepipeline'
+        exclude module: 'aws-java-sdk-codestar'
+        exclude module: 'aws-java-sdk-codestarconnections'
+        exclude module: 'aws-java-sdk-codestarnotifications'
+        exclude module: 'aws-java-sdk-cognitoidentity'
+        exclude module: 'aws-java-sdk-cognitoidp'
+        exclude module: 'aws-java-sdk-cognitosync'
+        exclude module: 'aws-java-sdk-comprehend'
+        exclude module: 'aws-java-sdk-comprehendmedical'
+        exclude module: 'aws-java-sdk-computeoptimizer'
+        exclude module: 'aws-java-sdk-config'
+        exclude module: 'aws-java-sdk-connect'
+        exclude module: 'aws-java-sdk-connectcontactlens'
+        exclude module: 'aws-java-sdk-connectparticipant'
+        exclude module: 'aws-java-sdk-customerprofiles'
+        exclude module: 'aws-java-sdk-dataexchange'
+        exclude module: 'aws-java-sdk-datapipeline'
+        exclude module: 'aws-java-sdk-datasync'
+        exclude module: 'aws-java-sdk-dax'
+        exclude module: 'aws-java-sdk-detective'
+        exclude module: 'aws-java-sdk-devicefarm'
+        exclude module: 'aws-java-sdk-devopsguru'
+        exclude module: 'aws-java-sdk-directconnect'
+        exclude module: 'aws-java-sdk-directory'
+        exclude module: 'aws-java-sdk-discovery'
+        exclude module: 'aws-java-sdk-dlm'
+        exclude module: 'aws-java-sdk-dms'
+        exclude module: 'aws-java-sdk-docdb'
+        exclude module: 'aws-java-sdk-ebs'
+        exclude module: 'aws-java-sdk-ec2instanceconnect'
+        exclude module: 'aws-java-sdk-ecr'
+        exclude module: 'aws-java-sdk-ecrpublic'
+        exclude module: 'aws-java-sdk-ecs'
+        exclude module: 'aws-java-sdk-efs'
+        exclude module: 'aws-java-sdk-elasticbeanstalk'
+        exclude module: 'aws-java-sdk-elasticinference'
+        exclude module: 'aws-java-sdk-elastictranscoder'
+        exclude module: 'aws-java-sdk-emr'
+        exclude module: 'aws-java-sdk-emrcontainers'
+        exclude module: 'aws-java-sdk-eventbridge'
+        exclude module: 'aws-java-sdk-finspace'
+        exclude module: 'aws-java-sdk-finspacedata'
+        exclude module: 'aws-java-sdk-fis'
+        exclude module: 'aws-java-sdk-fms'
+        exclude module: 'aws-java-sdk-forecast'
+        exclude module: 'aws-java-sdk-forecastquery'
+        exclude module: 'aws-java-sdk-frauddetector'
+        exclude module: 'aws-java-sdk-fsx'
+        exclude module: 'aws-java-sdk-gamelift'
+        exclude module: 'aws-java-sdk-glacier'
+        exclude module: 'aws-java-sdk-globalaccelerator'
+        exclude module: 'aws-java-sdk-glue'
+        exclude module: 'aws-java-sdk-gluedatabrew'
+        exclude module: 'aws-java-sdk-greengrass'
+        exclude module: 'aws-java-sdk-greengrassv2'
+        exclude module: 'aws-java-sdk-groundstation'
+        exclude module: 'aws-java-sdk-guardduty'
+        exclude module: 'aws-java-sdk-health'
+        exclude module: 'aws-java-sdk-healthlake'
+        exclude module: 'aws-java-sdk-honeycode'
+//      exclude module: 'aws-java-sdk-iam'
+        exclude module: 'aws-java-sdk-identitystore'
+        exclude module: 'aws-java-sdk-imagebuilder'
+        exclude module: 'aws-java-sdk-importexport'
+        exclude module: 'aws-java-sdk-inspector'
+        exclude module: 'aws-java-sdk-iot'
+        exclude module: 'aws-java-sdk-iot1clickdevices'
+        exclude module: 'aws-java-sdk-iot1clickprojects'
+        exclude module: 'aws-java-sdk-iotanalytics'
+        exclude module: 'aws-java-sdk-iotdeviceadvisor'
+        exclude module: 'aws-java-sdk-iotevents'
+        exclude module: 'aws-java-sdk-ioteventsdata'
+        exclude module: 'aws-java-sdk-iotfleethub'
+        exclude module: 'aws-java-sdk-iotjobsdataplane'
+        exclude module: 'aws-java-sdk-iotsecuretunneling'
+        exclude module: 'aws-java-sdk-iotsitewise'
+        exclude module: 'aws-java-sdk-iotthingsgraph'
+        exclude module: 'aws-java-sdk-iotwireless'
+        exclude module: 'aws-java-sdk-ivs'
+        exclude module: 'aws-java-sdk-kafka'
+        exclude module: 'aws-java-sdk-kendra'
+        exclude module: 'aws-java-sdk-kinesis'
+        exclude module: 'aws-java-sdk-kinesisanalyticsv2'
+        exclude module: 'aws-java-sdk-kinesisvideo'
+        exclude module: 'aws-java-sdk-kinesisvideosignalingchannels'
+        exclude module: 'aws-java-sdk-kms'
+        exclude module: 'aws-java-sdk-lakeformation'
+        exclude module: 'aws-java-sdk-lambda'
+        exclude module: 'aws-java-sdk-lex'
+        exclude module: 'aws-java-sdk-lexmodelbuilding'
+        exclude module: 'aws-java-sdk-lexmodelsv2'
+        exclude module: 'aws-java-sdk-lexruntimev2'
+        exclude module: 'aws-java-sdk-licensemanager'
+        exclude module: 'aws-java-sdk-lightsail'
+        exclude module: 'aws-java-sdk-location'
+        exclude module: 'aws-java-sdk-logs'
+        exclude module: 'aws-java-sdk-lookoutequipment'
+        exclude module: 'aws-java-sdk-lookoutforvision'
+        exclude module: 'aws-java-sdk-lookoutmetrics'
+        exclude module: 'aws-java-sdk-machinelearning'
+        exclude module: 'aws-java-sdk-macie'
+        exclude module: 'aws-java-sdk-macie2'
+        exclude module: 'aws-java-sdk-managedblockchain'
+        exclude module: 'aws-java-sdk-marketplacecatalog'
+        exclude module: 'aws-java-sdk-marketplacecommerceanalytics'
+        exclude module: 'aws-java-sdk-marketplaceentitlement'
+        exclude module: 'aws-java-sdk-marketplacemeteringservice'
+        exclude module: 'aws-java-sdk-mechanicalturkrequester'
+        exclude module: 'aws-java-sdk-mediaconnect'
+        exclude module: 'aws-java-sdk-mediaconvert'
+        exclude module: 'aws-java-sdk-medialive'
+        exclude module: 'aws-java-sdk-mediapackage'
+        exclude module: 'aws-java-sdk-mediapackagevod'
+        exclude module: 'aws-java-sdk-mediastore'
+        exclude module: 'aws-java-sdk-mediastoredata'
+        exclude module: 'aws-java-sdk-mediatailor'
+        exclude module: 'aws-java-sdk-memorydb'
+        exclude module: 'aws-java-sdk-mgn'
+        exclude module: 'aws-java-sdk-migrationhub'
+        exclude module: 'aws-java-sdk-migrationhubconfig'
+        exclude module: 'aws-java-sdk-mobile'
+        exclude module: 'aws-java-sdk-models'
+        exclude module: 'aws-java-sdk-mq'
+        exclude module: 'aws-java-sdk-mwaa'
+        exclude module: 'aws-java-sdk-neptune'
+        exclude module: 'aws-java-sdk-networkfirewall'
+        exclude module: 'aws-java-sdk-networkmanager'
+        exclude module: 'aws-java-sdk-nimblestudio'
+        exclude module: 'aws-java-sdk-opensdk'
+        exclude module: 'aws-java-sdk-opsworkscm'
+        exclude module: 'aws-java-sdk-osgi'
+        exclude module: 'aws-java-sdk-outposts'
+        exclude module: 'aws-java-sdk-personalize'
+        exclude module: 'aws-java-sdk-personalizeevents'
+        exclude module: 'aws-java-sdk-personalizeruntime'
+        exclude module: 'aws-java-sdk-pi'
+        exclude module: 'aws-java-sdk-pinpoint'
+        exclude module: 'aws-java-sdk-pinpointemail'
+        exclude module: 'aws-java-sdk-pinpointsmsvoice'
+        exclude module: 'aws-java-sdk-polly'
+        exclude module: 'aws-java-sdk-prometheus'
+        exclude module: 'aws-java-sdk-proton'
+        exclude module: 'aws-java-sdk-qldb'
+        exclude module: 'aws-java-sdk-qldbsession'
+        exclude module: 'aws-java-sdk-quicksight'
+        exclude module: 'aws-java-sdk-ram'
+        exclude module: 'aws-java-sdk-rdsdata'
+        exclude module: 'aws-java-sdk-redshiftdataapi'
+        exclude module: 'aws-java-sdk-rekognition'
+        exclude module: 'aws-java-sdk-resourcegroups'
+        exclude module: 'aws-java-sdk-resourcegroupstaggingapi'
+        exclude module: 'aws-java-sdk-robomaker'
+        exclude module: 'aws-java-sdk-s3control'
+        exclude module: 'aws-java-sdk-s3outposts'
+        exclude module: 'aws-java-sdk-sagemaker'
+        exclude module: 'aws-java-sdk-sagemakeredgemanager'
+        exclude module: 'aws-java-sdk-sagemakerfeaturestoreruntime'
+        exclude module: 'aws-java-sdk-sagemakerruntime'
+        exclude module: 'aws-java-sdk-savingsplans'
+        exclude module: 'aws-java-sdk-schemas'
+        exclude module: 'aws-java-sdk-secretsmanager'
+        exclude module: 'aws-java-sdk-securityhub'
+        exclude module: 'aws-java-sdk-serverlessapplicationrepository'
+        exclude module: 'aws-java-sdk-servermigration'
+        exclude module: 'aws-java-sdk-servicecatalog'
+        exclude module: 'aws-java-sdk-servicediscovery'
+        exclude module: 'aws-java-sdk-servicequotas'
+        exclude module: 'aws-java-sdk-ses'
+        exclude module: 'aws-java-sdk-sesv2'
+        exclude module: 'aws-java-sdk-shield'
+        exclude module: 'aws-java-sdk-signer'
+        exclude module: 'aws-java-sdk-simpledb'
+        exclude module: 'aws-java-sdk-simpleworkflow'
+        exclude module: 'aws-java-sdk-snowball'
+        exclude module: 'aws-java-sdk-snowdevicemanagement'
+        exclude module: 'aws-java-sdk-sns'
+        exclude module: 'aws-java-sdk-sqs'
+//        exclude module: 'aws-java-sdk-ssm'
+        exclude module: 'aws-java-sdk-ssmcontacts'
+        exclude module: 'aws-java-sdk-ssmincidents'
+        exclude module: 'aws-java-sdk-sso'
+        exclude module: 'aws-java-sdk-ssoadmin'
+        exclude module: 'aws-java-sdk-ssooidc'
+        exclude module: 'aws-java-sdk-stepfunctions'
+        exclude module: 'aws-java-sdk-storagegateway'
+//      exclude module: 'aws-java-sdk-sts'
+        exclude module: 'aws-java-sdk-support'
+        exclude module: 'aws-java-sdk-synthetics'
+        exclude module: 'aws-java-sdk-test-utils'
+        exclude module: 'aws-java-sdk-textract'
+        exclude module: 'aws-java-sdk-timestreamquery'
+        exclude module: 'aws-java-sdk-timestreamwrite'
+        exclude module: 'aws-java-sdk-transcribe'
+        exclude module: 'aws-java-sdk-transfer'
+        exclude module: 'aws-java-sdk-translate'
+        exclude module: 'aws-java-sdk-waf'
+        exclude module: 'aws-java-sdk-wafv2'
+        exclude module: 'aws-java-sdk-wellarchitected'
+        exclude module: 'aws-java-sdk-workdocs'
+        exclude module: 'aws-java-sdk-worklink'
+        exclude module: 'aws-java-sdk-workmail'
+        exclude module: 'aws-java-sdk-workmailmessageflow'
+        exclude module: 'aws-java-sdk-workspaces'
+        exclude module: 'aws-java-sdk-xray'
+    }
+
+    implementation("com.bertramlabs.plugins:karman-aws:${karmanVersion}") {
+        exclude module: 'aws-java-sdk'
+    }
+
+	implementation 'org.yaml:snakeyaml:1.26'
+
+	// Include morpheus-core and it's dependencies
+	testImplementation 'io.reactivex.rxjava2:rxjava:2.2.0'
+	testImplementation 'org.apache.httpcomponents:httpclient:4.5.3'
+	testImplementation 'org.apache.httpcomponents:httpcore:4.4.5'
+	testImplementation "org.slf4j:slf4j-parent:$slf4jVersion"
+
+	testImplementation "org.codehaus.groovy:groovy-all:$groovyVersion"
+	testImplementation 'net.bytebuddy:byte-buddy:1.9.3'
+	testImplementation 'org.objenesis:objenesis:2.6'
+	testImplementation "org.spockframework:spock-core:$spockVersion"
+	testImplementation 'cglib:cglib-nodep:3.2.12'
+}
+
+sourceSets {
+	main {
+		compileClasspath += configurations.provided
+	}
+}
+
+jar {
+	manifest {
+		attributes(
+				'Plugin-Class': 'com.morpheusdata.aws.AWSPlugin',
+				'Plugin-Version': version,
+				'Morpheus-Name': 'Amazon Web Services',
+				'Morpheus-Organization': 'morpheus',
+				'Morpheus-Code': 'morpheus-aws-plugin',
+				'Morpheus-Description': 'Plugin for Amazon Web Services',
+				'Morpheus-Logo': 'assets/nutanix-prism.svg',
+				'Morpheus-Logo-Dark': 'assets/nutanix-prism-dark.svg',
+				'Morpheus-Color': '#ffffff',
+				'Morpheus-Labels': 'Plugin, Cloud',
+				'Morpheus-Repo': 'https://github.com/gomorpheus/morpheus-aws-plugin',
+				'Morpheus-Min-Appliance-Version': "6.0.2"
+		)
+	}
+}
+
+task(console, dependsOn: 'classes', type: JavaExec) {
+	main = 'groovy.ui.Console'
+	classpath = sourceSets.main.runtimeClasspath
+}
+
+test {
+	testLogging {
+		exceptionFormat = 'full'
+		showStandardStreams = true
+	}
+}
+
+shadowJar {
+	// archiveFileName = "${baseName}-${version}.mpl"
+}
+
+tasks.assemble.dependsOn tasks.shadowJar
+
+tasks.register('moveToPlugin') {
+	doLast {
+		ant.move file: "${buildDir}/libs/${project.name}-${version}-all.jar",
+				todir: "../morpheus-plugins"
+	}
+}
+
+// Runs assemble and copyToMorpheus
+tasks.register('publishToMorpheus') {
+	dependsOn tasks.shadowJar
+	dependsOn 'moveToPlugin'
+	tasks.findByName('moveToPlugin').mustRunAfter 'shadowJar'
+}
