@@ -4,6 +4,9 @@ import com.amazonaws.client.builder.AwsClientBuilder
 import com.amazonaws.retry.RetryMode
 import com.amazonaws.retry.RetryPolicy
 import com.morpheusdata.model.Cloud
+import com.morpheusdata.model.KeyPair
+import com.morpheusdata.core.util.KeyUtility
+import com.morpheusdata.core.util.ProgressInputStream
 import groovy.json.JsonOutput
 
 import java.text.SimpleDateFormat
@@ -394,7 +397,7 @@ class AmazonComputeUtility {
 			}
 			if(doUpload == true) {
 				def amazonClient = opts.amazonClient
-				def key = opts.key ?: AccountKeyPair.findOrGenerateKeyPair(opts.account)
+				def key = opts.key ?: KeyPair.findOrGenerateKeyPair(opts.account)
 				def keyName = opts.keyName ?: generateKeyName(opts.zone.id)
 				def keyRequest = new ImportKeyPairRequest(keyName, key.publicKey)
 				def keyResult = amazonClient.importKeyPair(keyRequest)
