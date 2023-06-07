@@ -77,7 +77,7 @@ class VirtualMachineSync {
 						}
 					}
 					match
-				}.withLoadObjectDetailsFromFinder { List<UpdateItemDto<ComputeServerIdentityProjection, com.morpheus.Instance>> updateItems ->
+				}.withLoadObjectDetailsFromFinder { List<UpdateItemDto<ComputeServerIdentityProjection, Instance>> updateItems ->
 					morpheusContext.computeServer.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.onAdd { itemsToAdd ->
 					if(inventoryLevel in ['basic', 'full']) {
