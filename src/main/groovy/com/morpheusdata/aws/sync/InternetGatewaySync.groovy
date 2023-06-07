@@ -24,7 +24,7 @@ class InternetGatewaySync {
 	private Cloud cloud
 	private MorpheusContext morpheusContext
 	private AWSPlugin plugin
-
+	private Map<String, ComputeZonePoolIdentityProjection> zonePools
 
 	public InternetGatewaySync(AWSPlugin plugin, Cloud cloud) {
 		this.plugin = plugin
@@ -35,19 +35,19 @@ class InternetGatewaySync {
 	def execute() {
 		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap {
 			final String regionCode = it.externalId
-			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false,it.externalId)
+			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, it.externalId)
 			def routerResults = AmazonComputeUtility.listInternetGateways([amazonClient: amazonClient])
 			if(routerResults.success) {
 				Observable<NetworkRouterIdentityProjection> domainRecords = morpheusContext.network.router.listIdentityProjections(cloud.id,'amazonInternetGateway')
-				SyncTask<NetworkRouterIdentityProjection, InternetGateway, NetworkRouter> syncTask = new SyncTask<>(domainRecords, routerResults.internetGateways as Collection<InternetGateway>)
+ 				SyncTask<NetworkRouterIdentityProjection, InternetGateway, NetworkRouter> syncTask = new SyncTask<>(domainRecords, routerResults.internetGateways as Collection<InternetGateway>)
 				return syncTask.addMatchFunction { NetworkRouterIdentityProjection domainObject, InternetGateway data ->
 					domainObject.externalId == data.getInternetGatewayId()
 				}.onDelete { removeItems ->
 					removeMissingRouters(removeItems)
 				}.onUpdate { List<SyncTask.UpdateItem<ComputeZonePool, InternetGateway>> updateItems ->
-					updateMatchedInternetGateways(updateItems,regionCode)
+					updateMatchedInternetGateways(updateItems)
 				}.onAdd { itemsToAdd ->
-					addMissingInternetGateways(itemsToAdd, regionCode)
+					addMissingInternetGateways(itemsToAdd)
 
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<NetworkRouterIdentityProjection, InternetGateway>> updateItems ->
 					return morpheusContext.network.router.listById(updateItems.collect { it.existingItem.id } as List<Long>)
@@ -103,7 +103,7 @@ class InternetGatewaySync {
 			attachments?.each { attachment ->
 				// should only be one
 				def vpcId = attachment.getVpcId()
-				def pool = zonePools[vpcId]
+				def pool = allZonePools[vpcId]
 				if(existingItem.poolId?.toString() != pool?.id?.toString()) {
 					existingItem.poolId = pool?.id
 					save = true
@@ -125,5 +125,9 @@ class InternetGatewaySync {
 
 	protected removeMissingRouters(List<NetworkRouterIdentityProjection> removeList) {
 		morpheusContext.network.router.remove(removeList).blockingGet()
+	}
+
+	private Map<String, ComputeZonePoolIdentityProjection> getAllZonePools() {
+		zonePools ?: (zonePools = morpheusContext.cloud.pool.listSyncProjections(cloud.id, '').toMap {it.externalId}.blockingGet())
 	}
 }

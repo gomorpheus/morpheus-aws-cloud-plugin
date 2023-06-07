@@ -3,6 +3,7 @@ package com.morpheusdata.aws.utils
 import com.amazonaws.client.builder.AwsClientBuilder
 import com.amazonaws.retry.RetryMode
 import com.amazonaws.retry.RetryPolicy
+import com.amazonaws.services.simplesystemsmanagement.model.GetParametersRequest
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.KeyPair
 import com.morpheusdata.core.util.KeyUtility
@@ -397,11 +398,10 @@ class AmazonComputeUtility {
 			}
 			if(doUpload == true) {
 				def amazonClient = opts.amazonClient
-				def key = opts.key ?: KeyPair.findOrGenerateKeyPair(opts.account)
+				def key = opts.key
 				def keyName = opts.keyName ?: generateKeyName(opts.zone.id)
 				def keyRequest = new ImportKeyPairRequest(keyName, key.publicKey)
-				def keyResult = amazonClient.importKeyPair(keyRequest)
-				println "Created KeyPair: ${keyName}"
+				amazonClient.importKeyPair(keyRequest)
 				rtn.success = true
 				rtn.keyName = keyName
 				rtn.uploaded = true
@@ -1179,7 +1179,7 @@ class AmazonComputeUtility {
 		return rtn
 	}
 	
-	static listInternetGateways(Map authConfig, Map opts) {
+	static listInternetGateways(Map authConfig, Map opts = [:]) {
 		def rtn = [success:false, internetGateways:[]]
 		try {
 			AmazonEC2 amazonClient = authConfig.amazonClient as AmazonEC2
@@ -4238,7 +4238,7 @@ class AmazonComputeUtility {
 	static getAmazonAccessKey(zone) {
 		def config = zone.getConfigMap()
 		def useHostCredentials = getAmazonUseHostCredentials(zone)
-		def rtn = useHostCredentials ? null : (zone.credentialData?.username ?: config.accessKey)
+		def rtn = useHostCredentials ? null : (zone.accountCredentialData?.username ?: config.accessKey)
 		if(!useHostCredentials && !rtn) {
 			throw new Exception('no amazon access key specified')
 		}
@@ -4248,7 +4248,7 @@ class AmazonComputeUtility {
 	static getAmazonSecretKey(zone) {
 		def config = zone.getConfigMap()
 		def useHostCredentials = getAmazonUseHostCredentials(zone)
-		def rtn = useHostCredentials ? null : (zone.credentialData?.password ?: config.secretKey)
+		def rtn = useHostCredentials ? null : (zone.accountCredentialData?.password ?: config.secretKey)
 		if(!useHostCredentials && !rtn) {
 			throw new Exception('no amazon secret key specified')
 		}
@@ -4402,7 +4402,7 @@ class AmazonComputeUtility {
 	static getAmazonClient(zone, fresh=false, String region=null) {
 		def creds
 		AWSCredentialsProvider credsProvider
-		def clientInfo = getCachedClientInfo("zone:${zone.id}:${region}",'client')
+		def clientInfo = getCachedClientInfo("cloud:${zone.id}:${region}",'client')
 		if(!fresh && clientInfo.client) {
 			return clientInfo.client
 		} else if(!fresh) {

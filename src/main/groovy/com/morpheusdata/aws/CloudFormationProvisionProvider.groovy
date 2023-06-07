@@ -342,7 +342,7 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	String getCode() {
-		return null
+		'amazon-cloud-formation-provision-provider'
 	}
 
 	/**

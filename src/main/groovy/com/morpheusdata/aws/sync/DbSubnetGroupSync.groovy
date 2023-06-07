@@ -34,7 +34,7 @@ class DbSubnetGroupSync {
 		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap {
 			final String regionCode = it.externalId
 			AmazonRDS amazonClient = AmazonComputeUtility.getAmazonRdsClient(cloud,false,it.externalId)
-			def dbSubnetResults = AmazonComputeUtility.listDbSubnetGroups([amazonClient: amazonClient])
+			def dbSubnetResults = AmazonComputeUtility.listDbSubnetGroups([amazonClient: amazonClient, zone: cloud])
 			if(dbSubnetResults.success) {
 				Observable<ReferenceDataSyncProjection> domainRecords = morpheusContext.cloud.listReferenceDataByCategory(cloud,"amazon.ec2.db.subnetgroup.${cloud.id}.${regionCode}".toString()).mergeWith(morpheusContext.cloud.listReferenceDataByCategory(cloud,"amazon.ec2.db.subnetgroup.${cloud.id}".toString()))
 				SyncTask<ReferenceDataSyncProjection, DBSubnetGroup, ReferenceData> syncTask = new SyncTask<>(domainRecords, dbSubnetResults.subnetGroupList as Collection<DBSubnetGroup>)

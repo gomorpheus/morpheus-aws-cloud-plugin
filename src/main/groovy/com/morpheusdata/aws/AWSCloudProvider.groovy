@@ -15,6 +15,7 @@ import com.morpheusdata.aws.sync.SubnetSync
 import com.morpheusdata.aws.sync.TransitGatewaySync
 import com.morpheusdata.aws.sync.TransitGatewayVpcAttachmentSync
 import com.morpheusdata.aws.sync.VPCSync
+import com.morpheusdata.aws.sync.VirtualMachineSync
 import com.morpheusdata.aws.sync.VpcPeeringConnectionSync
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.backup.AbstractBackupProvider
@@ -23,12 +24,11 @@ import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
 import com.morpheusdata.core.ProvisioningProvider
 import com.morpheusdata.core.util.ConnectionUtils
-import com.morpheusdata.core.util.HttpApiClient
-import com.morpheusdata.model.AccountCredential
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.ComputeServer
 import com.morpheusdata.model.ComputeServerType
 import com.morpheusdata.model.Icon
+import com.morpheusdata.model.KeyPair
 import com.morpheusdata.model.NetworkProxy
 import com.morpheusdata.model.NetworkSubnetType
 import com.morpheusdata.model.NetworkType
@@ -54,79 +54,109 @@ class AWSCloudProvider implements CloudProvider {
 	@Override
 	Collection<OptionType> getOptionTypes() {
 		OptionType apiUrl = new OptionType(
-				name: 'Api Url',
-				code: 'nutanix-prism-api-url',
-				fieldName: 'serviceUrl',
-				displayOrder: 0,
-				fieldLabel: 'Api Url',
-				required: true,
-				inputType: OptionType.InputType.TEXT,
-				fieldContext: 'domain'
+			name: 'Region',
+			code: 'aws-plugin-endpoint',
+			defaultValue: 'ec2.us-east-1.amazonaws.com',
+			displayOrder: 0,
+			fieldContext: 'config',
+			fieldLabel: 'Region',
+			fieldName: 'endpoint',
+			inputType: OptionType.InputType.SELECT,
+			optionSource: 'awsPluginEndpoint',
+			required: true
 		)
 		OptionType credentials = new OptionType(
-				code: 'nutanix-prism-credential',
-				inputType: OptionType.InputType.CREDENTIAL,
-				name: 'Credentials',
-				fieldName: 'type',
-				fieldLabel: 'Credentials',
-				fieldContext: 'credential',
-				required: true,
-				defaultValue: 'local',
-				displayOrder: 10,
-				optionSource: 'credentials',
-				config: '{"credentialTypes":["username-password"]}'
+			code: 'aws-plugin-credential',
+			inputType: OptionType.InputType.CREDENTIAL,
+			name: 'Credentials',
+			fieldContext: 'credential',
+			fieldLabel: 'Credentials',
+			fieldName: 'type',
+			required: true,
+			defaultValue: 'local',
+			displayOrder: 10,
+			optionSource: 'credentials',
+			config: '{"credentialTypes":["access-key-secret"]}'
 		)
-		OptionType username = new OptionType(
-				name: 'Username',
-				code: 'nutanix-prism-username',
-				fieldName: 'serviceUsername',
-				displayOrder: 20,
-				fieldLabel: 'Username',
-				required: true,
-				inputType: OptionType.InputType.TEXT,
-				fieldContext: 'domain',
-				localCredential: true
+		OptionType accessKey = new OptionType(
+			name: 'Access Key',
+			code: 'aws-plugin-access-key',
+			displayOrder: 20,
+			fieldContext: 'config',
+			fieldLabel: 'Access Key',
+			fieldName: 'accessKey',
+			inputType: OptionType.InputType.TEXT,
+			localCredential: true,
+			required: true
 		)
-		OptionType password = new OptionType(
-				name: 'Password',
-				code: 'nutanix-prism-password',
-				fieldName: 'servicePassword',
-				displayOrder: 25,
-				fieldLabel: 'Password',
-				required: true,
-				inputType: OptionType.InputType.PASSWORD,
-				fieldContext: 'domain',
-				localCredential: true
+		OptionType secretKey = new OptionType(
+			name: 'Secret Key',
+			code: 'aws-plugin-secret-key',
+			displayOrder: 30,
+			fieldContext: 'config',
+			fieldLabel: 'Secret Key',
+			fieldName: 'secretKey',
+			inputType: OptionType.InputType.PASSWORD,
+			localCredential: true,
+			required: true
 		)
-
-		OptionType inventoryInstances = new OptionType(
-				name: 'Inventory Existing Instances',
-				code: 'nutanix-prism-import-existing',
-				fieldName: 'importExisting',
-				displayOrder: 90,
-				fieldLabel: 'Inventory Existing Instances',
-				required: false,
-				inputType: OptionType.InputType.CHECKBOX,
-				fieldContext: 'config'
+		OptionType useHostCreds = new OptionType(
+			name: 'Use Host IAM Credentials',
+			code: 'aws-plugin-use-host-creds',
+			displayOrder: 40,
+			fieldContext: 'config',
+			fieldLabel: 'Use Host IAM Credentials',
+			fieldName: 'useHostCredentials',
+			inputType: OptionType.InputType.CHECKBOX,
+			required: true
 		)
-
-		OptionType enableVnc = new OptionType(
-				name: 'Enable Hypervisor Console',
-				code: 'nutanix-prism-enableVnc',
-				fieldName: 'enableVnc',
-				displayOrder: 91,
-				fieldLabel: 'Enable Hypervisor Console',
-				required: false,
-				inputType: OptionType.InputType.CHECKBOX,
-				fieldContext: 'config'
+		OptionType roleArn = new OptionType(
+			name: 'Role ARN',
+			code: 'aws-plugin-role-arn',
+			displayOrder: 40,
+			fieldContext: 'config',
+			fieldLabel: 'Role ARN',
+			fieldName: 'stsAssumeRole',
+			inputType: OptionType.InputType.CHECKBOX,
 		)
-
-		[apiUrl, credentials, username, password, inventoryInstances, enableVnc]
+		OptionType importExisting = new OptionType(
+			name: 'Import Existing',
+			code: 'aws-plugin-import-existing',
+			defaultValue: 'off',
+			displayOrder: 50,
+			fieldContext: 'config',
+			fieldLabel: 'Import Existing Instances',
+			fieldName: 'importExisting',
+			helpBlock: 'Turn this feature on to import existing virtual machines from Amazon.',
+			inputType: OptionType.InputType.CHECKBOX,
+			required: true
+		)
+		OptionType isVpc = new OptionType(
+			name: 'Use VPC Existing Instances',
+			code: 'aws-plugin-is-vpc',
+			displayOrder: 60,
+			fieldContext: 'config',
+			fieldLabel: 'Use VPC Existing Instances',
+			fieldName: 'isVpc',
+			inputType: OptionType.InputType.CHECKBOX,
+			required: true
+		)
+		OptionType vpc = new OptionType(
+			name: 'VPC',
+			code: 'aws-plugin-vpc',
+			displayOrder: 70,
+			fieldContext: 'config',
+			fieldLabel: 'VPC',
+			fieldName: 'vpc',
+			inputType: OptionType.InputType.SELECT,
+			optionSource: 'awsPluginVpc',
+			visibleOnCode: 'matchAny::config.isVpc:true,config.isVpc:on'
+		)
+		[apiUrl, credentials, accessKey, secretKey, useHostCreds, roleArn, importExisting, isVpc, vpc]
 	}
 
 	@Override
 	Collection<ComputeServerType> getComputeServerTypes() {
-		
 		ComputeServerType unmanaged = new ComputeServerType()
 		unmanaged.name = 'Amazon Instance'
 		unmanaged.code = 'amazonUnmanaged'
@@ -171,7 +201,7 @@ class AWSCloudProvider implements CloudProvider {
 		windwsVmType.managed = true
 		windwsVmType.provisionTypeCode = 'amazon'
 
-		[unmanaged, dockerType,vmType,windwsVmType] //TODO: More types for RDS and K8s
+		[unmanaged, dockerType, vmType, windwsVmType] //TODO: More types for RDS and K8s
 	}
 
 	@Override
@@ -255,43 +285,142 @@ class AWSCloudProvider implements CloudProvider {
 		log.info("validate: {}", cloudInfo)
 		try {
 			if(cloudInfo) {
-				def username
-				def password
-				if(validateCloudRequest.credentialType?.toString().isNumber()) {
-					AccountCredential accountCredential = morpheus.accountCredential.get(validateCloudRequest.credentialType.toLong()).blockingGet()
-					password = accountCredential.data.password
-					username = accountCredential.data.username
-				} else if(validateCloudRequest.credentialType == 'username-password') {
-					password = validateCloudRequest.credentialPassword ?: cloudInfo.servicePassword
-					username = validateCloudRequest.credentialUsername ?: cloudInfo.serviceUsername
-				} else if(validateCloudRequest.credentialType == 'local') {
-					if(validateCloudRequest.opts?.zone?.servicePassword && validateCloudRequest.opts?.zone?.servicePassword != '************') {
-						password = validateCloudRequest.opts?.zone?.servicePassword
-					} else {
-						password = cloudInfo.servicePassword
-					}
-					username = validateCloudRequest.opts?.zone?.serviceUsername ?: cloudInfo.serviceUsername
+				def config = validateCloudRequest.opts.config ?: [:]
+				def useHostCredentials = config.useHostCredentials in [true, 'true', 'on']
+				def username, password
+
+				if(config.endpoint == 'global') {
+					cloudInfo.regionCode = 'global'
+					//no more verification necessary this is a cost aggregator cloud only, disable cloud
+					return ServiceResponse.success()
 				}
 
-				if(username?.length() < 1) {
-					return new ServiceResponse(success: false, msg: 'Enter a username')
-				} else if(password?.length() < 1) {
-					return new ServiceResponse(success: false, msg: 'Enter a password')
-				} else if(cloudInfo.serviceUrl?.length() < 1) {
-					return new ServiceResponse(success: false, msg: 'Enter an api url')
-				} else {
-					//test api call
-					def apiUrl = plugin.getApiUrl(cloudInfo.serviceUrl)
-					//get creds
-					Map authConfig = [apiUrl: apiUrl, basePath: 'api/nutanix/v3', v2basePath: 'api/nutanix/v2.0', username: username, password: password]
-					HttpApiClient apiClient = new HttpApiClient()
-					def clusterList = NutanixPrismComputeUtility.listHostsV2(apiClient, authConfig)
-					if(clusterList.success == true) {
-						return ServiceResponse.success()
-					} else {
-						return new ServiceResponse(success: false, msg: 'Invalid credentials')
+				if(!useHostCredentials) {
+					if(validateCloudRequest.credentialType?.toString().isNumber() || validateCloudRequest.credentialType == 'access-key-secret') {
+						username = validateCloudRequest.credentialUsername
+						password = validateCloudRequest.credentialPassword
+
+						if(!username) {
+							return new ServiceResponse(success: false, msg: 'Enter an access key', errors: ['credential.username': 'Required field'])
+						}
+						if(!password) {
+							return new ServiceResponse(success: false, msg: 'Enter a secret key', errors: ['credential.password': 'Required field'])
+						}
+					}
+					if(validateCloudRequest.credentialType == 'local') {
+						username = config.accessKey
+						password = config.secretKey
+
+						if(!username) {
+							return new ServiceResponse(success: false, msg: 'Enter an access key', errors: ['accessKey': 'Required field'])
+						}
+						if(!password) {
+							return new ServiceResponse(success: false, msg: 'Enter a secret key', errors: ['secretKey': 'Required field'])
+						}
 					}
 				}
+
+				//test creds
+				cloudInfo.accountCredentialData = [username: username, password: password]
+				def testResults = AmazonComputeUtility.testConnection(cloudInfo)
+				if(!testResults.success) {
+					if (testResults.invalidLogin) {
+						return new ServiceResponse(success: false, msg: 'Invalid amazon credentials')
+					} else {
+						return new ServiceResponse(success: false, msg: 'Unknown error connecting to amazon')
+					}
+				}
+				return ServiceResponse.success()
+/*
+				if(config.costingReport) {
+					def loadReportsResult = amazonCostingService.loadReportDefinitions(zone)
+
+					if (loadReportsResult.success) {
+						def costingReport
+						if (config.costingReport == 'createReport') {
+							config.costingReportError = null
+
+							if (!config.costingReportName) {
+								rtn.success = false
+								rtn.errors.costingReportName = "Missing report name required to create a new report"
+							} else if(!configMap.costingFolder) {
+								rtn.success = false
+								rtn.errors.costingFolder = "Missing folder name required to create a new report"
+							} else {
+								costingReport = loadReportsResult.reports?.find { it.reportName == configMap.costingReportName }
+
+								if (!costingReport) {
+									if (!configMap.costingBucket) {
+										rtn.success = false
+										rtn.errors.costingBucket = 'Choose a costing report bucket'
+									} else {
+										def costingBucket
+
+										if (configMap.costingBucket == 'createBucket') {
+											if (!configMap.costingBucketName) {
+												rtn.success = false
+												rtn.errors.costingBucketName = 'Enter costing report bucket name'
+											}
+										} else {
+											costingBucket = StorageBucket.withCriteria(uniqueResult: true) {
+												eq('bucketName', configMap.costingBucket)
+												eq('account', zone.account)
+												storageServer {
+													eq('refType', 'ComputeZone')
+													eq('refId', zone.id)
+												}
+											}
+											if (!costingBucket) {
+												rtn.success = false
+												rtn.errors.costingBucket = "Costing report bucket ${configMap.costingBucket} not found"
+											}
+										}
+									}
+								}
+							}
+						} else {
+							if (!(costingReport = loadReportsResult.reports?.find { it.reportName == configMap.costingReport })) {
+								rtn.errors.costingReport = "Costing report ${configMap.costingReport} not found"
+								rtn.success = false
+							}
+						}
+						zone.setConfigMap(configMap)
+					}
+					else if(configMap.costingBucket) {
+						def costingBucket = StorageBucket.withCriteria(uniqueResult: true) {
+							eq('bucketName', configMap.costingBucket)
+							eq('account', zone.account)
+							storageServer {
+								eq('refType', 'ComputeZone')
+								eq('refId', zone.id)
+							}
+						}
+						if (!costingBucket) {
+							rtn.success = false
+							rtn.errors.costingBucket = "Costing report bucket ${configMap.costingBucket} not found"
+						}
+						else {
+							def bucketRegion = costingBucket.getConfigProperty('region')
+
+							if(!bucketRegion) {
+								def bucketLocationResult = AmazonComputeUtility.getBucketLocation(getAmazonS3Client(zone, null, false), costingBucket.bucketName)
+
+								if(bucketLocationResult.success) {
+									bucketRegion = bucketLocationResult.location
+								}
+								else {
+									rtn.success = false
+									rtn.errors.costingBucket = "Unable to get costing report bucket region"
+								}
+							}
+							if(rtn.success) {
+								configMap.costingRegion = bucketRegion
+								zone.setConfigMap(configMap)
+							}
+						}
+					}
+				}
+		*/
 			} else {
 				return new ServiceResponse(success: false, msg: 'No cloud found')
 			}
@@ -358,12 +487,12 @@ class AWSCloudProvider implements CloudProvider {
 
 	@Override
 	Icon getIcon() {
-		return new Icon(path:"nutanix-prism.svg", darkPath: "nutanix-prism-dark.svg")
+		return new Icon(path:"amazon.svg", darkPath: "amazon-dark.svg")
 	}
 
 	@Override
 	Icon getCircularIcon() {
-		return new Icon(path:"nutanix-prism-plugin-circular.svg", darkPath: "nutanix-prism-plugin-circular-dark.svg")
+		return new Icon(path:"amazon.svg", darkPath: "amazon-dark.svg")
 	}
 
 	@Override
@@ -432,56 +561,71 @@ class AWSCloudProvider implements CloudProvider {
 		log.info "config: ${cloud.configMap}"
 
 		try {
+			def networkProxy
 
+			if(cloud.apiProxy?.proxyPort) {
+				networkProxy = new NetworkProxy(proxyHost: cloud.apiProxy.proxyHost, proxyPort: cloud.apiProxy.proxyPort)
+			}
 
-			def authConfig = plugin.getAuthConfig(cloud)
-			def apiUrlObj = new URL(authConfig.apiUrl)
-			def apiHost = apiUrlObj.getHost()
-			def apiPort = apiUrlObj.getPort() > 0 ? apiUrlObj.getPort() : (apiUrlObj?.getProtocol()?.toLowerCase() == 'https' ? 443 : 80)
-			def hostOnline = ConnectionUtils.testHostConnectivity(apiHost, apiPort, true, true, proxySettings)
+			def hostOnline = ConnectionUtils.testHostConnectivity(AmazonComputeUtility.getAmazonEndpoint(cloud), 443, true, true, networkProxy)
 			if(hostOnline) {
-				def testResults = AmazonComputeUtility.testConnection(client, authConfig)
-				if(testResults.success == true) {
-					def doInventory = cloud.getConfigProperty('importExisting')
-					Boolean createNew = false
-					if(doInventory == 'on' || doInventory == 'true' || doInventory == true) {
-						createNew = true
-					}
-					new RegionSync(this.plugin,cloud).execute()
-					new VPCSync(this.plugin,cloud).execute()
-					new SubnetSync(this.plugin,cloud).execute()
-					new InstanceProfileSync(this.plugin,cloud).execute()
-					new IAMRoleSync(this.plugin,cloud).execute()
-					new InternetGatewaySync(this.plugin,cloud).execute()
-					//lb services
-					new AlbSync(this.plugin,cloud).execute()
-					new ElbSync(this.plugin,cloud).execute()
-					//resources
-					new EgressOnlyInternetGatewaySync(this.plugin,cloud).execute()
-					new NATGatewaySync(this.plugin,cloud).execute()
-					new TransitGatewaySync(this.plugin,cloud).execute()
-					new TransitGatewayVpcAttachmentSync(this.plugin,cloud).execute()
-					new NetworkInterfaceSync(this.plugin,cloud).execute()
-					new VpcPeeringConnectionSync(this.plugin,cloud).execute()
-					//rds services
-					new DbSubnetGroupSync(this.plugin,cloud).execute()
-					new AlarmSync(this.plugin,cloud).execute()
-					rtn = ServiceResponse.success()
+				def client = plugin.getAmazonClient(cloud,true)
+				def testResults = AmazonComputeUtility.testConnection(cloud)
+				if(testResults.success) {
+					def keyResults = ensureAmazonKeyPair(cloud, client)
 
-				}
-				else {
+					if(keyResults.success == true) {
+						new RegionSync(this.plugin,cloud).execute()
+						new VPCSync(this.plugin,cloud).execute()
+						new SubnetSync(this.plugin,cloud).execute()
+						new InstanceProfileSync(this.plugin,cloud).execute()
+						new IAMRoleSync(this.plugin,cloud).execute()
+						new InternetGatewaySync(this.plugin,cloud).execute()
+						//lb services
+						new AlbSync(this.plugin,cloud).execute()
+						new ElbSync(this.plugin,cloud).execute()
+						//resources
+						new EgressOnlyInternetGatewaySync(this.plugin,cloud).execute()
+						new NATGatewaySync(this.plugin,cloud).execute()
+						new TransitGatewaySync(this.plugin,cloud).execute()
+						new TransitGatewayVpcAttachmentSync(this.plugin,cloud).execute()
+						new NetworkInterfaceSync(this.plugin,cloud).execute()
+						new VpcPeeringConnectionSync(this.plugin,cloud).execute()
+						//rds services
+						new DbSubnetGroupSync(this.plugin,cloud).execute()
+						new AlarmSync(this.plugin,cloud).execute()
+						//vms
+						new VirtualMachineSync(this.plugin,cloud).execute()
+						rtn = ServiceResponse.success()
+
+					} else {
+						rtn = ServiceResponse.error('error uploading keypair')
+					}
+				} else {
 					rtn = ServiceResponse.error(testResults.invalidLogin == true ? 'invalid credentials' : 'error connecting')
 				}
 			} else {
-				rtn = ServiceResponse.error('Nutanix Prism Central is not reachable', null, [status: Cloud.Status.offline])
+				rtn = ServiceResponse.error('AWS is not reachable', null, [status: Cloud.Status.offline])
 			}
 		} catch (e) {
 			log.error("refresh cloud error: ${e}", e)
 		}
-
-		return rtn
+		rtn
 	}
 
-
-
+	private ensureAmazonKeyPair(cloud, amazonClient = null) {
+		amazonClient = amazonClient ?: plugin.getAmazonClient(cloud)
+		def keyPair = morpheusContext.cloud.findOrGenerateKeyPair(cloud.account).blockingGet()
+		def keyLocationId = "amazon-${cloud.id}".toString()
+		def keyResults = AmazonComputeUtility.uploadKeypair(
+			[key: keyPair, account: cloud.account, zone: cloud, keyName: keyPair.getConfigProperty(keyLocationId), amazonClient:amazonClient]
+		)
+		if(keyResults.success) {
+			if(keyResults.uploaded) {
+				keyPair.setConfigProperty(keyLocationId, keyResults.keyName)
+				morpheusContext.cloud.updateKeyPair(keyPair, cloud)
+			}
+		}
+		keyResults
+	}
 }

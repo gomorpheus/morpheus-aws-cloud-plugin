@@ -1,5 +1,6 @@
 package com.morpheusdata.aws
 
+import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
 import com.morpheusdata.model.AccountCredential
@@ -19,14 +20,13 @@ class AWSPlugin extends Plugin {
 	@Override
 	void initialize() {
 		this.setName('Amazon Web Services')
-		// def nutanixProvision = new NutanixPrismProvisionProvider(this, this.morpheus)
-		// def nutanixPrismCloud = new NutanixPrismCloudProvider(this, this.morpheus)
-		// cloudProviderCode = nutanixPrismCloud.code
-		// def nutanixPrismOptionSourceProvider = new NutanixPrismOptionSourceProvider(this, morpheus)
-
-		// this.pluginProviders.put(nutanixProvision.code, nutanixProvision)
-		// this.pluginProviders.put(nutanixPrismCloud.code, nutanixPrismCloud)
-		// this.pluginProviders.put(nutanixPrismOptionSourceProvider.code, nutanixPrismOptionSourceProvider)
+		def provisionProvider = new EC2ProvisionProvider(this, this.morpheus)
+		def cloudProvider = new AWSCloudProvider(this, this.morpheus)
+		cloudProviderCode = cloudProvider.code
+		def optionSourceProvider = new AWSOptionSourceProvider(this, this.morpheus)
+		this.pluginProviders.put(provisionProvider.code, provisionProvider)
+		this.pluginProviders.put(cloudProvider.code, cloudProvider)
+		this.pluginProviders.put(optionSourceProvider.code, optionSourceProvider)
 	}
 
 	@Override
@@ -37,10 +37,23 @@ class AWSPlugin extends Plugin {
 	def MorpheusContext getMorpheusContext() {
 		this.morpheus
 	}
-
 	
 	def AWSCloudProvider getCloudProvider() {
 		this.getProviderByCode(cloudProviderCode)
 	}
 
+	def getAmazonClient(Cloud cloud, Boolean fresh = false, String region=null) {
+		if(!cloud.accountCredentialLoaded) {
+			AccountCredential accountCredential
+			try {
+				accountCredential = this.morpheus.cloud.loadCredentials(cloud.id).blockingGet()
+			} catch(e) {
+				// If there is no credential on the cloud, then this will error
+				// TODO: Change to using 'maybe' rather than 'blockingGet'?
+			}
+			cloud.accountCredentialLoaded = true
+			cloud.accountCredentialData = accountCredential?.data
+		}
+		return AmazonComputeUtility.getAmazonClient(cloud, fresh, region)
+	}
 }

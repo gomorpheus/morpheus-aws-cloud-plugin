@@ -54,7 +54,6 @@ class AlarmSync {
 					updateMatchedAlarms(updateItems,regionCode)
 				}.onAdd { itemsToAdd ->
 					addMissingAlarms(itemsToAdd, regionCode)
-
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<OperationNotificationIdentityProjection, MetricAlarm>> updateItems ->
 					return morpheusContext.operationNotification.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.observe()
@@ -64,7 +63,6 @@ class AlarmSync {
 			}
 		}.blockingSubscribe()
 	}
-
 
 	protected void addMissingAlarms(Collection<MetricAlarm> addList, String region) {
 		def adds = []
@@ -77,12 +75,11 @@ class AlarmSync {
 
 		for(MetricAlarm cloudItem in addList) {
 			def alarmConfig = [account:cloud.owner, category:zoneCategory, name:cloudItem.alarmName,
-				   eventKey:cloudItem.metricName, externalId:cloudItem.getAlarmArn(), acknowledged:cloudItem.stateValue?.toUpperCase() == 'OK',
-				   acknowledgedDate:null, acknowledgedByUser:null,
-				   status:translateAlarmStatus(cloudItem.stateValue), statusMessage:cloudItem.stateReason, startDate:cloudItem.getStateUpdatedTimestamp(),
-				   resourceName:cloud.name, resolveMessage:null,
-				   refType:'computeZone',refId: cloud.id,
-				   uniqueId:cloudItem.getAlarmArn(), zoneId:cloud.id, zoneName:cloud.name, regionCode: region]
+			   eventKey:cloudItem.metricName, externalId:cloudItem.getAlarmArn(), acknowledged:cloudItem.stateValue?.toUpperCase() == 'OK',
+			   acknowledgedDate:null, acknowledgedByUser:null,
+			   status:translateAlarmStatus(cloudItem.stateValue), statusMessage:cloudItem.stateReason, startDate:cloudItem.getStateUpdatedTimestamp(),
+			   resourceName:cloud.name, refType:'computeZone',refId: cloud.id,
+			   uniqueId:cloudItem.getAlarmArn(), cloudId:cloud.id, cloudName:cloud.name, regionCode: region]
 			def refMatch = findManagedAlarmObject(cloudItem,associatedResources)
 			if(refMatch && refMatch.refType && refMatch.refId) {
 				alarmConfig.refType = refMatch.refType
@@ -166,7 +163,6 @@ class AlarmSync {
 		def rtn = [refType:'computeZone', refId:cloud.id]
 		def instanceDimension = cloudItem.dimensions?.find{it.name == 'InstanceId'}
 		if(instanceDimension) {
-			morpheusContext.computeServer.findByCloudAndExternalIdIn
 			def match = associatedResources[instanceDimension.value]
 			if(match) {
 				rtn.refType = 'computeServer'

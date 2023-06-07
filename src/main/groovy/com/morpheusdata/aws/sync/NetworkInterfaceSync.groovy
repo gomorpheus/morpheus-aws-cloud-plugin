@@ -9,10 +9,13 @@ import com.morpheusdata.model.AccountResourceType
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.ComputeZoneRegion
 import com.morpheusdata.model.projection.AccountResourceIdentityProjection
+import com.morpheusdata.model.projection.ComputeZoneRegionIdentityProjection
 import io.reactivex.Observable
 import io.reactivex.Single
 
 class NetworkInterfaceSync extends InternalResourceSync {
+	private Map<String, ComputeZoneRegionIdentityProjection> regions
+
 	public NetworkInterfaceSync(AWSPlugin plugin, Cloud cloud) {
 		this.plugin = plugin
 		this.cloud = cloud
@@ -32,10 +35,9 @@ class NetworkInterfaceSync extends InternalResourceSync {
 				}.onDelete { removeItems ->
 					removeMissingResources(removeItems)
 				}.onUpdate { List<SyncTask.UpdateItem<AccountResource, NetworkInterface>> updateItems ->
-					updateMatchedNetworkInterfaces(updateItems,regionCode)
+					updateMatchedNetworkInterfaces(updateItems, regionCode)
 				}.onAdd { itemsToAdd ->
 					addMissingNetworkInterface(itemsToAdd, regionCode)
-
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<AccountResourceIdentityProjection, NetworkInterface>> updateItems ->
 					return morpheusContext.cloud.resource.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.observe()
@@ -50,14 +52,21 @@ class NetworkInterfaceSync extends InternalResourceSync {
 		return "amazon.ec2.network.interfaces.${cloud.id}"
 	}
 
-	protected void addMissingNetworkInterface(Collection<NetworkInterface> addList, String region) {
+	protected void addMissingNetworkInterface(Collection<NetworkInterface> addList, String regionCode) {
 		def adds = []
+		def region = allRegions[regionCode]
+
+		if(!(region instanceof ComputeZoneRegion)) {
+			region = morpheusContext.cloud.region.listById([region.id]).blockingFirst()
+			allRegions[regionCode] = region
+		}
 
 		for(NetworkInterface cloudItem in addList) {
 			def name = cloudItem.networkInterfaceId
-			def addConfig = [owner     :cloud.account, category:getCategory(), code:(getCategory() + '.' + cloudItem.networkInterfaceId),
-							 externalId:cloudItem.networkInterfaceId, zoneId:cloud.id, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.transitGateway'), resourceType:'NetworkInterface',
-							 zoneName  : cloud.name, name: name, displayName: name
+			def addConfig = [
+				owner:cloud.account, category:getCategory(), code:(getCategory() + '.' + cloudItem.networkInterfaceId),
+				externalId:cloudItem.networkInterfaceId, region:region, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.transitGateway'),
+				resourceType:'NetworkInterface', name: name, displayName: name, cloudId: cloud.id, cloudName: cloud.name
 			]
 			AccountResource newResource = new AccountResource(addConfig)
 			newResource.region = new ComputeZoneRegion(regionCode: region)
@@ -71,7 +80,6 @@ class NetworkInterfaceSync extends InternalResourceSync {
 	protected void updateMatchedNetworkInterfaces(List<SyncTask.UpdateItem<AccountResource, NetworkInterface>> updateList, String region) {
 		def updates = []
 		for(update in updateList) {
-			def masterItem = update.masterItem
 			def existingItem = update.existingItem
 			Boolean save = false
 
@@ -80,7 +88,6 @@ class NetworkInterfaceSync extends InternalResourceSync {
 				save = true
 			}
 
-
 			if(save) {
 				updates << existingItem
 			}
@@ -88,5 +95,9 @@ class NetworkInterfaceSync extends InternalResourceSync {
 		if(updates) {
 			morpheusContext.cloud.resource.save(updates).blockingGet()
 		}
+	}
+
+	private Map<String, ComputeZoneRegionIdentityProjection> getAllRegions() {
+		regions ?: (regions = morpheusContext.cloud.region.listIdentityProjections(cloud.id).toMap {it.externalId}.blockingGet())
 	}
 }

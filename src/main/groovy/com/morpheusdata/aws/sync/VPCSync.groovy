@@ -66,7 +66,7 @@ class VPCSync {
 			def nameTag = tags.find{ it.getKey() == 'Name' }
 			def name = nameTag?.value ?: cloudItem.getVpcId()
 			def poolConfig = [owner:[id:cloud.owner.id], type:'vpc', name:name, description:"${name} - ${cloudItem.getVpcId()} - ${cloudItem.getCidrBlock()}",
-							  externalId:cloudItem.getVpcId(), refType:'ComputeZone', regionCode: region, refId:cloud.id, zone:[id:cloud.id], category:"aws.vpc.${cloud.id}",
+							  externalId:cloudItem.getVpcId(), refType:'ComputeZone', regionCode: region, refId:cloud.id, cloud:[id:cloud.id], category:"aws.vpc.${cloud.id}",
 							  code:"aws.vpc.${cloud.id}.${cloudItem.getVpcId()}"]
 			def add = new ComputeZonePool(poolConfig)
 			add.setConfigProperty('cidrBlock',cloudItem.getCidrBlock())

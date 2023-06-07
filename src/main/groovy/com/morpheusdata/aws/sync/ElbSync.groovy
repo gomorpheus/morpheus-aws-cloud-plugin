@@ -58,7 +58,6 @@ class ElbSync {
 
 	protected void addMissingLoadBalancers(Collection<LoadBalancerDescription> addList, String region) {
 		def adds = []
-		List<String> subnetIds = addList.collect{ it.getAvailabilityZones().collect{it.getSubnetId()}}.flatten() as List<String>
 		for(LoadBalancerDescription cloudItem in addList) {
 			def loadBalancerConfig = [owner: cloud.owner, account: cloud.owner, visibility: 'private', externalId: ":loadbalancer/${cloudItem.getLoadBalancerName()}", name: cloudItem.getLoadBalancerName(), sshHost: cloudItem.getDNSName(), type: new NetworkLoadBalancerType(code:'amazon'), cloud: cloud]
 			NetworkLoadBalancer newLoadBalancer = new NetworkLoadBalancer(loadBalancerConfig)

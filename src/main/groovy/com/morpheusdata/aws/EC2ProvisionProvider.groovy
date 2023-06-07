@@ -1,6 +1,7 @@
 package com.morpheusdata.aws
 
 import com.bertramlabs.plugins.karman.CloudFile
+import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.AbstractProvisionProvider
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
@@ -53,7 +54,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	Collection<OptionType> getOptionTypes() {
-		return null
+		new ArrayList<OptionType>()
 	}
 
 	/**
@@ -63,7 +64,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	Collection<OptionType> getNodeOptionTypes() {
-		return null
+		new ArrayList<OptionType>()
 	}
 
 	/**
@@ -72,7 +73,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	Collection<ServicePlan> getServicePlans() {
-		return null
+		new ArrayList<ServicePlan>()
 	}
 
 	/**
@@ -81,7 +82,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	Collection<ComputeServerInterfaceType> getComputeServerInterfaceTypes() {
-		return null
+		new ArrayList<ComputeServerInterfaceType>()
 	}
 
 	/**
@@ -90,7 +91,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	Boolean hasDatastores() {
-		return null
+		false
 	}
 
 	/**
@@ -99,7 +100,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	Boolean hasNetworks() {
-		return null
+		true
 	}
 
 	/**
@@ -108,7 +109,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	Boolean hasPlanTagMatch() {
-		return null
+		false
 	}
 
 	/**
@@ -117,7 +118,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	Integer getMaxNetworks() {
-		return null
+		null
 	}
 
 	/**
@@ -141,7 +142,8 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	ServiceResponse validateInstance(Instance instance, Map opts) {
-		return null
+		log.debug "validateInstance: ${instance} ${opts}"
+		ServiceResponse.success()
 	}
 
 	/**
@@ -153,7 +155,8 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	ServiceResponse validateDockerHost(ComputeServer server, Map opts) {
-		return null
+		log.debug "validateDockerHost: ${server} ${opts}"
+		ServiceResponse.success()
 	}
 
 	/**
@@ -178,7 +181,8 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	ServiceResponse stopWorkload(Workload workload) {
-		return null
+		log.debug "stopWorkload: ${workload}"
+		stopServer(workload.server)
 	}
 
 	/**
@@ -188,7 +192,8 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	ServiceResponse startWorkload(Workload workload) {
-		return null
+		log.debug("stopWorkload: ${server}")
+		startServer(workload.server)
 	}
 
 	/**
@@ -197,18 +202,66 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 * @return Response from API
 	 */
 	@Override
-	ServiceResponse stopServer(ComputeServer computeServer) {
-		return null
+	ServiceResponse stopServer(ComputeServer server) {
+		log.debug("stopServer: ${server}")
+		if(server?.externalId && (server.managed == true || server.computeServerType?.controlPower)) {
+			def client = AmazonComputeUtility.getAmazonClient(server.cloud, false, server.resourcePool.regionCode)
+			def stopResult = AmazonComputeUtility.stopServer([amazonClient: client, server: server])
+
+			if (stopResult.success) {
+				return ServiceResponse.success()
+			} else {
+				return ServiceResponse.error('Failed to stop vm')
+			}
+		} else {
+			log.info("stopServer - ignoring request for unmanaged instance")
+		}
+		ServiceResponse.success()
 	}
 
 	/**
 	 * Start the server
-	 * @param computeServer to start
+	 * @param server to start
 	 * @return Response from API
 	 */
 	@Override
-	ServiceResponse startServer(ComputeServer computeServer) {
-		return null
+	ServiceResponse startServer(ComputeServer server) {
+		log.debug("startServer: ${server}")
+		if(server?.externalId && (server.managed == true || server.computeServerType?.controlPower)) {
+			def client = AmazonComputeUtility.getAmazonClient(server.cloud, false, server.resourcePool.regionCode)
+			def startResult = AmazonComputeUtility.startServer([amazonClient: client, server: server])
+
+			if (startResult.success) {
+				return ServiceResponse.success()
+			} else {
+				return ServiceResponse.error('Failed to start vm')
+			}
+		} else {
+			log.info("startServer - ignoring request for unmanaged instance")
+		}
+		ServiceResponse.success()
+	}
+
+	/**
+	 * Delete the server
+	 * @param server to start
+	 * @return Response from API
+	 */
+	ServiceResponse deleteServer(ComputeServer server) {
+		log.debug("deleteServer: ${server}")
+		if(server?.externalId && (server.managed == true || server.computeServerType?.controlPower)) {
+			def client = AmazonComputeUtility.getAmazonClient(server.cloud, false, server.resourcePool.regionCode)
+			def deleteResult = AmazonComputeUtility.deleteServer([amazonClient: client, server: server])
+
+			if (deleteResult.success) {
+				return ServiceResponse.success()
+			} else {
+				return ServiceResponse.error('Failed to remove vm')
+			}
+		} else {
+			log.info("deleteServer - ignoring request for unmanaged instance")
+		}
+		ServiceResponse.success()
 	}
 
 	/**
@@ -219,7 +272,9 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	ServiceResponse restartWorkload(Workload workload) {
-		return null
+		log.debug 'restartWorkload'
+		ServiceResponse stopResult = stopWorkload(workload)
+		stopResult.success ? startWorkload(workload) : stopResult
 	}
 
 	/**
@@ -231,7 +286,8 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	ServiceResponse removeWorkload(Workload workload, Map opts) {
-		return null
+		log.debug "removeWorkload: ${workload} ${opts}"
+		deleteServer(workload.server)
 	}
 
 	/**
@@ -243,7 +299,25 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	ServiceResponse<WorkloadResponse> getServerDetails(ComputeServer server) {
-		return null
+		WorkloadResponse rtn = new WorkloadResponse()
+		def serverUuid = server.externalId
+		if(server && server.uuid && server.resourcePool?.externalId) {
+			def amazonClient = AmazonComputeUtility.getAmazonClient(server.cloud,false, server.resourcePool.regionCode)
+			Map serverDetails = AmazonComputeUtility.checkServerReady([amazonClient:amazonClient, server:server])
+			if(serverDetails.success && serverDetails.server) {
+				rtn.externalId = serverUuid
+				rtn.success = serverDetails.success
+				rtn.publicIp = serverDetails.publicIpAddress
+				rtn.privateIp = serverDetails.privateIpAddress
+				rtn.hostname = serverDetails.tags?.find { it.key == 'Name' }?.value ?: serverDetails.instanceId
+				return ServiceResponse.success(rtn)
+				return ServiceResponse.success(rtn)
+			} else {
+				return ServiceResponse.error("Server not ready/does not exist")
+			}
+		} else {
+			return ServiceResponse.error("Could not find server uuid")
+		}
 	}
 
 	/**
@@ -290,7 +364,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	ServiceResponse createWorkloadResources(Workload workload, Map opts) {
-		return null
+		ServiceResponse.success()
 	}
 
 	/**
@@ -299,7 +373,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	HostType getHostType() {
-		return null
+		HostType.vm
 	}
 
 	/**
@@ -310,7 +384,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	Collection<VirtualImage> getVirtualImages() {
-		return null
+		new ArrayList<VirtualImage>()
 	}
 
 	/**
@@ -322,7 +396,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	Collection<ComputeTypeLayout> getComputeTypeLayouts() {
-		return null
+		new ArrayList<ComputeTypeLayout>()
 	}
 
 	/**
@@ -332,7 +406,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	MorpheusContext getMorpheus() {
-		return null
+		morpheusContext
 	}
 
 	/**
@@ -342,7 +416,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	String getCode() {
-		return null
+		'amazon-ec2-provision-provider'
 	}
 
 	/**
@@ -353,6 +427,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	String getName() {
-		return null
+		'Amazon EC2'
 	}
 }
