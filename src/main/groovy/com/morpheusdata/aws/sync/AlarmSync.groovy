@@ -1,18 +1,13 @@
 package com.morpheusdata.aws.sync
 
 import com.amazonaws.services.cloudwatch.model.MetricAlarm
-import com.amazonaws.services.ec2.model.Vpc
 import com.morpheusdata.aws.AWSPlugin
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.ComputeServer
-import com.morpheusdata.model.ComputeZonePool
-import com.morpheusdata.model.NetworkRouter
-import com.morpheusdata.model.NetworkRouterType
 import com.morpheusdata.model.OperationNotification
-import com.morpheusdata.model.projection.ComputeZonePoolIdentityProjection
 import com.morpheusdata.model.projection.OperationNotificationIdentityProjection
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable
@@ -78,7 +73,7 @@ class AlarmSync {
 			   eventKey:cloudItem.metricName, externalId:cloudItem.getAlarmArn(), acknowledged:cloudItem.stateValue?.toUpperCase() == 'OK',
 			   acknowledgedDate:null, acknowledgedByUser:null,
 			   status:translateAlarmStatus(cloudItem.stateValue), statusMessage:cloudItem.stateReason, startDate:cloudItem.getStateUpdatedTimestamp(),
-			   resourceName:cloud.name, refType:'computeZone',refId: cloud.id,
+			   resourceName:cloud.name, refType:'computeZone', refId: cloud.id,
 			   uniqueId:cloudItem.getAlarmArn(), cloudId:cloud.id, cloudName:cloud.name, regionCode: region]
 			def refMatch = findManagedAlarmObject(cloudItem,associatedResources)
 			if(refMatch && refMatch.refType && refMatch.refId) {
