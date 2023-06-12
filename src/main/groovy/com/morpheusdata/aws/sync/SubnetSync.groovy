@@ -1,14 +1,13 @@
 package com.morpheusdata.aws.sync
 
 import com.amazonaws.services.ec2.model.Subnet
-import com.amazonaws.services.ec2.model.Subnet
 import com.morpheusdata.aws.AWSPlugin
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.Network
-import com.morpheusdata.model.projection.NetworkIdentityProjection
+import com.morpheusdata.model.projection.ComputeZoneRegionIdentityProjection
 import com.morpheusdata.model.projection.NetworkIdentityProjection
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable
@@ -20,20 +19,19 @@ class SubnetSync {
 	private MorpheusContext morpheusContext
 	private AWSPlugin plugin
 
-
-	public SubnetSync(AWSPlugin plugin, Cloud cloud) {
+	SubnetSync(AWSPlugin plugin, Cloud cloud) {
 		this.plugin = plugin
 		this.cloud = cloud
 		this.morpheusContext = plugin.morpheusContext
 	}
 
 	def execute() {
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap {
-			final String regionCode = it.externalId
-			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false,it.externalId)
-			def subnetResults = AmazonComputeUtility.listSubnets([amazonClient: amazonClient])
+		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
+			final String regionCode = region.externalId
+			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, regionCode)
+			def subnetResults = AmazonComputeUtility.listSubnets([amazonClient: amazonClient, zone: cloud])
 			if(subnetResults.success) {
-				Observable<NetworkIdentityProjection> domainRecords = morpheusContext.network.listSyncProjections(cloud.id)
+				Observable<NetworkIdentityProjection> domainRecords = morpheusContext.network.listIdentityProjections(cloud)
 				SyncTask<NetworkIdentityProjection, Subnet, Network> syncTask = new SyncTask<>(domainRecords, subnetResults.subnetList as Collection<Subnet>)
 				return syncTask.addMatchFunction { NetworkIdentityProjection domainObject, Subnet data ->
 					domainObject.externalId == data.getSubnetId()
@@ -56,17 +54,15 @@ class SubnetSync {
 
 	protected void addMissingSubnets(Collection<Subnet> addList, String region) {
 		def adds = []
-		def networkTypes = plugin.cloudProvider.getNetworkTypes()
-		def networkType = networkTypes?.find { it.externalType == '' }
+		def networkType = plugin.networkProvider.networkTypes?.find { it.code == 'amazonSubnet' }
 		def vpcRecords = morpheusContext.cloud.pool.listByCloudAndExternalIdIn(cloud.id,addList.collect{it.getVpcId()}).toList().blockingGet()?.collectEntries { [(it.externalId):it]}
 		for(Subnet cloudItem in addList) {
 			def nameTag = cloudItem.getTags()?.find{it.key == 'Name'}
-
 			def vpcRecord = vpcRecords[cloudItem.getVpcId()]
 			def networkConfig = [owner: cloud.owner, category:"amazon.ec2.subnet.${cloud.id}", name:nameTag?.getValue() ? "${nameTag.getValue()} (${cloudItem.getSubnetId()})" : "${cloudItem.getCidrBlock()} (${cloudItem.getSubnetId()})", displayName: nameTag?.getValue() ? "${nameTag.getValue()} (${cloudItem.getSubnetId()})" : "${cloudItem.getCidrBlock()} (${cloudItem.getSubnetId()})",
 								 code:"amazon.ec2.subnet.${cloud.id}.${cloudItem.getSubnetId()}", uniqueId:cloudItem.getSubnetId(), externalId:cloudItem.getSubnetId(), externalType: 'subnet', type: networkType,
-								 refType:'ComputeZone', refId:cloud.id, zonePool: vpcRecord, description:nameTag?.getValue() ?: cloudItem.getCidrBlock(), active:true, cidr:cloudItem.getCidrBlock(), dhcpServer:true,
-								 assignPublicIp:cloudItem.isMapPublicIpOnLaunch(), networkServer: cloud.networkServer, availabilityZone:cloudItem.getAvailabilityZone(), zone:cloud, regionCode: region]
+								 refType:'ComputeZone', refId:cloud.id, zonePoolId: vpcRecord.id, description:nameTag?.getValue() ?: cloudItem.getCidrBlock(), active:true, cidr:cloudItem.getCidrBlock(), dhcpServer:true,
+								 assignPublicIp:cloudItem.isMapPublicIpOnLaunch(), networkServer: cloud.networkServer, availabilityZone:cloudItem.getAvailabilityZone(), cloud:cloud, regionCode: region]
 			def add = new Network(networkConfig)
 			adds << add
 		}

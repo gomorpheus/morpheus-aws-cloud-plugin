@@ -7,9 +7,11 @@ import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.ComputeZonePool
+import com.morpheusdata.model.ComputeZoneRegion
 import com.morpheusdata.model.NetworkLoadBalancer
 import com.morpheusdata.model.NetworkLoadBalancerType
 import com.morpheusdata.model.projection.ComputeZonePoolIdentityProjection
+import com.morpheusdata.model.projection.ComputeZoneRegionIdentityProjection
 import com.morpheusdata.model.projection.NetworkLoadBalancerIdentityProjection
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable
@@ -29,24 +31,23 @@ class AlbSync {
 	}
 
 	def execute() {
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap {
-			final String regionCode = it.externalId
-			def amazonClient = AmazonComputeUtility.getAmazonElbClient(cloud,false,it.externalId)
+		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
+			final String regionCode = region.externalId
+			def amazonClient = AmazonComputeUtility.getAmazonElbClient(cloud,false,regionCode)
 			def albList = AmazonComputeUtility.listAlbs([amazonClient: amazonClient])
 			if(albList.success) {
 				Observable<NetworkLoadBalancerIdentityProjection> domainRecords = morpheusContext.loadBalancer.listIdentityProjections(cloud.id,regionCode,'amazon-alb')
 				SyncTask<NetworkLoadBalancerIdentityProjection, LoadBalancer, NetworkLoadBalancer> syncTask = new SyncTask<>(domainRecords, albList.albList as Collection<LoadBalancer>)
-				return syncTask.addMatchFunction { ComputeZonePoolIdentityProjection domainObject, LoadBalancer data ->
+				return syncTask.addMatchFunction { NetworkLoadBalancerIdentityProjection domainObject, LoadBalancer data ->
 					domainObject.externalId == (':' + data.getLoadBalancerArn().split(':')[5..-1].join(':'))
 				}.onDelete { removeItems ->
 					removeMissingLoadBalancers(removeItems)
 				}.onUpdate { List<SyncTask.UpdateItem<NetworkLoadBalancer, LoadBalancer>> updateItems ->
-					updateMatchedLoadBalancers(updateItems,regionCode)
+					updateMatchedLoadBalancers(updateItems, region)
 				}.onAdd { itemsToAdd ->
-					addMissingLoadBalancers(itemsToAdd, regionCode)
-
-				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<ComputeZonePoolIdentityProjection, LoadBalancer>> updateItems ->
-					return morpheusContext.cloud.pool.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					addMissingLoadBalancers(itemsToAdd, region)
+				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<NetworkLoadBalancerIdentityProjection, LoadBalancer>> updateItems ->
+					return morpheusContext.loadBalancer.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.observe()
 			} else {
 				log.error("Error Caching LoadBalancers for Region: {} - {}",regionCode,albList.msg)
@@ -56,12 +57,12 @@ class AlbSync {
 	}
 
 
-	protected void addMissingLoadBalancers(Collection<LoadBalancer> addList, String region) {
+	protected void addMissingLoadBalancers(Collection<LoadBalancer> addList, ComputeZoneRegionIdentityProjection region) {
 		def adds = []
 		List<String> subnetIds = addList.collect{ it.getAvailabilityZones().collect{it.getSubnetId()}}.flatten() as List<String>
 		def subnets = morpheusContext.network.listByCloudAndExternalIdIn(cloud.id,subnetIds).toList().blockingGet().collectEntries{ [(it.externalId): it]}
 		for(LoadBalancer cloudItem in addList) {
-			def loadBalancerConfig = [owner: cloud.owner, account: cloud.owner, visibility: 'private', externalId: ':' + cloudItem.getLoadBalancerArn().split(':')[5..-1].join(':'), name: cloudItem.getLoadBalancerName(), sshHost: cloudItem.getDNSName(), type: new NetworkLoadBalancerType(code:'amazon-alb'), cloud: cloud]
+			def loadBalancerConfig = [owner: cloud.owner, account: cloud.owner, region: region, visibility: 'private', externalId: ':' + cloudItem.getLoadBalancerArn().split(':')[5..-1].join(':'), name: cloudItem.getLoadBalancerName(), sshHost: cloudItem.getDNSName(), type: new NetworkLoadBalancerType(code:'amazon-alb'), cloud: cloud]
 			NetworkLoadBalancer newLoadBalancer = new NetworkLoadBalancer(loadBalancerConfig)
 
 			def configMap = [scheme: cloudItem.getScheme() == 'internet-facing' ? 'Internet-facing' : cloudItem.getScheme(), arn: cloudItem.getLoadBalancerArn(), amazonVpc: cloudItem.getVpcId(), subnetIds: [], securityGroupIds: cloudItem.getSecurityGroups()]
@@ -81,7 +82,7 @@ class AlbSync {
 		}
 	}
 
-	protected void updateMatchedLoadBalancers(List<SyncTask.UpdateItem<ComputeZonePool, LoadBalancer>> updateList, String region) {
+	protected void updateMatchedLoadBalancers(List<SyncTask.UpdateItem<ComputeZonePool, LoadBalancer>> updateList, ComputeZoneRegionIdentityProjection region) {
 		def updates = []
 		List<String> subnetIdsForUpdates = updateList.collect{ it.masterItem.getAvailabilityZones().collect{it.getSubnetId()}}.flatten() as List<String>
 		def subnets = morpheusContext.network.listByCloudAndExternalIdIn(cloud.id,subnetIdsForUpdates).toList().blockingGet().collectEntries{ [(it.externalId): it]}

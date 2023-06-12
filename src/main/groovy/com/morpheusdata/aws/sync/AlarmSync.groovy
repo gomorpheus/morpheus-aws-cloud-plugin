@@ -74,7 +74,7 @@ class AlarmSync {
 			   acknowledgedDate:null, acknowledgedByUser:null,
 			   status:translateAlarmStatus(cloudItem.stateValue), statusMessage:cloudItem.stateReason, startDate:cloudItem.getStateUpdatedTimestamp(),
 			   resourceName:cloud.name, refType:'computeZone', refId: cloud.id,
-			   uniqueId:cloudItem.getAlarmArn(), cloudId:cloud.id, cloudName:cloud.name, regionCode: region]
+			   uniqueId:cloudItem.getAlarmArn(), regionCode: region]
 			def refMatch = findManagedAlarmObject(cloudItem,associatedResources)
 			if(refMatch && refMatch.refType && refMatch.refId) {
 				alarmConfig.refType = refMatch.refType
@@ -82,7 +82,6 @@ class AlarmSync {
 			}
 			def add = new OperationNotification(alarmConfig)
 			adds << add
-
 		}
 		if(adds) {
 			morpheusContext.operationNotification.create(adds).blockingGet()
@@ -115,7 +114,6 @@ class AlarmSync {
 					save = true
 				}
 			}
-
 
 			if(region && existingItem.regionCode != region) {
 				existingItem.regionCode = region

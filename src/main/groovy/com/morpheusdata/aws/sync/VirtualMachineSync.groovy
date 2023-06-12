@@ -80,9 +80,7 @@ class VirtualMachineSync {
 				}.withLoadObjectDetailsFromFinder { List<UpdateItemDto<ComputeServerIdentityProjection, Instance>> updateItems ->
 					morpheusContext.computeServer.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.onAdd { itemsToAdd ->
-					if(inventoryLevel in ['basic', 'full']) {
-						addMissingVirtualMachines(itemsToAdd, region, vmList.volumeList, usageLists, inventoryLevel)
-					}
+					addMissingVirtualMachines(itemsToAdd, region, vmList.volumeList, usageLists, inventoryLevel)
 				}.onUpdate { List<SyncTask.UpdateItem<ComputeServer, Instance>> updateItems ->
 					updateMatchedVirtualMachines(updateItems, region, vmList.volumeList, usageLists, inventoryLevel)
 				}.onDelete { removeItems ->
@@ -101,71 +99,67 @@ class VirtualMachineSync {
 	}
 
 	protected addMissingVirtualMachines(List<Instance> addList, ComputeZoneRegion region, Map<String, Volume> volumeMap, Map usageLists, String inventoryLevel) {
-		while(addList?.size() > 0) {
-			addList.take(50).each { cloudItem ->
-				def zonePool = allZonePools[cloudItem.vpcId]
-				if((!cloudItem.getVpcId() || zonePool?.inventory != false) && cloudItem.getState()?.getCode() != 0) {
-					// convert from projection
-					if(zonePool && !(zonePool instanceof ComputeZonePool)) {
-						zonePool = morpheusContext.cloud.pool.listById([zonePool.id]).blockingFirst()
-						allZonePools[cloudItem.vpcId] = zonePool
-					}
+		if(inventoryLevel in ['basic', 'full']) {
+			while (addList?.size() > 0) {
+				addList.take(50).each { cloudItem ->
+					def zonePool = allZonePools[cloudItem.vpcId]
+					if ((!cloudItem.getVpcId() || zonePool?.inventory != false) && cloudItem.getState()?.getCode() != 0) {
+						// get service plan
+						def servicePlan = cloudItem.instanceType ? getServicePlan("amazon-${cloudItem.instanceType}") : null
+						def osType = cloudItem.platform?.toLowerCase()?.contains('windows') ? 'windows' : 'linux'
+						def vmConfig = [
+							account          : cloud.account,
+							externalId       : cloudItem.instanceId,
+							resourcePool     : zonePool ? new ComputeZonePool(id:zonePool.id) : null,
+							name             : cloudItem.tags?.find { it.key == 'Name' }?.value ?: cloudItem.instanceId,
+							externalIp       : cloudItem.publicIpAddress,
+							internalIp       : cloudItem.privateIpAddress,
+							osDevice         : cloudItem.rootDeviceName,
+							sshHost          : cloudItem.privateIpAddress,
+							serverType       : 'vm',
+							sshUsername      : 'root',
+							apiKey           : java.util.UUID.randomUUID(),
+							provision        : false,
+							singleTenant     : true,
+							cloud            : cloud,
+							lvmEnabled       : false,
+							discovered       : true,
+							managed          : false,
+							dateCreated      : cloudItem.launchTime,
+							status           : 'provisioned',
+							powerState       : cloudItem.getState()?.getCode() == 16 ? ComputeServer.PowerState.on : ComputeServer.PowerState.off,
+							osType           : osType,
+							serverOs         : allOsTypes[osType] ?: new OsType(code: 'unknown'),
+							region           : region,
+							computeServerType: allComputeServerTypes[osType == 'windows' ? 'amazonWindowsVm' : 'amazonUnmanaged'],
+							maxMemory        : servicePlan?.maxMemory
+						]
 
-					// get service plan
-					def servicePlan = cloudItem.instanceType ? getServicePlan("amazon-${cloudItem.instanceType}") : null
-					def osType = cloudItem.platform?.toLowerCase()?.contains('windows') ? 'windows' : 'linux'
-					def vmConfig = [
-						account: cloud.account,
-						externalId: cloudItem.instanceId,
-						resourcePool: zonePool,
-						name: cloudItem.tags?.find { it.key == 'Name' }?.value ?: cloudItem.instanceId,
-						externalIp: cloudItem.publicIpAddress,
-						internalIp: cloudItem.privateIpAddress,
-						osDevice: cloudItem.rootDeviceName,
-						sshHost: cloudItem.privateIpAddress,
-						serverType: 'vm',
-						sshUsername: 'root',
-						apiKey: java.util.UUID.randomUUID(),
-						provision: false,
-						singleTenant: true,
-						cloud: cloud,
-						lvmEnabled: false,
-						discovered: true,
-						managed: false,
-						dateCreated: cloudItem.launchTime,
-						status: 'provisioned',
-						powerState: cloudItem.getState()?.getCode() == 16 ? ComputeServer.PowerState.on : ComputeServer.PowerState.off,
-						osType: osType,
-						serverOs: allOsTypes[osType] ?: new OsType(code: 'unknown'),
-						region: region,
-						computeServerType: allComputeServerTypes[osType == 'windows' ? 'amazonWindowsVm' : 'amazonUnmanaged'],
-						maxMemory: servicePlan?.maxMemory
-					]
-
-					ComputeServer add = new ComputeServer(vmConfig)
-					if(servicePlan) {
-						applyServicePlan(add, servicePlan)
-					}
-					ComputeServer savedServer = morpheusContext.computeServer.create(add).blockingGet()
-					if (!savedServer) {
-						log.error "Error in creating server ${add}"
-					} else {
-						def postSaveResults = performPostSaveSync(cloudItem, savedServer, volumeMap)
-						if(postSaveResults.saveRequired) {
-							morpheusContext.computeServer.save([savedServer]).blockingGet()
+						ComputeServer add = new ComputeServer(vmConfig)
+						if (servicePlan) {
+							applyServicePlan(add, servicePlan)
 						}
-					}
+						ComputeServer savedServer = morpheusContext.computeServer.create(add).blockingGet()
+						if (!savedServer) {
+							log.error "Error in creating server ${add}"
+						} else {
+							def postSaveResults = performPostSaveSync(cloudItem, savedServer, volumeMap)
+							if (postSaveResults.saveRequired) {
+								morpheusContext.computeServer.save([savedServer]).blockingGet()
+							}
+						}
 
-					if (vmConfig.powerState == ComputeServer.PowerState.on) {
-						usageLists.startUsageIds << savedServer.id
+						if (vmConfig.powerState == ComputeServer.PowerState.on) {
+							usageLists.startUsageIds << savedServer.id
+						} else {
+							usageLists.stopUsageIds << savedServer.id
+						}
 					} else {
-						usageLists.stopUsageIds << savedServer.id
+						log.info("skipping: {}", cloudItem)
 					}
-				} else {
-					log.info("skipping: {}", cloudItem)
 				}
+				addList = addList.drop(50)
 			}
-			addList = addList.drop(50)
 		}
 	}
 
@@ -200,11 +194,7 @@ class VirtualMachineSync {
 						save = true
 					}
 					if(currentServer.resourcePool?.id != zonePool?.id) {
-						if(zonePool && !(zonePool instanceof ComputeZonePool)) {
-							zonePool = morpheusContext.cloud.pool.listById([zonePool.id]).blockingFirst()
-							allZonePools[cloudItem.vpcId] = zonePool
-						}
-						currentServer.resourcePool = zonePool
+						currentServer.resourcePool = zonePool?.id ? new ComputeZonePool(id:zonePool.id) : null
 						save = true
 					}
 

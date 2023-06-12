@@ -11,6 +11,7 @@ import groovy.util.logging.Slf4j
 class AWSPlugin extends Plugin {
 
 	private String cloudProviderCode
+	private String networkProviderCode
 
 	@Override
 	String getCode() {
@@ -22,11 +23,15 @@ class AWSPlugin extends Plugin {
 		this.setName('Amazon Web Services')
 		def provisionProvider = new EC2ProvisionProvider(this, this.morpheus)
 		def cloudProvider = new AWSCloudProvider(this, this.morpheus)
-		cloudProviderCode = cloudProvider.code
 		def optionSourceProvider = new AWSOptionSourceProvider(this, this.morpheus)
+		def networkProvider = new AWSNetworkProvider(this, this.morpheus)
 		this.pluginProviders.put(provisionProvider.code, provisionProvider)
 		this.pluginProviders.put(cloudProvider.code, cloudProvider)
 		this.pluginProviders.put(optionSourceProvider.code, optionSourceProvider)
+		this.pluginProviders.put(networkProvider.code, networkProvider)
+
+		cloudProviderCode = cloudProvider.code
+		networkProviderCode = networkProvider.code
 	}
 
 	@Override
@@ -40,6 +45,10 @@ class AWSPlugin extends Plugin {
 	
 	def AWSCloudProvider getCloudProvider() {
 		this.getProviderByCode(cloudProviderCode)
+	}
+
+	def AWSNetworkProvider getNetworkProvider() {
+		this.getProviderByCode(networkProviderCode)
 	}
 
 	def getAmazonClient(Cloud cloud, Boolean fresh = false, String region=null) {
