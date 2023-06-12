@@ -73,9 +73,6 @@ class VirtualMachineSync {
 							match = domainObject.name == instanceName || domainObject.internalIp == cloudItem.privateIpAddress || domainObject.externalIp == cloudItem.publicIpAddress
 						}
 					}
-					if(!match) {
-						match = match
-					}
 					match
 				}.withLoadObjectDetailsFromFinder { List<UpdateItemDto<ComputeServerIdentityProjection, Instance>> updateItems ->
 					morpheusContext.computeServer.listById(updateItems.collect { it.existingItem.id } as List<Long>)
