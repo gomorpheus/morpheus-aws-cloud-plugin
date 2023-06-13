@@ -23,8 +23,7 @@ class AlbSync {
 	private MorpheusContext morpheusContext
 	private AWSPlugin plugin
 
-
-	public AlbSync(AWSPlugin plugin, Cloud cloud) {
+	AlbSync(AWSPlugin plugin, Cloud cloud) {
 		this.plugin = plugin
 		this.cloud = cloud
 		this.morpheusContext = plugin.morpheusContext
@@ -62,7 +61,7 @@ class AlbSync {
 		List<String> subnetIds = addList.collect{ it.getAvailabilityZones().collect{it.getSubnetId()}}.flatten() as List<String>
 		def subnets = morpheusContext.network.listByCloudAndExternalIdIn(cloud.id,subnetIds).toList().blockingGet().collectEntries{ [(it.externalId): it]}
 		for(LoadBalancer cloudItem in addList) {
-			def loadBalancerConfig = [owner: cloud.owner, account: cloud.owner, region: region, visibility: 'private', externalId: ':' + cloudItem.getLoadBalancerArn().split(':')[5..-1].join(':'), name: cloudItem.getLoadBalancerName(), sshHost: cloudItem.getDNSName(), type: new NetworkLoadBalancerType(code:'amazon-alb'), cloud: cloud]
+			def loadBalancerConfig = [owner: cloud.owner, account: cloud.owner, region: new ComputeZoneRegion(id: region.id), visibility: 'private', externalId: ':' + cloudItem.getLoadBalancerArn().split(':')[5..-1].join(':'), name: cloudItem.getLoadBalancerName(), sshHost: cloudItem.getDNSName(), type: new NetworkLoadBalancerType(code:'amazon-alb'), cloud: cloud]
 			NetworkLoadBalancer newLoadBalancer = new NetworkLoadBalancer(loadBalancerConfig)
 
 			def configMap = [scheme: cloudItem.getScheme() == 'internet-facing' ? 'Internet-facing' : cloudItem.getScheme(), arn: cloudItem.getLoadBalancerArn(), amazonVpc: cloudItem.getVpcId(), subnetIds: [], securityGroupIds: cloudItem.getSecurityGroups()]

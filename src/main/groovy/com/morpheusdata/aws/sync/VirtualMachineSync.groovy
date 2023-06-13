@@ -26,11 +26,13 @@ import com.morpheusdata.model.StorageVolumeType
 import com.morpheusdata.model.Workload
 import com.morpheusdata.model.projection.ComputeServerIdentityProjection
 import com.morpheusdata.model.projection.ComputeZonePoolIdentityProjection
+import com.morpheusdata.model.projection.ComputeZoneRegionIdentityProjection
 import com.morpheusdata.model.projection.SecurityGroupLocationIdentityProjection
 import com.morpheusdata.model.projection.ServicePlanIdentityProjection
 import com.morpheusdata.model.projection.WorkloadIdentityProjection
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable
+import io.reactivex.Single
 
 @Slf4j
 class VirtualMachineSync {
@@ -52,17 +54,11 @@ class VirtualMachineSync {
 	def execute() {
 		def usageLists = [restartUsageIds: [], stopUsageIds: [], startUsageIds: [], updatedSnapshotIds: []]
 		def inventoryLevel = cloud.inventoryLevel ?: (cloud.getConfigProperty('importExisting') in [true, 'true', 'on'] ? 'basic' : 'off')
-		List<Long> regionIds = []
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe {
-			regionIds << it.id
-		}
-
-		for(Long regionId in regionIds) {
-			final ComputeZoneRegion region = morpheusContext.cloud.region.listById([regionId]).blockingFirst()
-			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, region.code)
+		morpheusContext.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, region.externalId)
 			def vmList = AmazonComputeUtility.listVpcServers([amazonClient: amazonClient, zone: cloud])
 			if(vmList.success) {
-				Observable<ComputeServerIdentityProjection> vmRecords = morpheusContext.computeServer.listIdentityProjections(cloud.id, region.code)
+				Observable<ComputeServerIdentityProjection> vmRecords = morpheusContext.computeServer.listIdentityProjections(cloud.id, region.externalId)
 				SyncTask<ComputeServerIdentityProjection, Instance, ComputeServer> syncTask = new SyncTask<>(vmRecords, vmList.serverList.findAll{ instance -> instance.state?.code != 48 } as Collection<Instance>)
 				syncTask.addMatchFunction { ComputeServerIdentityProjection domainObject, Instance cloudItem ->
 					def match = domainObject.externalId == cloudItem.instanceId.toString()
@@ -90,12 +86,12 @@ class VirtualMachineSync {
 					morpheusContext.usage.restartSnapshotUsage(usageLists.updatedSnapshotIds).blockingGet()
 				}
 			} else {
-				log.error("Error Caching VMs for Region: {}", region.code)
+				log.error("Error Caching VMs for Region: {}", region.externalId)
 			}
 		}
 	}
 
-	protected addMissingVirtualMachines(List<Instance> addList, ComputeZoneRegion region, Map<String, Volume> volumeMap, Map usageLists, String inventoryLevel) {
+	protected addMissingVirtualMachines(List<Instance> addList, ComputeZoneRegionIdentityProjection region, Map<String, Volume> volumeMap, Map usageLists, String inventoryLevel) {
 		if(inventoryLevel in ['basic', 'full']) {
 			while (addList?.size() > 0) {
 				addList.take(50).each { cloudItem ->
@@ -127,7 +123,7 @@ class VirtualMachineSync {
 							powerState       : cloudItem.getState()?.getCode() == 16 ? ComputeServer.PowerState.on : ComputeServer.PowerState.off,
 							osType           : osType,
 							serverOs         : allOsTypes[osType] ?: new OsType(code: 'unknown'),
-							region           : region,
+							region           : new ComputeZoneRegion(id: region.id),
 							computeServerType: allComputeServerTypes[osType == 'windows' ? 'amazonWindowsVm' : 'amazonUnmanaged'],
 							maxMemory        : servicePlan?.maxMemory
 						]
@@ -160,7 +156,7 @@ class VirtualMachineSync {
 		}
 	}
 
-	protected updateMatchedVirtualMachines(List<SyncTask.UpdateItem<ComputeServer, Instance>> updateList, ComputeZoneRegion region, Map<String, Volume> volumeMap, Map usageLists, String inventoryLevel) {
+	protected updateMatchedVirtualMachines(List<SyncTask.UpdateItem<ComputeServer, Instance>> updateList, ComputeZoneRegionIdentityProjection region, Map<String, Volume> volumeMap, Map usageLists, String inventoryLevel) {
 		def statsData = []
 		def managedServerIds = updateList.findAll { it.existingItem.computeServerType?.managed }.collect{it.existingItem.id}
 		def workloads = managedServerIds ? morpheusContext.cloud.listCloudWorkloadProjections(cloud.id).filter { workload ->
@@ -183,7 +179,7 @@ class VirtualMachineSync {
 						save = true
 					}
 					if(currentServer.region?.externalId != region.externalId) {
-						currentServer.region = region
+						currentServer.region = new ComputeZoneRegion(id: region.id)
 						save = true
 					}
 					if(name != currentServer.name) {
