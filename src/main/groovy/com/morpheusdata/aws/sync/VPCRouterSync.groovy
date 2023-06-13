@@ -56,7 +56,7 @@ class VPCRouterSync {
 	protected void addMissingVPCRouters(Collection<ComputeZonePoolIdentityProjection> addList) {
 		def adds = []
 		Collection<ComputeZonePool> pools = morpheusContext.cloud.pool.listById(addList.collect{it.id}).toList().blockingGet()
-		for(ComputeZonePoolIdentityProjection resourcePool in pools) {
+		for(ComputeZonePool resourcePool in pools) {
 			def routerConfig = [
 					owner        : cloud.owner,
 					category     : "aws.router.${cloud.id}",

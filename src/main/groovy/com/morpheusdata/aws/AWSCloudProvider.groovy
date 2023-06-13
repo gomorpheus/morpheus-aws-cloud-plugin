@@ -14,6 +14,7 @@ import com.morpheusdata.aws.sync.RegionSync
 import com.morpheusdata.aws.sync.SubnetSync
 import com.morpheusdata.aws.sync.TransitGatewaySync
 import com.morpheusdata.aws.sync.TransitGatewayVpcAttachmentSync
+import com.morpheusdata.aws.sync.VPCRouterSync
 import com.morpheusdata.aws.sync.VPCSync
 import com.morpheusdata.aws.sync.VirtualMachineSync
 import com.morpheusdata.aws.sync.VpcPeeringConnectionSync
@@ -577,6 +578,7 @@ class AWSCloudProvider implements CloudProvider {
 					if(keyResults.success == true) {
 						new RegionSync(this.plugin,cloud).execute()
 						new VPCSync(this.plugin,cloud).execute()
+						new VPCRouterSync(this.plugin,cloud).execute()
 						new SubnetSync(this.plugin,cloud).execute()
 						new InstanceProfileSync(this.plugin,cloud).execute()
 						new IAMRoleSync(this.plugin,cloud).execute()

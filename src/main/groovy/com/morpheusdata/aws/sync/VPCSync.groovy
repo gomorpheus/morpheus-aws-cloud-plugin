@@ -24,7 +24,6 @@ class VPCSync {
 	private MorpheusContext morpheusContext
 	private AWSPlugin plugin
 
-
 	public VPCSync(AWSPlugin plugin, Cloud cloud) {
 		this.plugin = plugin
 		this.cloud = cloud
@@ -65,7 +64,7 @@ class VPCSync {
 			def tags = cloudItem.getTags()
 			def nameTag = tags.find{ it.getKey() == 'Name' }
 			def name = nameTag?.value ?: cloudItem.getVpcId()
-			def poolConfig = [owner:[id:cloud.owner.id], type:'vpc', name:name, description:"${name} - ${cloudItem.getVpcId()} - ${cloudItem.getCidrBlock()}",
+			def poolConfig = [owner:[id:cloud.owner.id], type:'vpc', name: "${name} (${region})", description:"${name} - ${cloudItem.getVpcId()} - ${cloudItem.getCidrBlock()}",
 							  externalId:cloudItem.getVpcId(), refType:'ComputeZone', regionCode: region, refId:cloud.id, cloud:[id:cloud.id], category:"aws.vpc.${cloud.id}",
 							  code:"aws.vpc.${cloud.id}.${cloudItem.getVpcId()}"]
 			def add = new ComputeZonePool(poolConfig)
@@ -89,7 +88,7 @@ class VPCSync {
 
 			def tags = masterItem.getTags()
 			def nameTag = tags.find { it.getKey() == 'Name' }
-			def name = nameTag?.value ?: masterItem.getVpcId()
+			def name = "${nameTag?.value ?: masterItem.getVpcId()} (${region})"
 			def cidr = masterItem.getCidrBlock()
 			def tenancy = masterItem.getInstanceTenancy()
 			def description = "${name} - ${masterItem.getVpcId()} - ${masterItem.getCidrBlock()}"
