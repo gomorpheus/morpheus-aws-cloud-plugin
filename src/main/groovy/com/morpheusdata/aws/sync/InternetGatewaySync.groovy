@@ -33,9 +33,9 @@ class InternetGatewaySync {
 	}
 
 	def execute() {
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap {
-			final String regionCode = it.externalId
-			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, it.externalId)
+		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
+			final String regionCode = region.externalId
+			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, regionCode)
 			def routerResults = AmazonComputeUtility.listInternetGateways([amazonClient: amazonClient])
 			if(routerResults.success) {
 				Observable<NetworkRouterIdentityProjection> domainRecords = morpheusContext.network.router.listIdentityProjections(cloud.id,'amazonInternetGateway')
@@ -45,10 +45,9 @@ class InternetGatewaySync {
 				}.onDelete { removeItems ->
 					removeMissingRouters(removeItems)
 				}.onUpdate { List<SyncTask.UpdateItem<ComputeZonePool, InternetGateway>> updateItems ->
-					updateMatchedInternetGateways(updateItems)
+					updateMatchedInternetGateways(updateItems, regionCode)
 				}.onAdd { itemsToAdd ->
-					addMissingInternetGateways(itemsToAdd)
-
+					addMissingInternetGateways(itemsToAdd, regionCode)
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<NetworkRouterIdentityProjection, InternetGateway>> updateItems ->
 					return morpheusContext.network.router.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.observe()
@@ -58,32 +57,34 @@ class InternetGatewaySync {
 			}
 		}.blockingSubscribe()
 	}
-	protected void addMissingInternetGateways(Collection<InternetGateway> addList) {
+	protected void addMissingInternetGateways(Collection<InternetGateway> addList, String regionCode) {
 		def adds = []
 		for(InternetGateway addItem in addList) {
 			def nameTag = addItem.getTags()?.find{it.getKey() == 'Name'}
-			String name = nameTag?.value ?: addItem.getInternetGatewayId()
+			String name = nameTag?.value ?: addItem.internetGatewayId
 			def routerConfig = [
-					owner        : cloud.owner,
-					category     : "aws.internet.gateway.${cloud.id}",
-					code         : "aws.internet.gateway.${cloud.id}.${addItem.getInternetGatewayId()}",
-					type         : new NetworkRouterType(code:'amazonInternetGateway'),
-					name         : name,
-					networkServer: cloud.networkServer,
-					cloud        : cloud,
-					refId        : cloud.id,
-					refType      : 'ComputeZone'
+				owner        : cloud.owner,
+				category     : "aws.internet.gateway.${cloud.id}",
+				code         : "aws.internet.gateway.${cloud.id}.${addItem.internetGatewayId}",
+				type         : new NetworkRouterType(code:'amazonInternetGateway'),
+				name         : name,
+				networkServer: cloud.networkServer,
+				cloud        : cloud,
+				refId        : cloud.id,
+				refType      : 'ComputeZone',
+				externalId   : addItem.internetGatewayId,
+				regionCode   : regionCode,
+				poolId       : addItem.attachments ? allZonePools[addItem.attachments.first().vpcId]?.id : null
 			]
 			NetworkRouter router = new NetworkRouter(routerConfig)
 			adds << router
-
 		}
 		if(adds) {
 			morpheusContext.network.router.create(adds).blockingGet()
 		}
 	}
 
-	protected void updateMatchedInternetGateways(List<SyncTask.UpdateItem<NetworkRouter, InternetGateway>> updateList) {
+	protected void updateMatchedInternetGateways(List<SyncTask.UpdateItem<NetworkRouter, InternetGateway>> updateList, String regionCode) {
 		def updates = []
 
 		for(update in updateList) {
@@ -96,6 +97,11 @@ class InternetGatewaySync {
 
 			if(existingItem.name != name) {
 				existingItem.name = name
+				save = true
+			}
+
+			if(existingItem.regionCode != regionCode) {
+				existingItem.regionCode = regionCode
 				save = true
 			}
 
