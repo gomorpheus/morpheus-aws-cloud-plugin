@@ -18,6 +18,7 @@ import com.morpheusdata.aws.sync.TransitGatewayVpcAttachmentSync
 import com.morpheusdata.aws.sync.VPCRouterSync
 import com.morpheusdata.aws.sync.VPCSync
 import com.morpheusdata.aws.sync.VirtualMachineSync
+import com.morpheusdata.aws.sync.VolumeSync
 import com.morpheusdata.aws.sync.VpcPeeringConnectionSync
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.backup.AbstractBackupProvider
@@ -600,6 +601,8 @@ class AWSCloudProvider implements CloudProvider {
 						new AlarmSync(this.plugin,cloud).execute()
 						//vms
 						new VirtualMachineSync(this.plugin,cloud).execute()
+						//volumes
+						new VolumeSync(this.plugin,cloud).execute()
 						rtn = ServiceResponse.success()
 
 					} else {

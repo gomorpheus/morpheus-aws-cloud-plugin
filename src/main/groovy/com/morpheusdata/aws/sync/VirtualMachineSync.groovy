@@ -32,7 +32,6 @@ import com.morpheusdata.model.projection.ServicePlanIdentityProjection
 import com.morpheusdata.model.projection.WorkloadIdentityProjection
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable
-import io.reactivex.Single
 
 @Slf4j
 class VirtualMachineSync {
@@ -349,17 +348,20 @@ class VirtualMachineSync {
 						if(storageVolumeType) {
 							def maxStorage = (awsVolumeTypeData.getSize().toLong() * ComputeUtility.ONE_GIGABYTE)
 							def volume = new StorageVolume(
-								refType:'ComputeZone',
-								refId:cloud.id,
-								account:server.account,
-								maxStorage:maxStorage,
+								refType: 'ComputeZone',
+								refId: cloud.id,
+								regionCode: server.region?.regionCode,
+								account: server.account,
+								maxStorage: maxStorage,
 								maxIOPS: awsVolumeTypeData.getIops(),
-								type:storageVolumeType,
-								externalId:volumeId,
-								deviceName:awsVolume.deviceName,
-								name:volumeId,
+								type: storageVolumeType,
+								externalId: volumeId,
+								deviceName: awsVolume.deviceName,
+								deviceDisplayName: AmazonComputeUtility.extractDiskDisplayName(awsVolume.deviceName)?.replaceAll('sd', 'xvd'),
+								name: volumeId,
 								displayOrder: deviceIndex,
-								rootVolume: awsVolume.deviceName == '/dev/sda1' || awsVolume.deviceName == '/dev/xvda'
+								status: 'provisioned',
+								rootVolume: ['/dev/sda1','/dev/xvda','xvda','sda1','sda'].contains(awsVolume.deviceName)
 							)
 							createList << volume
 							rtn.saveRequired = true
@@ -379,26 +381,35 @@ class VirtualMachineSync {
 					def deviceIndex = masterItems.indexOf(updateMap.masterItem)
 
 					Volume awsVolumeTypeData = volumeMap[volumeId]
-					def changes = false
+					def save = false
 					def maxStorage = awsVolumeTypeData ? (awsVolumeTypeData.getSize().toLong() * ComputeUtility.ONE_GIGABYTE) : 0l
 					if(awsVolumeTypeData && existingVolume.maxStorage != maxStorage) {
 						existingVolume.maxStorage = maxStorage
-						changes = true
+						save = true
 					}
 					if(existingVolume.displayOrder != deviceIndex) {
 						existingVolume.displayOrder = deviceIndex
-						changes = true
+						save = true
+					}
+					def deviceDisplayName = AmazonComputeUtility.extractDiskDisplayName(updateMap.masterItem.deviceName)?.replaceAll('sd', 'xvd')
+					if(existingVolume.deviceDisplayName != deviceDisplayName) {
+						existingVolume.deviceDisplayName = deviceDisplayName
+						save = true
 					}
 					def rootVolume = ['/dev/sda1','/dev/xvda','xvda','sda1','sda'].contains(updateMap.masterItem?.deviceName)
 					if( rootVolume != existingVolume.rootVolume) {
 						existingVolume.rootVolume = rootVolume
-						changes = true
+						save = true
 					}
 					if(awsVolumeTypeData.getIops() != existingVolume.maxIOPS) {
 						existingVolume.maxIOPS = awsVolumeTypeData.getIops()
-						changes = true
+						save = true
 					}
-					if(changes) {
+					if(existingVolume.regionCode != server.region?.regionCode) {
+						existingVolume.regionCode = server.region.regionCode
+						save = true
+					}
+					if(save) {
 						rtn.saveRequired = true
 						saveList << existingVolume
 					}

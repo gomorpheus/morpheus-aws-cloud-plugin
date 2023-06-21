@@ -1746,7 +1746,7 @@ class AmazonComputeUtility {
 
 
 	static listVolumes(opts) {
-		def rtn = [success:false, volumesList:[], volumeList: []]
+		def rtn = [success:false, volumeList: []]
 		try {
 			AmazonEC2Client amazonClient = opts.amazonClient
 			def vpcId = opts.zone.getConfigProperty('vpc')
@@ -1764,7 +1764,7 @@ class AmazonComputeUtility {
 			
 			while(tmpVolumes.size() > 0) {
 				tmpVolumes.each { tmpVolume ->
-					rtn.volumesList << tmpVolume
+					rtn.volumeList << tmpVolume
 				}
 				def nextPageToken = volResponse.getNextToken()
 				if(!nextPageToken) {
@@ -5295,6 +5295,20 @@ class AmazonComputeUtility {
 	static asCloudFormationYaml(Map map) {
 		def yaml = new org.yaml.snakeyaml.Yaml(new CloudFormationYamlConstructor())
 		return yaml.dump(map)
+	}
+
+	static extractDiskDisplayName(name) {
+		def rtn = name
+		if(rtn) {
+			def lastSlash = rtn.lastIndexOf('/')
+			if(lastSlash > -1) {
+				rtn = rtn.substring(lastSlash + 1)
+			}
+			if(rtn?.endsWith('1')) {
+				rtn = rtn.substring(0, rtn.length() - 1)
+			}
+		}
+		rtn
 	}
 
 }
