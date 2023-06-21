@@ -115,12 +115,13 @@ class SecurityGroupSync {
 					direction: cloudRule.direction, etherType: cloudRule.ethertype
 				)
 
-				if(cloudRule.ipProtocol != 'icmp') {
-					if(cloudRule.minPort) {
-						rule.portRange = cloudRule.maxPort ? "${cloudRule.minPort}" : "${cloudRule.minPort}-${cloudRule.maxPort}"
-					} else if(cloudRule.maxPort) {
-						rule.portRange = "${cloudRule.maxPort}"
-					}
+				def portStart = cloudRule.minPort != null && (cloudRule.minPort > 0 || cloudRule.ipProtocol != 'icmp') ? cloudRule.minPort : null
+				def portEnd = cloudRule.maxPort != null && (cloudRule.maxPort > 0 || cloudRule.ipProtocol != 'icmp') ? cloudRule.maxPort : null
+
+				if(portStart != null) {
+					rule.portRange = (portEnd && portEnd > 0  && portStart != portEnd) ? "${portStart}-${portEnd}" : "${portStart}"
+				} else if(portEnd != null) {
+					rule.portRange = "${portEnd}"
 				}
 
 				if(cloudRule.direction == 'egress') {
