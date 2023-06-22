@@ -3,13 +3,21 @@ package com.morpheusdata.aws
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.NetworkProvider
 import com.morpheusdata.core.Plugin
+import com.morpheusdata.core.providers.CloudInitializationProvider
+import com.morpheusdata.model.AccountIntegration
+import com.morpheusdata.model.AccountIntegrationType
+import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.Network
 import com.morpheusdata.model.NetworkRouterType
+import com.morpheusdata.model.NetworkServer
+import com.morpheusdata.model.NetworkServerType
 import com.morpheusdata.model.NetworkSubnet
 import com.morpheusdata.model.NetworkType
 import com.morpheusdata.response.ServiceResponse
+import groovy.util.logging.Slf4j
 
-class AWSNetworkProvider implements NetworkProvider {
+@Slf4j
+class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider {
 
 	Plugin plugin
 	MorpheusContext morpheus
@@ -78,7 +86,26 @@ class AWSNetworkProvider implements NetworkProvider {
 		]
 
 	}
-/**
+
+	@Override
+	ServiceResponse initializeProvider(Cloud cloud) {
+		ServiceResponse rtn = ServiceResponse.prepare()
+		try {
+			NetworkServer integration = new NetworkServer(
+				name: cloud.name,
+				type: new NetworkServerType(code:"amazon")
+			)
+			morpheus.integration.registerCloudIntegration(cloud.id, integration)
+			ServiceResponse.success = true
+		} catch (Exception e) {
+			rtn.success = false
+			log.error("initializeProvider error: {}", e, e)
+		}
+
+		return rtn
+	}
+
+	/**
 	 * Validates the submitted network information.
 	 * If a {@link ServiceResponse} is not marked as successful then the validation results will be
 	 * bubbled up to the user.
@@ -172,7 +199,5 @@ class AWSNetworkProvider implements NetworkProvider {
 	ServiceResponse deleteSubnet(NetworkSubnet subnet, Network network) {
 		return null
 	}
-
-
 
 }

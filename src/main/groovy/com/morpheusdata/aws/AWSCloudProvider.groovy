@@ -618,10 +618,16 @@ class AWSCloudProvider implements CloudProvider {
 	@Override
 	ServiceResponse initializeCloud(Cloud cloud) {
 		ServiceResponse rtn = new ServiceResponse(success: false)
-		log.info "Initializing Cloud: ${cloud.code}"
-		log.info "config: ${cloud.configMap}"
+		log.debug("Refreshing Cloud: ${cloud.code}")
+		log.debug("config: ${cloud.configMap}")
 
 		try {
+
+			// initialize providers for this cloud
+			plugin.getNetworkProvider().initializeCloud(cloud)
+			plugin.getDnsProvider().initializeCloud(cloud)
+			// plugin.getStorageProvider().initializeCloud(cloud)
+
 			refreshDaily(cloud)
 			refresh(cloud)
 		} catch (e) {
