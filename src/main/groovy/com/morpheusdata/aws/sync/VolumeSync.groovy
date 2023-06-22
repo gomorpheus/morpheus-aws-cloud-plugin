@@ -2,7 +2,7 @@ package com.morpheusdata.aws.sync
 
 import com.amazonaws.services.ec2.model.Instance
 import com.amazonaws.services.ec2.model.Volume
-import com.morpheus.util.ComputeUtility
+import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.aws.AWSPlugin
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
