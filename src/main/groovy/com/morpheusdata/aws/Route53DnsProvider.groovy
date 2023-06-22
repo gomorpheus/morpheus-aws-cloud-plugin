@@ -19,6 +19,14 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 	final String name = 'Route 53'
 	final String code = 'amazonDns'
 
+	MorpheusContext morpheusContext
+    Plugin plugin
+
+    Route53DnsProvider(Plugin plugin, MorpheusContext morpheusContext) {
+        this.morpheusContext = morpheusContext
+        this.plugin = plugin
+    }
+
 	/**
 	 * Creates a manually allocated DNS Record of the specified record type on the passed {@link NetworkDomainRecord} object.
 	 * This is typically called outside of automation and is a manual method for administration purposes.
@@ -63,7 +71,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 	 */
 	@Override
 	Icon getIcon() {
-		return null
+		return new Icon(path:"amazon-route53.svg", darkPath: "amazon-route53-dark.svg")
 	}
 
 	@Override
@@ -94,7 +102,8 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 	 */
 	@Override
 	void refresh(AccountIntegration integration) {
-
+		ServiceResponse rtn = ServiceResponse.prepare()
+		return rtn
 	}
 
 	/**
@@ -119,7 +128,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 	 */
 	@Override
 	MorpheusContext getMorpheus() {
-		return null
+		return morpheusContext
 	}
 
 	/**
@@ -128,7 +137,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 	 */
 	@Override
 	Plugin getPlugin() {
-		return null
+		return plugin
 	}
 
 
