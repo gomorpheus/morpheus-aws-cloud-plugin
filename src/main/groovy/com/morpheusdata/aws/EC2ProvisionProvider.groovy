@@ -1,5 +1,6 @@
 package com.morpheusdata.aws
 
+import com.amazonaws.services.ec2.AmazonEC2
 import com.bertramlabs.plugins.karman.CloudFile
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.AbstractProvisionProvider
@@ -13,6 +14,8 @@ import com.morpheusdata.model.ComputeServer
 import com.morpheusdata.model.ComputeServerInterface
 import com.morpheusdata.model.ComputeServerInterfaceType
 import com.morpheusdata.model.ComputeTypeLayout
+import com.morpheusdata.model.ComputeZonePool
+import com.morpheusdata.model.ComputeZoneRegion
 import com.morpheusdata.model.Datastore
 import com.morpheusdata.model.HostType
 import com.morpheusdata.model.Icon
@@ -20,6 +23,7 @@ import com.morpheusdata.model.Instance
 import com.morpheusdata.model.Network
 import com.morpheusdata.model.NetworkProxy
 import com.morpheusdata.model.OptionType
+import com.morpheusdata.model.OsType
 import com.morpheusdata.model.PlatformType
 import com.morpheusdata.model.ProcessEvent
 import com.morpheusdata.model.ProxyConfiguration
@@ -32,6 +36,7 @@ import com.morpheusdata.model.Workload
 import com.morpheusdata.model.provisioning.WorkloadRequest
 import com.morpheusdata.request.ResizeRequest
 import com.morpheusdata.request.UpdateModel
+import com.morpheusdata.response.PrepareWorkloadResponse
 import com.morpheusdata.response.ServiceResponse
 import com.morpheusdata.response.WorkloadResponse
 import groovy.json.JsonSlurper
@@ -158,6 +163,64 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 		log.debug "validateDockerHost: ${server} ${opts}"
 		ServiceResponse.success()
 	}
+
+	/**
+	 * This method is called before runWorkload and provides an opportunity to perform action or obtain configuration
+	 * that will be needed in runWorkload. At the end of this method, if deploying a ComputeServer with a VirtualImage,
+	 * the sourceImage on ComputeServer should be determined and saved.
+	 * @param workload the Workload object we intend to provision along with some of the associated data needed to determine
+	 *                 how best to provision the workload
+	 * @param workloadRequest the RunWorkloadRequest object containing the various configurations that may be needed
+	 *                        in running the Workload. This will be passed along into runWorkload
+	 * @param opts additional configuration options that may have been passed during provisioning
+	 * @return Response from API
+	 */
+	default ServiceResponse<PrepareWorkloadResponse> prepareWorkload(Workload workload, WorkloadRequest workloadRequest, Map opts) {
+		ServiceResponse<PrepareWorkloadResponse> resp = new ServiceResponse<>()
+		resp.data = new PrepareWorkloadResponse(workload: workload)
+
+		ComputeServer server = workload.server
+		//lets compute the resource pool we need to attach to the server and ComputeZoneRegion
+		def vpcId = getResourceGroupId(workload.server.cloud.getConfigMap(), workload.getConfigMap())
+		if(!vpcId && server.resourcePool) {
+			vpcId = server.resourcePool.externalId
+		}
+		if(vpcId instanceof Map) {
+			vpcId = vpcId.id
+		} //handling legacy formats
+		ComputeZonePool zonePool = morpheus.cloud.pool.listByCloudAndExternalIdIn(server.cloud.id,vpcId).blockingFirst()
+
+		server.resourcePool = zonePool
+		if (server.resourcePool.regionCode) {
+			ComputeZoneRegion region = morpheus.cloud.region.findByCloudAndRegionCode(server.cloud.id,server.resourcePool.regionCode).blockingGet().get()
+			server.volumes?.each { vol ->
+				vol.regionCode = server.resourcePool.regionCode
+			}
+		}
+		//build config
+		AmazonEC2 amazonClient = AmazonComputeUtility.getAmazonClient(workload.server.cloud,false,workload.server.resourcePool.regionCode)
+		//lets figure out what image we are deploying
+		def imageType = workload.getConfigMap().imageType ?: 'default' //amazon generic instance type has a radio button for this
+		def virtualImage = getWorkloadImage(amazonClient,server.resourcePool.regionCode,workload, opts)
+		if(virtualImage) {
+			if(virtualImage.imageType != 'ami' || imageType == 'local')
+			{
+				//we have to upload TODO: upload OVF Import from old importImage Method
+			} else {
+				//this ensures the image is set correctly for provisioning as it enters runWorkload
+				workload.server.sourceImage = virtualImage
+				VirtualImageLocation location = ensureVirtualImageLocation(amazonClient,server.resourcePool.regionCode,virtualImage,server.cloud)
+				resp.data.setVirtualImageLocation(location)
+			}
+			return resp
+		} else {
+			return ServiceResponse.error("Virtual Image not found")
+		}
+
+	}
+
+
+
 
 	/**
 	 * This method is a key entry point in provisioning a workload. This could be a vm, a container, or something else.
@@ -428,5 +491,152 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	@Override
 	String getName() {
 		'Amazon EC2'
+	}
+
+	protected getWorkloadImage(AmazonEC2 amazonClient, String regionCode, Workload workload, Map opts = [:]) {
+		VirtualImage rtn
+		def containerConfig = workload.getConfigMap()
+		def imageType = containerConfig.imageType ?: 'default'
+		if(imageType == 'private' && containerConfig.imageId) {
+			rtn = morpheusContext.virtualImage.get(containerConfig.imageId as Long).blockingGet()
+		} else if(imageType == 'local' && (containerConfig.localImageId || containerConfig.template)) {
+			Long localImageId = getImageId(containerConfig.localImageId) ?: getImageId(containerConfig.template)
+			if(localImageId) {
+				rtn = morpheusContext.virtualImage.get(localImageId).blockingGet()
+			}
+		} else if(imageType == 'public' && containerConfig.publicImageId) {
+
+			def saveResults = saveAccountImage(amazonClient, workload.account, workload.server.cloud, regionCode, containerConfig.publicImageId)
+			rtn = saveResults.image
+		} else if(workload.workloadType.virtualImage) {
+			rtn = workload.workloadType.virtualImage
+		}
+		return rtn
+	}
+
+	protected saveAccountImage(AmazonEC2 amazonClient, account, zone,String regionCode, publicImageId, sourceImage = null) {
+		def rtn = [success:false]
+		try {
+			if(publicImageId?.startsWith('!')) {
+				return rtn
+			}
+			VirtualImageLocation existing = morpheus.virtualImage.location.findVirtualImageLocationByExternalIdForCloudAndType(publicImageId,zone.id,regionCode,'ami',account.id).blockingGet()
+
+			log.info("saveAccountImage existing: ${existing}")
+			if(existing) {
+				if(!existing.externalDiskId) {
+					def imageResults = AmazonComputeUtility.loadImage([amazonClient:amazonClient, imageId:publicImageId])
+					if(imageResults.success == true && imageResults.image)	{
+						existing.externalDiskId = imageResults.image.blockDeviceMappings.find{ mapping -> mapping.deviceName == imageResults.image.rootDeviceName}?.ebs?.snapshotId
+						morpheus.virtualImage.location.save([existing]).blockingGet()
+						rtn.awsImage = imageResults.image
+					}
+				}
+				rtn.image = existing.virtualImage
+				rtn.imageLocation = existing
+				rtn.imageId = rtn.image.id
+				rtn.success = true
+			} else {
+				//find by image location
+				def imageResults = AmazonComputeUtility.loadImage([amazonClient:amazonClient, imageId:publicImageId])
+				//make sure its there
+				if(imageResults.success == true && imageResults.image)	{
+					def blockDeviceMap = imageResults.image.getBlockDeviceMappings()
+					def blockDeviceConfig = []
+					blockDeviceMap.each { blockDevice ->
+						blockDeviceConfig << [deviceName:blockDevice.getDeviceName(), ebs:blockDevice.getEbs(), noDevice:blockDevice.getNoDevice(),
+											  virtualName:blockDevice.getVirtualName()]
+					}
+					def tagsConfig = imageResults.image.getTags()?.collect{[key:it.getKey(), value:it.getValue()]} ?: []
+					def productCodeConfig = imageResults.image.getProductCodes()?.collect{[id:it.getProductCodeId(), type:it.getProductCodeType()]} ?: []
+					def imageConfig = [category:"amazon.ec2.image.${zone.id}", name:imageResults.image.getName(), installAgent:true,
+									   code:"amazon.ec2.image.${zone.id}.${imageResults.image.getImageId()}", imageType:'ami', externalType:imageResults.image.getImageType(),
+									   kernelId:imageResults.image.getKernelId(), architecture:imageResults.image.getArchitecture(),
+									   description:imageResults.image.getDescription(), minDisk:10, minRam:512 * ComputeUtility.ONE_MEGABYTE, remotePath:imageResults.image.getImageLocation(),
+									   hypervisor:imageResults.image.getHypervisor(), platform:(imageResults.image.getPlatform() == 'windows' ? 'windows' : 'linux'),
+									   productCode:'', externalId:imageResults.image.getImageId(), ramdiskId:imageResults.image.getRamdiskId(), isCloudInit: (imageResults.image.getPlatform() == 'windows' && imageResults.image.getImageOwnerAlias() != 'amazon' ? false : true),
+									   rootDeviceName:imageResults.image.getRootDeviceName(), rootDeviceType:imageResults.image.getRootDeviceType(),
+									   enhancedNetwork:imageResults.image.getSriovNetSupport(), status:imageResults.image.getState(),
+									   statusReason:imageResults.image.getStateReason(), virtualizationType:imageResults.image.getVirtualizationType(),
+									   isPublic:imageResults.image.isPublic(), refType:'ComputeZone', refId:"${zone.id}", owner:account, userDefined:true,
+									   sshUsername: sourceImage?.sshUsername, sshPassword: sourceImage?.sshPassword,
+									   externalDiskId:imageResults.image.blockDeviceMappings.find{ mapping -> mapping.deviceName == imageResults.image.rootDeviceName}?.ebs?.snapshotId
+					]
+					log.info("Saving new image")
+					def add = new VirtualImage(imageConfig)
+					if(add.platform == 'windows')
+						add.osType = new OsType(code:'windows')
+					else
+						add.osType = new OsType(code:'linux')
+
+//					add.addToAccounts(account)
+//					add.tags = tagsConfig.encodeAsJSON().toString()
+//					add.blockDeviceConfig = blockDeviceConfig.encodeAsJSON().toString()
+//					add.productCode = productCodeConfig.encodeAsJSON().toString()
+					def locationConfig = [code:"amazon.ec2.image.${zone.id}.${imageResults.image.getImageId()}", externalId:imageResults.image.getImageId(),
+										  externalDiskId:imageResults.image.blockDeviceMappings.find{ mapping -> mapping.deviceName == imageResults.image.rootDeviceName}?.ebs?.snapshotId,
+										  refType:'ComputeZone', refId:zone.id, imageName:imageResults.image.getName(), imageRegion:getAmazonRegion(zone)]
+					def addLocation = new VirtualImageLocation(locationConfig)
+					add.imageLocations = [addLocation]
+					VirtualImage imageResult = morpheus.virtualImage.create(add).blockingGet()
+					rtn.awsImage = imageResults.image
+					rtn.image = imageResult
+					rtn.imageId = imageResult.id
+					log.info("saveAccountImage result: ${add.code} - ${add.errors}")
+
+					rtn.success = true
+				}
+			}
+		} catch(e) {
+			log.error("saveAccountImage error: ${e}", e)
+		}
+		return rtn
+	}
+
+	protected VirtualImageLocation ensureVirtualImageLocation(AmazonEC2 amazonClient, String region, VirtualImage virtualImage, Cloud cloud) {
+
+		def rtn = virtualImage.locations?.find{it.refType == 'ComputeZone' && it.refId == cloud.id && it.imageRegion == region}
+		if(!rtn) {
+			rtn = virtualImage.locations?.find{it.refType == 'ComputeZone' && it.refId == cloud.id}
+		}
+		if(!rtn) {
+			rtn = virtualImage.locations?.find{it.imageRegion == region}
+		}
+		if(!rtn) {
+			if(virtualImage.isPublic) {
+				//load image by name
+				def publicImageResults = AmazonComputeUtility.loadImage([amazonClient:amazonClient, imageName:virtualImage.name, isPublic:true])
+				if(publicImageResults.success && publicImageResults.image) {
+					def diskId = publicImageResults.image.blockDeviceMappings.find{ mapping -> mapping.deviceName == publicImageResults.image.rootDeviceName}?.ebs?.snapshotId
+					def newLocation = new VirtualImageLocation(virtualImage: virtualImage,imageName: virtualImage.name, externalId: publicImageResults.image.getImageId(), imageRegion: region, externalDiskId: diskId)
+					newLocation = morpheus.virtualImage.location.create(newLocation).blockingGet()
+					return newLocation
+				}
+			}
+			if(!virtualImage.externalDiskId && virtualImage.externalId) {
+				def imageResults = AmazonComputeUtility.loadImage([amazonClient:amazonClient, imageId:virtualImage.externalId])
+
+			}
+			rtn = new VirtualImageLocation([externalId:virtualImage.externalId, externalDiskId:virtualImage.externalDiskId])
+		}
+		return rtn
+	}
+
+
+	private Long getImageId(imageId) {
+		Long rtn
+		try {
+			rtn = imageId?.toLong()
+		} catch(e) {
+			//nothing
+		}
+		return rtn
+	}
+
+	private static getResourceGroupId(zoneConfig, containerConfig) {
+		def rtn = zoneConfig['vpc']
+		if(!rtn)
+			rtn = containerConfig['resourcePool']
+		return rtn
 	}
 }
