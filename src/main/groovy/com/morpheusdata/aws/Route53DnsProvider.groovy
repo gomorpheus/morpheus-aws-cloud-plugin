@@ -102,8 +102,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 	 */
 	@Override
 	void refresh(AccountIntegration integration) {
-		ServiceResponse rtn = ServiceResponse.prepare()
-		return rtn
+		
 	}
 
 	/**
