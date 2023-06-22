@@ -1,5 +1,7 @@
 package com.morpheusdata.aws
 
+import com.amazonaws.services.ec2.AmazonEC2Client
+import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.NetworkProvider
 import com.morpheusdata.core.Plugin
@@ -25,7 +27,6 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 	final String code = 'amazon-network-server'
 	final String name = 'Amazon'
 	final String description = 'AWS EC2'
-
 
 	AWSNetworkProvider(AWSPlugin plugin, MorpheusContext morpheusContext) {
 		this.plugin = plugin
@@ -59,7 +60,6 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 				canAssignPool     : false,
 				name              : 'Amazon Subnet'
 		])
-
 
 		[amazonSubnet]
 	}
@@ -106,19 +106,6 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 	}
 
 	/**
-	 * Validates the submitted network information.
-	 * If a {@link ServiceResponse} is not marked as successful then the validation results will be
-	 * bubbled up to the user.
-	 * @param network Network information
-	 * @param opts additional configuration options
-	 * @return ServiceResponse
-	 */
-	@Override
-	ServiceResponse validateNetwork(Network network, Map opts) {
-		return null
-	}
-
-	/**
 	 * Creates the Network submitted
 	 * @param network Network information
 	 * @param opts additional configuration options
@@ -126,7 +113,37 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 	 */
 	@Override
 	ServiceResponse createNetwork(Network network, Map opts) {
-		return null
+		def rtn = ServiceResponse.prepare()
+		try {
+			if(network.networkServer) {
+				def cloud = network.cloud
+				AmazonEC2Client amazonClient = plugin.getAmazonClient(cloud, false, network.zonePool?.regionCode)
+				def networkConfig = [:]
+				networkConfig.name = network.name
+				networkConfig.vpcId = network.zonePool?.externalId
+				networkConfig.availabilityZone = network.availabilityZone
+				networkConfig.active = network.active
+				networkConfig.assignPublicIp = network.assignPublicIp
+				networkConfig.type = network.type?.externalType
+				networkConfig.cidr = network.cidr
+				log.debug("sending network config: {}", networkConfig)
+				def apiResults = AmazonComputeUtility.createSubnet(amazonClient, networkConfig, opts)
+				log.info("network apiResults: {}", apiResults)
+				//create it
+				if( apiResults?.success && apiResults?.error != true) {
+					rtn.success = true
+					network.externalId = apiResults.externalId
+					network.regionCode = network.zonePool?.regionCode
+					morpheus.network.save(network).blockingGet()
+				}
+				rtn.data
+				rtn.msg = apiResults.msg
+				log.debug("results: {}", rtn.results)
+			}
+		} catch(e) {
+			log.error("createNetwork error: ${e}", e)
+		}
+		return rtn
 	}
 
 	/**
@@ -137,7 +154,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 	 */
 	@Override
 	ServiceResponse updateNetwork(Network network, Map opts) {
-		return null
+		return ServiceResponse.success()
 	}
 
 	/**
@@ -147,22 +164,26 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 	 */
 	@Override
 	ServiceResponse deleteNetwork(Network network) {
-		return null
-	}
-
-	/**
-	 * Validates the submitted subnet information.
-	 * If a {@link ServiceResponse} is not marked as successful then the validation results will be
-	 * bubbled up to the user.
-	 * @param subnet NetworkSubnet information
-	 * @param network Network to create the NetworkSubnet on
-	 * @param opts additional configuration options. Mode value will be 'update' for validations during an update vs
-	 * creation
-	 * @return ServiceResponse
-	 */
-	@Override
-	ServiceResponse validateSubnet(NetworkSubnet subnet, Network network, Map opts) {
-		return null
+		log.debug("delete network: {}", network.externalId)
+		def rtn = ServiceResponse.prepare()
+		//remove the network
+		if(network.externalId) {
+			AmazonEC2Client amazonClient = plugin.getAmazonClient(network.cloud, false, network.zonePool?.regionCode)
+			def deleteResults = AmazonComputeUtility.deleteSubnet(amazonClient, network)
+			log.debug("deleteResults: {}", deleteResults)
+			if(deleteResults.success == true) {
+				rtn.success = true
+			} else if(deleteResults.errorCode == 404) {
+				//not found - success
+				log.warn("not found")
+				rtn.success = true
+			} else {
+				rtn.msg = deleteResults.msg
+			}
+		} else {
+			rtn.success = true
+		}
+		return rtn
 	}
 
 	/**
@@ -174,7 +195,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 	 */
 	@Override
 	ServiceResponse createSubnet(NetworkSubnet subnet, Network network, Map opts) {
-		return null
+		return ServiceResponse.success()
 	}
 
 	/**
@@ -186,7 +207,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 	 */
 	@Override
 	ServiceResponse updateSubnet(NetworkSubnet subnet, Network network, Map opts) {
-		return null
+		return ServiceResponse.success()
 	}
 
 	/**
@@ -197,7 +218,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 	 */
 	@Override
 	ServiceResponse deleteSubnet(NetworkSubnet subnet, Network network) {
-		return null
+		return ServiceResponse.success()
 	}
 
 }

@@ -436,49 +436,48 @@ class AWSCloudProvider implements CloudProvider {
 	@Override
 	ServiceResponse refresh(Cloud cloudInfo) {
 		ServiceResponse rtn = new ServiceResponse(success: false)
-		log.info "Initializing Cloud: ${cloud.code}"
-		log.info "config: ${cloud.configMap}"
+		log.info "Initializing Cloud: ${cloudInfo.code}"
+		log.info "config: ${cloudInfo.configMap}"
 
 		try {
 			def networkProxy
-
-			if(cloud.apiProxy?.proxyPort) {
-				networkProxy = new NetworkProxy(proxyHost: cloud.apiProxy.proxyHost, proxyPort: cloud.apiProxy.proxyPort)
+			if(cloudInfo.apiProxy?.proxyPort) {
+				networkProxy = new NetworkProxy(proxyHost: cloudInfo.apiProxy.proxyHost, proxyPort: cloudInfo.apiProxy.proxyPort)
 			}
 
-			def hostOnline = ConnectionUtils.testHostConnectivity(AmazonComputeUtility.getAmazonEndpoint(cloud), 443, true, true, networkProxy)
+			def hostOnline = ConnectionUtils.testHostConnectivity(AmazonComputeUtility.getAmazonEndpoint(cloudInfo), 443, true, true, networkProxy)
 			if(hostOnline) {
-				def client = plugin.getAmazonClient(cloud,true)
-				def testResults = AmazonComputeUtility.testConnection(cloud)
+				def client = plugin.getAmazonClient(cloudInfo,true)
+				def testResults = AmazonComputeUtility.testConnection(cloudInfo)
 				if(testResults.success) {
-					def keyResults = ensureAmazonKeyPair(cloud, client)
+					def keyResults = ensureAmazonKeyPair(cloudInfo, client)
 
 					if(keyResults.success == true) {
-						new RegionSync(this.plugin,cloud).execute()
-						new VPCSync(this.plugin,cloud).execute()
-						new VPCRouterSync(this.plugin,cloud).execute()
-						new SubnetSync(this.plugin,cloud).execute()
-						new SecurityGroupSync(this.plugin, cloud).execute()
-						new InstanceProfileSync(this.plugin,cloud).execute()
-						new IAMRoleSync(this.plugin,cloud).execute()
-						new InternetGatewaySync(this.plugin,cloud).execute()
+						new RegionSync(this.plugin,cloudInfo).execute()
+						new VPCSync(this.plugin,cloudInfo).execute()
+						new VPCRouterSync(this.plugin,cloudInfo).execute()
+						new SubnetSync(this.plugin,cloudInfo).execute()
+						new SecurityGroupSync(this.plugin, cloudInfo).execute()
+						new InstanceProfileSync(this.plugin,cloudInfo).execute()
+						new IAMRoleSync(this.plugin,cloudInfo).execute()
+						new InternetGatewaySync(this.plugin,cloudInfo).execute()
 						//lb services
-						new AlbSync(this.plugin,cloud).execute()
-						new ElbSync(this.plugin,cloud).execute()
+						new AlbSync(this.plugin,cloudInfo).execute()
+						new ElbSync(this.plugin,cloudInfo).execute()
 						//resources
-						new EgressOnlyInternetGatewaySync(this.plugin,cloud).execute()
-						new NATGatewaySync(this.plugin,cloud).execute()
-						new TransitGatewaySync(this.plugin,cloud).execute()
-						new TransitGatewayVpcAttachmentSync(this.plugin,cloud).execute()
-						new NetworkInterfaceSync(this.plugin,cloud).execute()
-						new VpcPeeringConnectionSync(this.plugin,cloud).execute()
+						new EgressOnlyInternetGatewaySync(this.plugin,cloudInfo).execute()
+						new NATGatewaySync(this.plugin,cloudInfo).execute()
+						new TransitGatewaySync(this.plugin,cloudInfo).execute()
+						new TransitGatewayVpcAttachmentSync(this.plugin,cloudInfo).execute()
+						new NetworkInterfaceSync(this.plugin,cloudInfo).execute()
+						new VpcPeeringConnectionSync(this.plugin,cloudInfo).execute()
 						//rds services
-						new DbSubnetGroupSync(this.plugin,cloud).execute()
-						new AlarmSync(this.plugin,cloud).execute()
+						new DbSubnetGroupSync(this.plugin,cloudInfo).execute()
+						new AlarmSync(this.plugin,cloudInfo).execute()
 						//vms
-						new VirtualMachineSync(this.plugin,cloud).execute()
+						new VirtualMachineSync(this.plugin,cloudInfo).execute()
 						//volumes
-						new VolumeSync(this.plugin,cloud).execute()
+						new VolumeSync(this.plugin,cloudInfo).execute()
 						rtn = ServiceResponse.success()
 
 					} else {

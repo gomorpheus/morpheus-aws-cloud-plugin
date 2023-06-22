@@ -8,6 +8,7 @@ import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.KeyPair
 import com.morpheusdata.core.util.KeyUtility
 import com.morpheusdata.core.util.ProgressInputStream
+import com.morpheusdata.model.Network
 import groovy.json.JsonOutput
 
 import java.text.SimpleDateFormat
@@ -2009,10 +2010,9 @@ class AmazonComputeUtility {
 		return rtn
 	}
 
-	static createSubnet(Map authConfig, Map config, Map opts) {
+	static createSubnet(AmazonEC2Client amazonClient, Map config, Map opts) {
 		def rtn = [success:false]
 		try {
-			AmazonEC2Client amazonClient = authConfig.amazonClient
 			def networkRequest = new CreateSubnetRequest().withVpcId(config.vpcId)
 			if(config.cidr) {
 				networkRequest.withCidrBlock(config.cidr)
@@ -2081,11 +2081,10 @@ class AmazonComputeUtility {
 		return rtn
 	}
 
-	static deleteSubnet(opts) {
+	static deleteSubnet(AmazonEC2Client amazonClient, Network network) {
 		def rtn = [success:false]
 		try {
-			AmazonEC2Client amazonClient = opts.amazonClient
-			def networkId = opts.network.externalId
+			def networkId = network.externalId
 			if(networkId) {
 				def networkRequest = new DeleteSubnetRequest().withSubnetId(networkId)
 				amazonClient.deleteSubnet(networkRequest)
