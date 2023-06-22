@@ -435,7 +435,65 @@ class AWSCloudProvider implements CloudProvider {
 
 	@Override
 	ServiceResponse refresh(Cloud cloudInfo) {
-		initializeCloud(cloudInfo)
+		ServiceResponse rtn = new ServiceResponse(success: false)
+		log.info "Initializing Cloud: ${cloud.code}"
+		log.info "config: ${cloud.configMap}"
+
+		try {
+			def networkProxy
+
+			if(cloud.apiProxy?.proxyPort) {
+				networkProxy = new NetworkProxy(proxyHost: cloud.apiProxy.proxyHost, proxyPort: cloud.apiProxy.proxyPort)
+			}
+
+			def hostOnline = ConnectionUtils.testHostConnectivity(AmazonComputeUtility.getAmazonEndpoint(cloud), 443, true, true, networkProxy)
+			if(hostOnline) {
+				def client = plugin.getAmazonClient(cloud,true)
+				def testResults = AmazonComputeUtility.testConnection(cloud)
+				if(testResults.success) {
+					def keyResults = ensureAmazonKeyPair(cloud, client)
+
+					if(keyResults.success == true) {
+						new RegionSync(this.plugin,cloud).execute()
+						new VPCSync(this.plugin,cloud).execute()
+						new VPCRouterSync(this.plugin,cloud).execute()
+						new SubnetSync(this.plugin,cloud).execute()
+						new SecurityGroupSync(this.plugin, cloud).execute()
+						new InstanceProfileSync(this.plugin,cloud).execute()
+						new IAMRoleSync(this.plugin,cloud).execute()
+						new InternetGatewaySync(this.plugin,cloud).execute()
+						//lb services
+						new AlbSync(this.plugin,cloud).execute()
+						new ElbSync(this.plugin,cloud).execute()
+						//resources
+						new EgressOnlyInternetGatewaySync(this.plugin,cloud).execute()
+						new NATGatewaySync(this.plugin,cloud).execute()
+						new TransitGatewaySync(this.plugin,cloud).execute()
+						new TransitGatewayVpcAttachmentSync(this.plugin,cloud).execute()
+						new NetworkInterfaceSync(this.plugin,cloud).execute()
+						new VpcPeeringConnectionSync(this.plugin,cloud).execute()
+						//rds services
+						new DbSubnetGroupSync(this.plugin,cloud).execute()
+						new AlarmSync(this.plugin,cloud).execute()
+						//vms
+						new VirtualMachineSync(this.plugin,cloud).execute()
+						//volumes
+						new VolumeSync(this.plugin,cloud).execute()
+						rtn = ServiceResponse.success()
+
+					} else {
+						rtn = ServiceResponse.error('error uploading keypair')
+					}
+				} else {
+					rtn = ServiceResponse.error(testResults.invalidLogin == true ? 'invalid credentials' : 'error connecting')
+				}
+			} else {
+				rtn = ServiceResponse.error('AWS is not reachable', null, [status: Cloud.Status.offline])
+			}
+		} catch (e) {
+			log.error("refresh cloud error: ${e}", e)
+		}
+		rtn
 	}
 
 	@Override
@@ -560,60 +618,18 @@ class AWSCloudProvider implements CloudProvider {
 	@Override
 	ServiceResponse initializeCloud(Cloud cloud) {
 		ServiceResponse rtn = new ServiceResponse(success: false)
-		log.info "Initializing Cloud: ${cloud.code}"
-		log.info "config: ${cloud.configMap}"
+		log.debug("Refreshing Cloud: ${cloud.code}")
+		log.debug("config: ${cloud.configMap}")
 
 		try {
-			def networkProxy
 
-			if(cloud.apiProxy?.proxyPort) {
-				networkProxy = new NetworkProxy(proxyHost: cloud.apiProxy.proxyHost, proxyPort: cloud.apiProxy.proxyPort)
-			}
+			// initialize providers for this cloud
+			plugin.getNetworkProvider().initializeCloud(cloud)
+			plugin.getDnsProvider().initializeCloud(cloud)
+			// plugin.getStorageProvider().initializeCloud(cloud)
 
-			def hostOnline = ConnectionUtils.testHostConnectivity(AmazonComputeUtility.getAmazonEndpoint(cloud), 443, true, true, networkProxy)
-			if(hostOnline) {
-				def client = plugin.getAmazonClient(cloud,true)
-				def testResults = AmazonComputeUtility.testConnection(cloud)
-				if(testResults.success) {
-					def keyResults = ensureAmazonKeyPair(cloud, client)
-
-					if(keyResults.success == true) {
-						new RegionSync(this.plugin,cloud).execute()
-						new VPCSync(this.plugin,cloud).execute()
-						new VPCRouterSync(this.plugin,cloud).execute()
-						new SubnetSync(this.plugin,cloud).execute()
-						new SecurityGroupSync(this.plugin, cloud).execute()
-						new InstanceProfileSync(this.plugin,cloud).execute()
-						new IAMRoleSync(this.plugin,cloud).execute()
-						new InternetGatewaySync(this.plugin,cloud).execute()
-						//lb services
-						new AlbSync(this.plugin,cloud).execute()
-						new ElbSync(this.plugin,cloud).execute()
-						//resources
-						new EgressOnlyInternetGatewaySync(this.plugin,cloud).execute()
-						new NATGatewaySync(this.plugin,cloud).execute()
-						new TransitGatewaySync(this.plugin,cloud).execute()
-						new TransitGatewayVpcAttachmentSync(this.plugin,cloud).execute()
-						new NetworkInterfaceSync(this.plugin,cloud).execute()
-						new VpcPeeringConnectionSync(this.plugin,cloud).execute()
-						//rds services
-						new DbSubnetGroupSync(this.plugin,cloud).execute()
-						new AlarmSync(this.plugin,cloud).execute()
-						//vms
-						new VirtualMachineSync(this.plugin,cloud).execute()
-						//volumes
-						new VolumeSync(this.plugin,cloud).execute()
-						rtn = ServiceResponse.success()
-
-					} else {
-						rtn = ServiceResponse.error('error uploading keypair')
-					}
-				} else {
-					rtn = ServiceResponse.error(testResults.invalidLogin == true ? 'invalid credentials' : 'error connecting')
-				}
-			} else {
-				rtn = ServiceResponse.error('AWS is not reachable', null, [status: Cloud.Status.offline])
-			}
+			refreshDaily(cloud)
+			refresh(cloud)
 		} catch (e) {
 			log.error("refresh cloud error: ${e}", e)
 		}

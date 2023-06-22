@@ -1,18 +1,31 @@
 package com.morpheusdata.aws
 
-import com.morpheusdata.core.DNSProvider
+import com.morpheusdata.core.providers.DNSProvider
+import com.morpheusdata.core.providers.CloudInitializationProvider
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
 import com.morpheusdata.model.AccountIntegration
+import com.morpheusdata.model.AccountIntegrationType
+import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.Icon
 import com.morpheusdata.model.NetworkDomainRecord
 import com.morpheusdata.model.OptionType
 import com.morpheusdata.response.ServiceResponse
+import groovy.util.logging.Slf4j
 
-class Route53DnsProvider implements DNSProvider {
+@Slf4j
+class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 
 	final String name = 'Route 53'
 	final String code = 'amazonDns'
+
+	MorpheusContext morpheusContext
+    Plugin plugin
+
+    Route53DnsProvider(Plugin plugin, MorpheusContext morpheusContext) {
+        this.morpheusContext = morpheusContext
+        this.plugin = plugin
+    }
 
 	/**
 	 * Creates a manually allocated DNS Record of the specified record type on the passed {@link NetworkDomainRecord} object.
@@ -58,7 +71,26 @@ class Route53DnsProvider implements DNSProvider {
 	 */
 	@Override
 	Icon getIcon() {
-		return null
+		return new Icon(path:"amazon-route53.svg", darkPath: "amazon-route53-dark.svg")
+	}
+
+	@Override
+	ServiceResponse initializeProvider(Cloud cloud) {
+		ServiceResponse rtn = ServiceResponse.prepare()
+		try {
+			AccountIntegration integration = new AccountIntegration(
+				name: cloud.name,
+				type: new AccountIntegrationType(code:"amazonDns"),
+				serviceUrl: cloud.regionCode
+			)
+			morpheus.integration.registerCloudIntegration(cloud.id, integration)
+			ServiceResponse.success = true
+		} catch (Exception e) {
+			rtn.success = false
+			log.error("initializeProvider error: {}", e, e)
+		}
+
+		return rtn
 	}
 
 	/**
@@ -70,7 +102,7 @@ class Route53DnsProvider implements DNSProvider {
 	 */
 	@Override
 	void refresh(AccountIntegration integration) {
-
+		
 	}
 
 	/**
@@ -95,7 +127,7 @@ class Route53DnsProvider implements DNSProvider {
 	 */
 	@Override
 	MorpheusContext getMorpheus() {
-		return null
+		return morpheusContext
 	}
 
 	/**
@@ -104,7 +136,7 @@ class Route53DnsProvider implements DNSProvider {
 	 */
 	@Override
 	Plugin getPlugin() {
-		return null
+		return plugin
 	}
 
 

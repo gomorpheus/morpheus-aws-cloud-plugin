@@ -12,6 +12,7 @@ class AWSPlugin extends Plugin {
 
 	private String cloudProviderCode
 	private String networkProviderCode
+	private String dnsProviderCode
 
 	@Override
 	String getCode() {
@@ -25,13 +26,16 @@ class AWSPlugin extends Plugin {
 		def cloudProvider = new AWSCloudProvider(this, this.morpheus)
 		def optionSourceProvider = new AWSOptionSourceProvider(this, this.morpheus)
 		def networkProvider = new AWSNetworkProvider(this, this.morpheus)
+		def dnsProvider = new Route53DnsProvider(this, this.morpheus)
 		this.pluginProviders.put(provisionProvider.code, provisionProvider)
 		this.pluginProviders.put(cloudProvider.code, cloudProvider)
 		this.pluginProviders.put(optionSourceProvider.code, optionSourceProvider)
 		this.pluginProviders.put(networkProvider.code, networkProvider)
+		this.pluginProviders.put(dnsProvider.code, dnsProvider)
 
 		cloudProviderCode = cloudProvider.code
 		networkProviderCode = networkProvider.code
+		dnsProviderCode = dnsProvider.code
 	}
 
 	@Override
@@ -49,6 +53,10 @@ class AWSPlugin extends Plugin {
 
 	def AWSNetworkProvider getNetworkProvider() {
 		this.getProviderByCode(networkProviderCode)
+	}
+
+	def AWSNetworkProvider getDnsProvider() {
+		this.getProviderByCode(dnsProviderCode)
 	}
 
 	def getAmazonClient(Cloud cloud, Boolean fresh = false, String region=null) {
