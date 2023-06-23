@@ -10,6 +10,8 @@ import com.morpheusdata.model.AccountIntegration
 import com.morpheusdata.model.AccountIntegrationType
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.Network
+import com.morpheusdata.model.NetworkRoute
+import com.morpheusdata.model.NetworkRouter
 import com.morpheusdata.model.NetworkRouterType
 import com.morpheusdata.model.NetworkServer
 import com.morpheusdata.model.NetworkServerType
@@ -32,6 +34,12 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 		this.plugin = plugin
 		this.morpheus = morpheusContext
 	}
+
+	@Override
+	String getNetworkServerTypeCode() {
+		return 'amazon'
+	}
+
 	/**
 	 * The CloudProvider code that this NetworkProvider should be attached to.
 	 * When this NetworkProvider is registered with Morpheus, all Clouds that match this code will have a
@@ -42,7 +50,6 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 	String getCloudProviderCode() {
 		return 'amazon'
 	}
-
 
 	/**
 	 * Provides a Collection of NetworkTypes that can be managed by this provider
@@ -220,5 +227,74 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 	ServiceResponse deleteSubnet(NetworkSubnet subnet, Network network) {
 		return ServiceResponse.success()
 	}
+
+
+	/**
+	 * Create the NetworkRouter submitted
+	 * @param router NetworkRouter information
+	 * @param opts additional configuration options
+	 * @return ServiceResponse
+	 */
+	default ServiceResponse createRouter(NetworkRouter router, Map opts) {
+		return ServiceResponse.success()
+	}
+
+	/**
+	 * Update the NetworkRouter submitted
+	 * @param router NetworkRouter information
+	 * @param opts additional configuration options
+	 * @return ServiceResponse
+	 */
+	default ServiceResponse updateRouter(NetworkRouter router, Map opts) {
+		return ServiceResponse.success()
+	}
+
+	/**
+	 * Delete the NetworkRouter submitted
+	 * @param router NetworkRouter information
+	 * @return ServiceResponse
+	 */
+	default ServiceResponse deleteRouter(NetworkRouter router) {
+		return ServiceResponse.success()
+	}
+
+	/**
+	 * Validate the submitted NetworkRoute information.
+	 * If a {@link ServiceResponse} is not marked as successful then the validation results will be
+	 * bubbled up to the user.
+	 * @param network Network information
+	 * @param networkRoute NetworkRoute information
+	 * @param opts additional configuration options. Mode value will be 'update' for validations during an update vs
+	 * creation
+	 * @return ServiceResponse
+	 */
+	default ServiceResponse validateNetworkRoute(Network network, NetworkRoute networkRoute, Map opts) {
+		return ServiceResponse.success()
+	}
+
+	/**
+	 * Create the NetworkRoute submitted
+	 * @param network Network information
+	 * @param networkRoute NetworkRoute information
+	 * @param opts additional configuration options
+	 * @return ServiceResponse
+	 */
+	default ServiceResponse createNetworkRoute(Network network, NetworkRoute networkRoute, Map opts) { return ServiceResponse.success(); };
+
+	/**
+	 * Update the NetworkRoute submitted
+	 * @param network Network information
+	 * @param networkRoute NetworkRoute information
+	 * @param opts additional configuration options
+	 * @return ServiceResponse
+	 */
+	default ServiceResponse updateNetworkRoute(Network network, NetworkRoute networkRoute, Map opts) { return ServiceResponse.success(); };
+
+	/**
+	 * Delete the NetworkRoute submitted
+	 * @param networkRoute NetworkRoute information
+	 * @return ServiceResponse
+	 */
+	default ServiceResponse deleteNetworkRoute(NetworkRoute networkRoute) { return ServiceResponse.success(); };
 
 }

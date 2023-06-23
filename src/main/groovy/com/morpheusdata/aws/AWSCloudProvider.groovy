@@ -650,4 +650,10 @@ class AWSCloudProvider implements CloudProvider {
 		}
 		keyResults
 	}
+
+	@Override
+	String getDefaultNetworkServerTypeCode() {
+		return "amazon-network-server"
+	}
+
 }
