@@ -4797,7 +4797,7 @@ class AmazonComputeUtility {
 		return amazonClient
 	}
 
-	static getAmazonRoute53Client(accountIntegration, Boolean fresh = false, Map proxySettings=null, Map opts=[:]) {
+	static getAmazonRoute53Client(accountIntegration, Boolean fresh = false, Map proxySettings=null, Map opts=[:], String region=null) {
 		def creds
 		def credsProvider
 		def clientInfo = getCachedClientInfo("accountIntegration:${accountIntegration.id}",'route53Client')
@@ -4810,10 +4810,10 @@ class AmazonComputeUtility {
 		def builder = AmazonRoute53ClientBuilder.standard()
 		ClientConfiguration clientConfiguration = new ClientConfiguration()
 		def clientExpires
-		def region = accountIntegration.serviceUrl
+		region = region ?: accountIntegration.serviceUrl
 		region = getAmazonEndpointRegion(region)
 		def authConfig = [:]
-		if(accountIntegration.refType =='Cloud') {
+		if(accountIntegration.refType =='Cloud' || accountIntegration.refType =='ComputeZone') {
 			def zone = opts.zone ?: Cloud.get(accountIntegration.refId)
 			clientConfiguration = getClientConfiguration(zone)
 			authConfig.accessKey = accountIntegration.credentialData?.username ?: accountIntegration.serviceUsername ?: getAmazonAccessKey(zone)
