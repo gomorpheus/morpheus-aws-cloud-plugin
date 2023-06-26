@@ -2010,9 +2010,11 @@ class AmazonComputeUtility {
 		return rtn
 	}
 
-	static createSubnet(AmazonEC2Client amazonClient, Map config, Map opts) {
+	static createSubnet(Map opts) {
 		def rtn = [success:false]
 		try {
+			AmazonEC2Client amazonClient = opts.amazonClient
+			Map config = opts.config ?: [:]
 			def networkRequest = new CreateSubnetRequest().withVpcId(config.vpcId)
 			if(config.cidr) {
 				networkRequest.withCidrBlock(config.cidr)
@@ -2081,10 +2083,11 @@ class AmazonComputeUtility {
 		return rtn
 	}
 
-	static deleteSubnet(AmazonEC2Client amazonClient, Network network) {
+	static deleteSubnet(Map opts) {
 		def rtn = [success:false]
 		try {
-			def networkId = network.externalId
+			AmazonEC2Client amazonClient = opts.amazonClient
+			def networkId = opts.network.externalId
 			if(networkId) {
 				def networkRequest = new DeleteSubnetRequest().withSubnetId(networkId)
 				amazonClient.deleteSubnet(networkRequest)
