@@ -214,6 +214,11 @@ class AWSCloudProvider implements CloudProvider {
 	}
 
 	@Override
+	String getDefaultProvisionTypeCode() {
+		return 'amazon-ec2-provision-provider'
+	}
+
+	@Override
 	Collection<AbstractBackupProvider> getAvailableBackupProviders() {
 		return null
 	}
