@@ -8,6 +8,7 @@ import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.KeyPair
 import com.morpheusdata.core.util.KeyUtility
 import com.morpheusdata.core.util.ProgressInputStream
+import com.morpheusdata.model.Network
 import groovy.json.JsonOutput
 
 import java.text.SimpleDateFormat
@@ -2009,10 +2010,11 @@ class AmazonComputeUtility {
 		return rtn
 	}
 
-	static createSubnet(Map authConfig, Map config, Map opts) {
+	static createSubnet(Map opts) {
 		def rtn = [success:false]
 		try {
-			AmazonEC2Client amazonClient = authConfig.amazonClient
+			AmazonEC2Client amazonClient = opts.amazonClient
+			Map config = opts.config ?: [:]
 			def networkRequest = new CreateSubnetRequest().withVpcId(config.vpcId)
 			if(config.cidr) {
 				networkRequest.withCidrBlock(config.cidr)
@@ -2081,7 +2083,7 @@ class AmazonComputeUtility {
 		return rtn
 	}
 
-	static deleteSubnet(opts) {
+	static deleteSubnet(Map opts) {
 		def rtn = [success:false]
 		try {
 			AmazonEC2Client amazonClient = opts.amazonClient
@@ -4798,7 +4800,7 @@ class AmazonComputeUtility {
 		return amazonClient
 	}
 
-	static getAmazonRoute53Client(accountIntegration, Boolean fresh = false, Map proxySettings=null, Map opts=[:]) {
+	static getAmazonRoute53Client(accountIntegration, Boolean fresh = false, Map proxySettings=null, Map opts=[:], String region=null) {
 		def creds
 		def credsProvider
 		def clientInfo = getCachedClientInfo("accountIntegration:${accountIntegration.id}",'route53Client')
@@ -4811,10 +4813,10 @@ class AmazonComputeUtility {
 		def builder = AmazonRoute53ClientBuilder.standard()
 		ClientConfiguration clientConfiguration = new ClientConfiguration()
 		def clientExpires
-		def region = accountIntegration.serviceUrl
+		region = region ?: accountIntegration.serviceUrl
 		region = getAmazonEndpointRegion(region)
 		def authConfig = [:]
-		if(accountIntegration.refType =='Cloud') {
+		if(accountIntegration.refType =='Cloud' || accountIntegration.refType =='ComputeZone') {
 			def zone = opts.zone ?: Cloud.get(accountIntegration.refId)
 			clientConfiguration = getClientConfiguration(zone)
 			authConfig.accessKey = accountIntegration.credentialData?.username ?: accountIntegration.serviceUsername ?: getAmazonAccessKey(zone)
