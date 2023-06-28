@@ -99,12 +99,6 @@ class VolumeSync {
 				status = attachment.state
 			}
 
-			def deviceDisplayName = AmazonComputeUtility.extractDiskDisplayName(existingItem.deviceName)
-			if(existingItem.deviceDisplayName != deviceDisplayName) {
-				existingItem.deviceDisplayName = deviceDisplayName
-				save = true
-			}
-
 			if(status != existingItem.status) {
 				existingItem.status = status
 				save = true

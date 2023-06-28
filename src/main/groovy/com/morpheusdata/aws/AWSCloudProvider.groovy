@@ -6,6 +6,7 @@ import com.morpheusdata.aws.sync.DbSubnetGroupSync
 import com.morpheusdata.aws.sync.EgressOnlyInternetGatewaySync
 import com.morpheusdata.aws.sync.ElbSync
 import com.morpheusdata.aws.sync.IAMRoleSync
+import com.morpheusdata.aws.sync.ImageSync
 import com.morpheusdata.aws.sync.InstanceProfileSync
 import com.morpheusdata.aws.sync.InternetGatewaySync
 import com.morpheusdata.aws.sync.NATGatewaySync
@@ -434,7 +435,7 @@ class AWSCloudProvider implements CloudProvider {
 	}
 
 	@Override
-	ServiceResponse refresh(Cloud cloudInfo) {
+	ServiceResponse refresh(Cloud cloud) {
 		ServiceResponse rtn = new ServiceResponse(success: false)
 		log.info "Initializing Cloud: ${cloud.code}"
 		log.info "config: ${cloud.configMap}"
@@ -458,6 +459,7 @@ class AWSCloudProvider implements CloudProvider {
 						new VPCSync(this.plugin,cloud).execute()
 						new VPCRouterSync(this.plugin,cloud).execute()
 						new SubnetSync(this.plugin,cloud).execute()
+						new ImageSync(this.plugin,cloud).execute()
 						new SecurityGroupSync(this.plugin, cloud).execute()
 						new InstanceProfileSync(this.plugin,cloud).execute()
 						new IAMRoleSync(this.plugin,cloud).execute()
