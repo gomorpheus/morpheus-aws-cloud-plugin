@@ -363,7 +363,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
             // def listResults = listRecords(integration,domain)
             def listResults = AmazonComputeUtility.listDnsZoneRecords(amazonClient, domain.externalId)
             //todo: change to log.debug, or maybe do not log entire results eh?
-            log.debug("cacheZoneRecords - domain: ${domain.externalId}, listResults: ${listResults}")
+            log.info("cacheZoneRecords - domain: ${domain.externalId}, listResults: ${listResults}")
 
             if (listResults.success) {
                 List<Map> apiItems = listResults.recordList.collect { record ->
@@ -396,8 +396,10 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
                     domainObject.externalId == apiItem['externalId']
 
                 }.onDelete {removeItems ->
+                	log.info("Removing ${removeItems.size()} network domain records for domain ${domain.externalId}")
                     morpheus.network.domain.record.remove(domain, removeItems).blockingGet()
                 }.onAdd { itemsToAdd ->
+                	log.info("Adding ${itemsToAdd.size()} network domain records for domain ${domain.externalId}")
                     addMissingDomainRecords(domain, itemsToAdd)
                 }.withLoadObjectDetails { List<SyncTask.UpdateItemDto<NetworkDomainRecord,Map>> updateItems ->
                     Map<Long, SyncTask.UpdateItemDto<NetworkDomainRecord, Map>> updateItemMap = updateItems.collectEntries { [(it.existingItem.id): it]}
@@ -406,6 +408,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
                         return new SyncTask.UpdateItem<NetworkDomainRecord,Map>(existingItem:domainRecord, masterItem:matchItem.masterItem)
                     }
                 }.onUpdate { List<SyncTask.UpdateItem<NetworkDomainRecord,Map>> updateItems ->
+                	log.info("Updating ${updateItems.size()} network domain records for domain ${domain.externalId}")
                     updateMatchedDomainRecords(updateItems)
                 }.observe()
             } else {
@@ -495,9 +498,9 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
                 rtn.errors['name'] = 'name is required'
             }
             // JD: we used to require this for integration only, should All be available now?
-            // if(!integration.serviceUrl || integration.serviceUrl == ''){
-            //     rtn.errors['serviceUrl'] = 'Amazon Region is required'
-            // }
+            if(!integration.serviceUrl || integration.serviceUrl == ''){
+                rtn.errors['serviceUrl'] = 'Amazon Region is required'
+            }
             if((!integration.serviceUsername || integration.serviceUsername == '') && (!integration.credentialData?.username || integration.credentialData?.username == '')){
                 rtn.errors['serviceUsername'] = 'Access Key is required'
             }
@@ -508,17 +511,9 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
             // Validate Connectivity to Amazon Route53
             if(rtn.errors.size() == 0) {
                 log.info("verifyAccountIntegration - integration: ${integration.name} - checking access to AWS")
-                def amazonEc2Client = AmazonComputeUtility.getAmazonClient(integration, true)
-				def regionResults = AmazonComputeUtility.listRegions([amazonClient:amazonEc2Client])
-				if(regionResults.success) {
-					// got list of regions
-					def regionList = regionResults.regionList
-					if(integration.serviceUrl) {
-						//we are scoped to a region so filter
-						regionList = regionList.findAll{it.getRegionName()==AmazonComputeUtility.getAmazonEndpointRegion(integration.serviceUrl)}
-					}
-					def region = regionList.getAt(0)
-					def regionCode = region.getRegionName()
+                def testResults = AmazonComputeUtility.testConnection(integration)
+				if(testResults.success) {
+					def regionCode = AmazonComputeUtility.getAmazonEndpointRegion(integration.serviceUrl)
 					def amazonClient = AmazonComputeUtility.getAmazonRoute53Client(integration, true, null, [:], regionCode)
 					log.info("verifyAccountIntegration - integration: ${integration.name} - checking access to Dns Services via region ${regionCode}")
 					def hostedZones = AmazonComputeUtility.listDnsHostedZones(amazonClient)
@@ -535,7 +530,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 					}
 				} else {
 					// failed to retrieve list of regions
-					log.error("verifyAccountIntegration - integration: ${integration.name} - Cannot access AWS with the provided region and credentials")
+					log.error("verifyAccountIntegration - integration: ${integration.name} - Cannot access AWS with the provided region and credentials - Results: ${testResults}")
 					String errorMessage = 'Cannot access AWS with the provided region and credentials'
 					rtn.errors['serviceUrl'] = errorMessage
 					rtn.errors['serviceUsername'] = errorMessage

@@ -122,6 +122,43 @@ class AmazonComputeUtility {
 		return rtn
 	}
 
+	static testConnection(AccountIntegration accountIntegration) {
+		if(accountIntegration.refType =='Cloud' || accountIntegration.refType =='ComputeZone') {
+			Cloud zone = Cloud.get(accountIntegration.refId)
+			return testConnection(zone)
+		}
+		// test standalone integration (ie. route53)
+		def rtn = [success:false, invalidLogin:false]
+		try {
+			// def endpoint = getAmazonEndpoint(zone)
+			def endpoint = accountIntegration.serviceUrl
+			def region = getAmazonEndpointRegion(endpoint)
+			def endpointConfiguration = new com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration(endpoint, region)
+			def authConfig = [:]
+			authConfig.accessKey = accountIntegration.credentialData?.username ?: accountIntegration.serviceUsername
+			authConfig.secretKey = accountIntegration.credentialData?.password ?: accountIntegration.servicePassword
+			authConfig.region = region
+			def clientConfiguration = getClientConfiguration(authConfig)
+			def amazonClient = AmazonEC2Client.builder()
+				.withCredentials(getAmazonCredentials(authConfig, clientConfiguration).credsProvider)
+				.withClientConfiguration(clientConfiguration)
+				.withRequestHandlers(new InvalidCredentialsRequestHandler())
+				.withEndpointConfiguration(endpointConfiguration)
+				.build()
+			def vpcRequest = new DescribeVpcsRequest()
+			rtn.vpcList = amazonClient.describeVpcs(vpcRequest).getVpcs()
+			rtn.amazonClient = amazonClient
+			rtn.success = true
+		} catch(com.amazonaws.AmazonServiceException awse) {
+			log.error("testConnection to amazon: ${awse.message}")
+			rtn.invalidLogin = (awse.errorCode == 'AuthFailure')
+		} catch(e) {
+			log.error("testConnection to amazon: ${e}")
+		}
+		return rtn
+		
+	}
+
 	static createServer(opts) {
 		def rtn = [success:false]
 		try {
