@@ -451,7 +451,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
         List<NetworkDomainRecord> records = []
 
         addList?.each {record ->
-            if(record['HostName']) {
+            if(record['name']) {
                 def addConfig = [networkDomain:new NetworkDomain(id: domain.id), fqdn:record['fqdn'],
                                  type:record['type']?.toUpperCase(), comments:record['comments'], ttl:record['ttl'],
                                  externalId:record['externalId'], internalId:record['content'], source:'sync',
