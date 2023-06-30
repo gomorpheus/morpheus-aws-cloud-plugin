@@ -13,6 +13,7 @@ import com.morpheusdata.aws.sync.NATGatewaySync
 import com.morpheusdata.aws.sync.NetworkInterfaceSync
 import com.morpheusdata.aws.sync.RegionSync
 import com.morpheusdata.aws.sync.SecurityGroupSync
+import com.morpheusdata.aws.sync.SnapshotSync
 import com.morpheusdata.aws.sync.SubnetSync
 import com.morpheusdata.aws.sync.TransitGatewaySync
 import com.morpheusdata.aws.sync.TransitGatewayVpcAttachmentSync
@@ -485,6 +486,7 @@ class AWSCloudProvider implements CloudProvider {
 						new VirtualMachineSync(this.plugin,cloudInfo).execute()
 						//volumes
 						new VolumeSync(this.plugin,cloudInfo).execute()
+						new SnapshotSync(this.plugin,cloudInfo).execute()
 						rtn = ServiceResponse.success()
 
 					} else {

@@ -1784,6 +1784,36 @@ class AmazonComputeUtility {
 		return rtn
 	}
 
+	static listSnapshots(opts) {
+		def rtn = [success:false, snapshotList:[]]
+		try {
+			AmazonEC2Client amazonClient = opts.amazonClient
+			def snapshotsRequest = new DescribeSnapshotsRequest().withFilters(new LinkedList<Filter>())
+			snapshotsRequest.setMaxResults(1000)
+			DescribeSnapshotsResult snapResponse = amazonClient.describeSnapshots(snapshotsRequest)
+			def tmpSnapshots = snapResponse.getSnapshots()
+
+			// Fetch all the instance information first.. while collecting the volumeIds
+			while(tmpSnapshots.size() > 0) {
+				rtn.snapshotList += tmpSnapshots
+
+				def nextPageToken = snapResponse.getNextToken()
+				if(!nextPageToken) {
+					break
+				}
+				snapshotsRequest = new DescribeSnapshotsRequest().withNextToken(nextPageToken)
+
+				snapshotsRequest.setMaxResults(1000)
+				snapResponse = amazonClient.describeSnapshots(snapshotsRequest)
+				tmpSnapshots = snapResponse.getSnapshots()
+			}
+			rtn.success = true
+		} catch(e) {
+			log.error("listSnapshots error: ${e}", e)
+		}
+		return rtn
+	}
+
 	static listVpcServers(opts) {
 		def rtn = [success:false, serverList:[], volumeList: [:], snapshotList: [:]]
 		try {
