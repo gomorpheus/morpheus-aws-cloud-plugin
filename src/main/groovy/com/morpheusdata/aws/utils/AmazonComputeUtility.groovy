@@ -9,6 +9,7 @@ import com.morpheusdata.model.KeyPair
 import com.morpheusdata.core.util.KeyUtility
 import com.morpheusdata.core.util.ProgressInputStream
 import com.morpheusdata.model.Network
+import com.morpheusdata.model.AccountIntegration
 import groovy.json.JsonOutput
 
 import java.text.SimpleDateFormat
@@ -119,6 +120,43 @@ class AmazonComputeUtility {
 			log.error("testConnection to amazon: ${e}")
 		}
 		return rtn
+	}
+
+	static testConnection(AccountIntegration accountIntegration) {
+		if(accountIntegration.refType =='Cloud' || accountIntegration.refType =='ComputeZone') {
+			Cloud zone = Cloud.get(accountIntegration.refId)
+			return testConnection(zone)
+		}
+		// test standalone integration (ie. route53)
+		def rtn = [success:false, invalidLogin:false]
+		try {
+			// def endpoint = getAmazonEndpoint(zone)
+			def endpoint = accountIntegration.serviceUrl
+			def region = getAmazonEndpointRegion(endpoint)
+			def endpointConfiguration = new com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration(endpoint, region)
+			def authConfig = [:]
+			authConfig.accessKey = accountIntegration.credentialData?.username ?: accountIntegration.serviceUsername
+			authConfig.secretKey = accountIntegration.credentialData?.password ?: accountIntegration.servicePassword
+			authConfig.region = region
+			def clientConfiguration = getClientConfiguration(authConfig)
+			def amazonClient = AmazonEC2Client.builder()
+				.withCredentials(getAmazonCredentials(authConfig, clientConfiguration).credsProvider)
+				.withClientConfiguration(clientConfiguration)
+				.withRequestHandlers(new InvalidCredentialsRequestHandler())
+				.withEndpointConfiguration(endpointConfiguration)
+				.build()
+			def vpcRequest = new DescribeVpcsRequest()
+			rtn.vpcList = amazonClient.describeVpcs(vpcRequest).getVpcs()
+			rtn.amazonClient = amazonClient
+			rtn.success = true
+		} catch(com.amazonaws.AmazonServiceException awse) {
+			log.error("testConnection to amazon: ${awse.message}")
+			rtn.invalidLogin = (awse.errorCode == 'AuthFailure')
+		} catch(e) {
+			log.error("testConnection to amazon: ${e}")
+		}
+		return rtn
+		
 	}
 
 	static createServer(opts) {
@@ -4431,7 +4469,7 @@ class AmazonComputeUtility {
 		return rtn
 	}
 
-	static getAmazonClient(zone, fresh=false, String region=null) {
+	static getAmazonClient(Cloud zone, Boolean fresh=false, String region=null) {
 		def creds
 		AWSCredentialsProvider credsProvider
 		def clientInfo = getCachedClientInfo("cloud:${zone.id}:${region}",'client')
@@ -4466,6 +4504,56 @@ class AmazonComputeUtility {
 		AmazonEC2 amazonClient = builder.build()
 
 		setCachedClientInfo("zone:${zone.id}:${region}",amazonClient,creds,credsProvider,clientExpires,'client',fresh)
+		return amazonClient
+	}
+
+	static getAmazonClient(AccountIntegration accountIntegration, Boolean fresh=false, String region=null) {
+		region = region ?: accountIntegration.serviceUrl
+		region = getAmazonEndpointRegion(region)
+		def creds
+		def credsProvider
+		def clientCacheKey = "accountIntegration:${accountIntegration.id ?: java.util.UUID.randomUUID().toString()}:${region}"
+		def clientInfo = getCachedClientInfo(clientCacheKey,'client')
+		if(!fresh && clientInfo.client) {
+			return clientInfo.client
+		} else if(!fresh) {
+			creds = clientInfo.credentials
+			credsProvider = clientInfo.credentialsProvider
+		}
+		def builder = AmazonEC2ClientBuilder.standard()
+		ClientConfiguration clientConfiguration = new ClientConfiguration()
+		def clientExpires
+		
+		def authConfig = [:]
+		if(accountIntegration.refType =='Cloud' || accountIntegration.refType =='ComputeZone') {
+			def zone = Cloud.get(accountIntegration.refId)
+			clientConfiguration = getClientConfiguration(zone)
+			authConfig.accessKey = accountIntegration.credentialData?.username ?: accountIntegration.serviceUsername ?: getAmazonAccessKey(zone)
+			authConfig.secretKey = accountIntegration.credentialData?.password ?: accountIntegration.servicePassword ?: getAmazonSecretKey(zone)
+			authConfig.useHostCredentials = getAmazonUseHostCredentials(zone)
+			authConfig.stsAssumeRole = zone.getConfigProperty('stsAssumeRole')
+			authConfig.endpoint =  getAmazonCostingEndpoint(zone)
+			authConfig.region = getAmazonEndpointRegion(authConfig.endpoint)
+		} else {
+			authConfig.accessKey = accountIntegration.credentialData?.username ?: accountIntegration.serviceUsername
+			authConfig.secretKey = accountIntegration.credentialData?.password ?: accountIntegration.servicePassword
+			authConfig.region = region
+			// if(proxySettings) {
+			// 	authConfig.apiProxy = proxySettings
+			// }
+			clientConfiguration = getClientConfiguration(authConfig)
+			//global proxy? should we use it on a standalone
+		}
+		if(!creds) {
+			def credsInfo = getAmazonCredentials(authConfig,clientConfiguration)
+			creds = credsInfo.credentials
+			clientExpires = credsInfo.clientExpires
+			credsProvider = credsInfo.credsProvider
+		}
+		builder.withCredentials(credsProvider).withClientConfiguration(clientConfiguration)
+		builder.withRegion(region)
+		def amazonClient = builder.build()
+		setCachedClientInfo(clientCacheKey,amazonClient,creds,credsProvider,clientExpires,'client',fresh)
 		return amazonClient
 	}
 
@@ -4831,9 +4919,12 @@ class AmazonComputeUtility {
 	}
 
 	static getAmazonRoute53Client(accountIntegration, Boolean fresh = false, Map proxySettings=null, Map opts=[:], String region=null) {
+		region = region ?: accountIntegration.serviceUrl
+		region = getAmazonEndpointRegion(region)
 		def creds
 		def credsProvider
-		def clientInfo = getCachedClientInfo("accountIntegration:${accountIntegration.id}",'route53Client')
+		def clientCacheKey = "accountIntegration:${accountIntegration.id ?: java.util.UUID.randomUUID().toString()}:${region}"
+		def clientInfo = getCachedClientInfo(clientCacheKey,'route53Client')
 		if(!fresh && clientInfo.client) {
 			return clientInfo.client
 		} else if(!fresh) {
@@ -4843,8 +4934,6 @@ class AmazonComputeUtility {
 		def builder = AmazonRoute53ClientBuilder.standard()
 		ClientConfiguration clientConfiguration = new ClientConfiguration()
 		def clientExpires
-		region = region ?: accountIntegration.serviceUrl
-		region = getAmazonEndpointRegion(region)
 		def authConfig = [:]
 		if(accountIntegration.refType =='Cloud' || accountIntegration.refType =='ComputeZone') {
 			def zone = opts.zone ?: Cloud.get(accountIntegration.refId)
@@ -4855,9 +4944,10 @@ class AmazonComputeUtility {
 			authConfig.stsAssumeRole = zone.getConfigProperty('stsAssumeRole')
 			authConfig.endpoint =  getAmazonCostingEndpoint(zone)
 			authConfig.region = getAmazonEndpointRegion(authConfig.endpoint)
-		} else if(accountIntegration.refType == null) {
+		} else {
 			authConfig.accessKey = accountIntegration.credentialData?.username ?: accountIntegration.serviceUsername
 			authConfig.secretKey = accountIntegration.credentialData?.password ?: accountIntegration.servicePassword
+			authConfig.region = region
 			if(proxySettings) {
 				authConfig.apiProxy = proxySettings
 			}
@@ -4873,7 +4963,7 @@ class AmazonComputeUtility {
 		builder.withCredentials(credsProvider).withClientConfiguration(clientConfiguration)
 		builder.withRegion(region)
 		def amazonClient = builder.build()
-		setCachedClientInfo("accountIntegration:${accountIntegration.id}",amazonClient,creds,credsProvider,clientExpires,'route53Client',fresh)
+		setCachedClientInfo(clientCacheKey,amazonClient,creds,credsProvider,clientExpires,'route53Client',fresh)
 		return amazonClient
 	}
 
