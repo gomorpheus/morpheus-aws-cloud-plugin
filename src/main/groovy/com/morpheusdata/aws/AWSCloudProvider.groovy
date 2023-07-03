@@ -231,12 +231,12 @@ class AWSCloudProvider implements CloudProvider {
 
 	@Override
 	Collection<NetworkType> getNetworkTypes() {
-		//this is already handled in AWSNetworkProvider#getNetworkTypes()
-		return null
+		plugin.getNetworkProvider().getNetworkTypes() // so the zone types associate with the network types??
 	}
 
 	@Override
 	Collection<NetworkSubnetType> getSubnetTypes() {
+		// plugin.getNetworkProvider().getSubnetTypes() // so the zone types associate with the subnet types?? Network Provider doesn't have this method yet.
 		return null
 	}
 
