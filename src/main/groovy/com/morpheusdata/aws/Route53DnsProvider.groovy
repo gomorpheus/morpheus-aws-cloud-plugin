@@ -228,7 +228,8 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 
 	// Cache Zones methods
 	def cacheZones(AccountIntegration integration, Map opts = [:]) {
-		def amazonEc2Client = AmazonComputeUtility.getAmazonClient(integration)
+		Cloud cloud = integration.refType == "Cloud" || integration.refType == "ComputeZone" ? morpheus.cloud.getCloudById(integration.refId).blockingGet() : null
+		def amazonEc2Client = AmazonComputeUtility.getAmazonClient(integration, cloud)
 		def regionResults = AmazonComputeUtility.listRegions([amazonClient:amazonEc2Client])
 		def regionList = regionResults.regionList
 		if(integration.serviceUrl) {
