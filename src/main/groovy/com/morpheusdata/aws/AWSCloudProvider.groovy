@@ -67,7 +67,7 @@ class AWSCloudProvider implements CloudProvider {
 			fieldLabel: 'Region',
 			fieldName: 'endpoint',
 			inputType: OptionType.InputType.SELECT,
-			optionSource: 'awsPluginEndpoint',
+			optionSource: 'awsPluginRegions',
 			required: true
 		)
 		OptionType credentials = new OptionType(
