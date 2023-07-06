@@ -12,6 +12,7 @@ import com.morpheusdata.aws.sync.InternetGatewaySync
 import com.morpheusdata.aws.sync.NATGatewaySync
 import com.morpheusdata.aws.sync.NetworkInterfaceSync
 import com.morpheusdata.aws.sync.RegionSync
+import com.morpheusdata.aws.sync.ScaleGroupSync
 import com.morpheusdata.aws.sync.SecurityGroupSync
 import com.morpheusdata.aws.sync.SnapshotSync
 import com.morpheusdata.aws.sync.SubnetSync
@@ -487,6 +488,7 @@ class AWSCloudProvider implements CloudProvider {
 						//volumes
 						new VolumeSync(this.plugin,cloudInfo).execute()
 						new SnapshotSync(this.plugin,cloudInfo).execute()
+						new ScaleGroupSync(this.plugin,cloudInfo).execute()
 						rtn = ServiceResponse.success()
 
 					} else {

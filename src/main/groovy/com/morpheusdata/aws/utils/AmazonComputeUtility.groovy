@@ -3600,7 +3600,7 @@ class AmazonComputeUtility {
 
 	// Begin - Auto Scaling Group
 
-	static listScaleGroups(amazonClient, listAll, subnetExternalIds) {
+	static listScaleGroups(amazonClient, subnetExternalIds = null) {
 		log.debug("listScaleGroups")
 		def rtn = [success:false, groups: []]
 		try {
@@ -3608,9 +3608,8 @@ class AmazonComputeUtility {
 					.withMaxRecords(100)
 
 			def response = amazonClient.describeAutoScalingGroups(serverRequest)
-			def tmpGroups = response.getAutoScalingGroups()
-			tmpGroups = tmpGroups.findAll { AutoScalingGroup autoScalingGroup ->
-				listAll ? true : subnetExternalIds?.contains( autoScalingGroup.getVPCZoneIdentifier() )
+			def tmpGroups = response.getAutoScalingGroups().findAll { AutoScalingGroup autoScalingGroup ->
+				subnetExternalIds == null || subnetExternalIds.contains(autoScalingGroup.getVPCZoneIdentifier())
 			}
 
 			while(tmpGroups.size() > 0) {
@@ -3622,12 +3621,10 @@ class AmazonComputeUtility {
 				serverRequest = new DescribeAutoScalingGroupsRequest().withNextToken(nextPageToken)
 				serverRequest.getMaxRecords(100)
 				response = amazonClient.describeAutoScalingGroups(serverRequest)
-				tmpGroups = response.getAutoScalingGroups()
-				tmpGroups = tmpGroups.findAll { AutoScalingGroup autoScalingGroup ->
-					listAll ? true : subnetExternalIds?.contains( autoScalingGroup.getVPCZoneIdentifier() )
+				tmpGroups = response.getAutoScalingGroups().findAll { AutoScalingGroup autoScalingGroup ->
+					subnetExternalIds == null || subnetExternalIds.contains(autoScalingGroup.getVPCZoneIdentifier())
 				}
 			}
-
 			rtn.success = true
 		} catch(e) {
 			rtn.msg = e.message
