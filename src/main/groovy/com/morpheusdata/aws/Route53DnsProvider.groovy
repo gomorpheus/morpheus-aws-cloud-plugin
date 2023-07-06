@@ -24,7 +24,6 @@ import io.reactivex.Observable
 /**
  * The DNS Provider implementation for Amazon Route53 DNS service.
  * 
- * @author James Dickson
  */
 @Slf4j
 class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
@@ -32,32 +31,13 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 	final String name = 'Route 53'
 	final String code = 'amazonDns'
 
-	MorpheusContext morpheusContext
+	MorpheusContext morpheus
     Plugin plugin
 
     Route53DnsProvider(Plugin plugin, MorpheusContext morpheusContext) {
-        this.morpheusContext = morpheusContext
+        this.morpheus = morpheusContext
         this.plugin = plugin
     }
-
-    /**
-	 * Returns the Morpheus Context for interacting with data stored in the Main Morpheus Application
-	 *
-	 * @return an implementation of the MorpheusContext for running Future based rxJava queries
-	 */
-	@Override
-	MorpheusContext getMorpheus() {
-		return morpheusContext
-	}
-
-	/**
-	 * Returns the instance of the Plugin class that this provider is loaded from
-	 * @return Plugin class contains references to other providers
-	 */
-	@Override
-	Plugin getPlugin() {
-		return plugin
-	}
 
 	/**
 	 * Returns the DNS Integration logo for display when a user needs to view or add this integration
@@ -108,22 +88,21 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 					fqdn = "${record.name}.${record.networkDomain.name}"
 				}
 				// client must use integration region unless it is all regions (no serviceUrl)
-				def region = integration.serviceUrl ?: record.networkDomain.regionCode
+				def region = record.networkDomain.regionCode ?: integration.serviceUrl
 				region = AmazonComputeUtility.getAmazonEndpointRegion(region)
 				def amazonClient = AmazonComputeUtility.getAmazonRoute53Client(integration, false, null, [:], region)
 				def recordType = record.type
 				def recordHost = record.content
 				def externalId = "${record.type}-${fqdn}-${region}"
 				def results = AmazonComputeUtility.createDnsRecord(amazonClient, fqdn, record.networkDomain.externalId, recordType, recordHost)
-				log.info("provisionServer results: ${results}")
+				log.debug("createDnsRecord results: ${results}")
 				if(results.success) {
 					record.externalId = externalId
 					log.info("createRecord - integration ${integration.name} - Successfully created ${record.type} record - host: ${record.name}, data: ${record.content}")
 					return new ServiceResponse<NetworkDomainRecord>(true,"Successfully created ${record.type} record - host: ${record.name}, data: ${record.content}",null,record)
 				} else {
-					def rpcData = results.content
-					log.warn("createRecord - integration: ${integration.name} - Failed to create Resource Record ${rpcData}")
-                	return new ServiceResponse<NetworkDomainRecord>(false,"deleteRecord - integration: ${integration.name} - Failed to delete Resource Record ${rpcData}",null,record)
+					log.warn("createRecord - integration: ${integration.name} - Failed to create Resource Record")
+                	return new ServiceResponse<NetworkDomainRecord>(false,"createRecord - integration: ${integration.name} - Failed to create Resource Record",null,record)
 				}
 			} else {
 				log.warn("no integration")
@@ -161,7 +140,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 				
 				//def externalId = "${record.type}-${fqdn}-${region}"
 				def results = AmazonComputeUtility.deleteDnsRecord(amazonClient, fqdn, record.networkDomain.externalId, recordType, recordHost)
-				log.info("provisionServer results: ${results}")
+				log.info("deleteDnsRecord results: ${results}")
 				if(results.success) {
 					return new ServiceResponse<NetworkDomainRecord>(true,null,null,record)
 				} else {
@@ -228,7 +207,8 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 
 	// Cache Zones methods
 	def cacheZones(AccountIntegration integration, Map opts = [:]) {
-		def amazonEc2Client = AmazonComputeUtility.getAmazonClient(integration)
+		Cloud cloud = integration.refType == "Cloud" || integration.refType == "ComputeZone" ? morpheus.cloud.getCloudById(integration.refId).blockingGet() : null
+		def amazonEc2Client = AmazonComputeUtility.getAmazonClient(integration, cloud)
 		def regionResults = AmazonComputeUtility.listRegions([amazonClient:amazonEc2Client])
 		def regionList = regionResults.regionList
 		if(integration.serviceUrl) {
@@ -269,7 +249,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 				// }
 				// added new listIdentityProjections(refId, region) to scope by regionCode
                 Observable<NetworkDomainIdentityProjection> domainRecords = morpheus.network.domain.listIdentityProjections(integration.id, regionCode)
-                // def networkDomains = morpheusContext.network.domain.listById(domainRecords.collect {it.id}).toList().blockingGet()
+                // def networkDomains = morpheus.network.domain.listById(domainRecords.collect {it.id}).toList().blockingGet()
 
                 SyncTask<NetworkDomainIdentityProjection,Map,NetworkDomain> syncTask = new SyncTask(domainRecords, apiItems as Collection<Map>)
                 syncTask.addMatchFunction { NetworkDomainIdentityProjection domainObject, Map apiItem ->
@@ -311,7 +291,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
             networkDomain.zoneType = 'Authoritative'
             networkDomain.publicZone = zone['publicZone']
             networkDomain.regionCode = zone['regionCode']
-            log.info("Adding Zone: ${networkDomain}")
+            log.info("Adding network domain: ${networkDomain}")
             return networkDomain
         }
         morpheus.network.domain.create(integration.id, missingZonesList).blockingGet()
@@ -324,7 +304,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
      */
     void updateMatchedZones(AccountIntegration integration, List<SyncTask.UpdateItem<NetworkDomain,Map>> updateList) {
         def domainsToUpdate = []
-        log.info("updateMatchedZones -  update Zones for ${integration.name} - updated items ${updateList.size()}")
+        log.debug("updateMatchedZones -  update Zones for ${integration.name} - updated items ${updateList.size()}")
         for(SyncTask.UpdateItem<NetworkDomain,Map> update in updateList) {
             NetworkDomain existingItem = update.existingItem as NetworkDomain
             if(existingItem) {
@@ -363,7 +343,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
             // def listResults = listRecords(integration,domain)
             def listResults = AmazonComputeUtility.listDnsZoneRecords(amazonClient, domain.externalId)
             //todo: change to log.debug, or maybe do not log entire results eh?
-            log.info("cacheZoneRecords - domain: ${domain.externalId}, listResults: ${listResults}")
+            log.debug("cacheZoneRecords - domain: ${domain.externalId}, listResults: ${listResults}")
 
             if (listResults.success) {
                 List<Map> apiItems = listResults.recordList.collect { record ->
@@ -396,10 +376,10 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
                     domainObject.externalId == apiItem['externalId']
 
                 }.onDelete {removeItems ->
-                	log.info("Removing ${removeItems.size()} network domain records for domain ${domain.externalId}")
+                	log.debug("Removing ${removeItems.size()} network domain records for domain ${domain.externalId}")
                     morpheus.network.domain.record.remove(domain, removeItems).blockingGet()
                 }.onAdd { itemsToAdd ->
-                	log.info("Adding ${itemsToAdd.size()} network domain records for domain ${domain.externalId}")
+                	log.debug("Adding ${itemsToAdd.size()} network domain records for domain ${domain.externalId}")
                     addMissingDomainRecords(domain, itemsToAdd)
                 }.withLoadObjectDetails { List<SyncTask.UpdateItemDto<NetworkDomainRecord,Map>> updateItems ->
                     Map<Long, SyncTask.UpdateItemDto<NetworkDomainRecord, Map>> updateItemMap = updateItems.collectEntries { [(it.existingItem.id): it]}
@@ -408,11 +388,11 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
                         return new SyncTask.UpdateItem<NetworkDomainRecord,Map>(existingItem:domainRecord, masterItem:matchItem.masterItem)
                     }
                 }.onUpdate { List<SyncTask.UpdateItem<NetworkDomainRecord,Map>> updateItems ->
-                	log.info("Updating ${updateItems.size()} network domain records for domain ${domain.externalId}")
+                	log.debug("Updating ${updateItems.size()} network domain records for domain ${domain.externalId}")
                     updateMatchedDomainRecords(updateItems)
                 }.observe()
             } else {
-                log.info("cacheZoneRecords - No data to sync for ${domain.externalId}")
+                log.debug("cacheZoneRecords - No data to sync for ${domain.externalId}")
                 return Single.just(false)
             }
         }.doOnError{ e ->
@@ -510,12 +490,12 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 
             // Validate Connectivity to Amazon Route53
             if(rtn.errors.size() == 0) {
-                log.info("verifyAccountIntegration - integration: ${integration.name} - checking access to AWS")
+                log.debug("verifyAccountIntegration - integration: ${integration.name} - checking access to AWS")
                 def testResults = AmazonComputeUtility.testConnection(integration)
 				if(testResults.success) {
 					def regionCode = AmazonComputeUtility.getAmazonEndpointRegion(integration.serviceUrl)
 					def amazonClient = AmazonComputeUtility.getAmazonRoute53Client(integration, true, null, [:], regionCode)
-					log.info("verifyAccountIntegration - integration: ${integration.name} - checking access to Dns Services via region ${regionCode}")
+					log.debug("verifyAccountIntegration - integration: ${integration.name} - checking access to DNS Services in region ${regionCode}")
 					def hostedZones = AmazonComputeUtility.listDnsHostedZones(amazonClient)
 					if(hostedZones.success) {
 						// success

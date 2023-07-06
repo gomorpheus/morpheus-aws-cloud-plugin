@@ -19,6 +19,7 @@ import com.morpheusdata.model.NetworkServerType
 import com.morpheusdata.model.NetworkSubnet
 import com.morpheusdata.model.NetworkType
 import com.morpheusdata.model.ComputeZonePool as CloudPool
+import com.morpheusdata.model.OptionType
 import com.morpheusdata.response.ServiceResponse
 import groovy.util.logging.Slf4j
 
@@ -60,14 +61,45 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 	@Override
 	Collection<NetworkType> getNetworkTypes() {
 		NetworkType amazonSubnet = new NetworkType([
-				code              : 'amazonSubnet',
-				cidrEditable      : false,
-				dhcpServerEditable: false,
-				dnsEditable       : false,
-				gatewayEditable   : false,
-				vlanIdEditable    : false,
-				canAssignPool     : false,
-				name              : 'Amazon Subnet'
+			code              : 'amazonSubnet',
+			name              : 'Amazon Subnet',
+			overlay           : false,
+			creatable         : true,
+			nameEditable      : false,
+			cidrEditable      : false,
+			dhcpServerEditable: false,
+			dnsEditable       : false,
+			gatewayEditable   : false,
+			ipv6Editable      : false,
+			vlanIdEditable    : false,
+			cidrRequired      : true,
+			canAssignPool     : false,
+			deletable         : true,
+			hasNetworkServer  : false,
+			hasCidr           : true,
+			optionTypes       : [
+				new OptionType(code:'network.amazon.cidr', inputType: OptionType.InputType.TEXT, name:'cidr',
+					category:'network.amazon', fieldName:'cidr', fieldLabel:'cidr', fieldContext:'domain', required:true, enabled:true,
+					editable:true, global:false, placeHolder:null, helpBlock:'', defaultValue:null, custom:false, displayOrder:40, fieldClass:null,
+					wrapperClass:null, fieldCode:'gomorpheus.infrastructure.network.cidr',
+					fieldComponent:'network', ownerEditable:true, tenantEditable:false),
+				new OptionType(code:'network.amazon.zonePool', inputType: OptionType.InputType.SELECT, name:'zonePool',
+					category:'network.amazon', fieldName:'zonePool.id', fieldLabel:'VPC', fieldContext:'domain', required:true, enabled:true, optionSource:'zonePoolsId',
+					editable:false, global:false, placeHolder:null, helpBlock:'', defaultValue:null, custom:false, displayOrder:31, fieldClass:null,
+					wrapperClass:null, fieldCode:'gomorpheus.label.vpc', dependsOnCode:'network.zone.id', showOnEdit: true,
+					ownerEditable:true, tenantEditable:false),
+				new OptionType(code:'network.amazon.availabilityZone', inputType: OptionType.InputType.SELECT, name:'availabilityZone',
+					category:'network.amazon', fieldName:'availabilityZone', fieldLabel:'Availability Zone', fieldContext:'domain', required:false,
+					enabled:true, optionSource:'amazonAvailabilityZones', optionSourceType:'amazon', editable:false, global:false, placeHolder:null, helpBlock:'',
+					defaultValue:null, custom:false, displayOrder:32, fieldClass:null, showOnEdit: true,
+					wrapperClass:null, dependsOnCode:'network.zone.id, network.amazon.zonePool', fieldCode:'gomorpheus.label.availabilityZone',
+					ownerEditable:true, tenantEditable:false),
+				new OptionType(code:'network.amazon.assignPublicIp', inputType: OptionType.InputType.CHECKBOX, name:'assignPublicIp',
+					category:'network.amazon', fieldName:'assignPublicIp', fieldLabel:'Assign Public', fieldContext:'domain', required:false, enabled:true,
+					editable:true, global:false, placeHolder:null, helpBlock:'', defaultValue:null, custom:false, displayOrder:80, fieldClass:null,
+					wrapperClass:null, fieldCode:'gomorpheus.label.assignPublicIp',showOnEdit: true,
+					ownerEditable:true, tenantEditable:false)
+			]
 		])
 
 		[amazonSubnet]

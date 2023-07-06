@@ -4504,7 +4504,7 @@ class AmazonComputeUtility {
 		return amazonClient
 	}
 
-	static getAmazonClient(AccountIntegration accountIntegration, Boolean fresh=false, String region=null) {
+	static getAmazonClient(AccountIntegration accountIntegration, Cloud cloud, Boolean fresh=false, String region=null) {
 		region = region ?: accountIntegration.serviceUrl
 		region = getAmazonEndpointRegion(region)
 		def creds
@@ -4522,14 +4522,13 @@ class AmazonComputeUtility {
 		def clientExpires
 		
 		def authConfig = [:]
-		if(accountIntegration.refType =='Cloud' || accountIntegration.refType =='ComputeZone') {
-			def zone = Cloud.get(accountIntegration.refId)
-			clientConfiguration = getClientConfiguration(zone)
-			authConfig.accessKey = accountIntegration.credentialData?.username ?: accountIntegration.serviceUsername ?: getAmazonAccessKey(zone)
-			authConfig.secretKey = accountIntegration.credentialData?.password ?: accountIntegration.servicePassword ?: getAmazonSecretKey(zone)
-			authConfig.useHostCredentials = getAmazonUseHostCredentials(zone)
-			authConfig.stsAssumeRole = zone.getConfigProperty('stsAssumeRole')
-			authConfig.endpoint =  getAmazonCostingEndpoint(zone)
+		if(cloud) {
+			clientConfiguration = getClientConfiguration(cloud)
+			authConfig.accessKey = accountIntegration.credentialData?.username ?: accountIntegration.serviceUsername ?: getAmazonAccessKey(cloud)
+			authConfig.secretKey = accountIntegration.credentialData?.password ?: accountIntegration.servicePassword ?: getAmazonSecretKey(cloud)
+			authConfig.useHostCredentials = getAmazonUseHostCredentials(cloud)
+			authConfig.stsAssumeRole = cloud.getConfigProperty('stsAssumeRole')
+			authConfig.endpoint =  getAmazonCostingEndpoint(cloud)
 			authConfig.region = getAmazonEndpointRegion(authConfig.endpoint)
 		} else {
 			authConfig.accessKey = accountIntegration.credentialData?.username ?: accountIntegration.serviceUsername

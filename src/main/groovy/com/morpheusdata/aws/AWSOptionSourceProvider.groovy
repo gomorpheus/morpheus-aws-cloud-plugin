@@ -44,7 +44,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 	}
 
 	def awsPluginRegions(args) {
-		ReferenceData.findAllByCategory("amazon.ec2.region", [sort:'name']).collect { [value: it.value, name: it.name] }
+		morpheus.referenceData.listByCategory("amazon.ec2.region").toList().blockingGet().sort { it.name }.collect { [value: it.id, name: it.name] }
 	}
 
 	def awsPluginVpc(args) {
