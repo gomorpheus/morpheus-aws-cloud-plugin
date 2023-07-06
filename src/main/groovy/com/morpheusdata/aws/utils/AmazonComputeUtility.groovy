@@ -491,11 +491,10 @@ class AmazonComputeUtility {
 		return rtn
 	}
 
-	static listKeypairs(Map authConfig, Map opts) {
+	static listKeypairs(opts) {
 		def rtn = [success:false]
 		try {
-			def amazonClient = authConfig.amazonClient
-			def keyResults = amazonClient.describeKeyPairs()
+			def keyResults = opts.amazonClient.describeKeyPairs()
 			rtn.success = true
 			rtn.keyPairs = keyResults.getKeyPairs()
 		} catch(e) {
