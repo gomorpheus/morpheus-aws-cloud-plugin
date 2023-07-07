@@ -15,6 +15,7 @@ import com.morpheusdata.aws.sync.NetworkInterfaceSync
 import com.morpheusdata.aws.sync.RegionSync
 import com.morpheusdata.aws.sync.ScaleGroupSync
 import com.morpheusdata.aws.sync.SecurityGroupSync
+import com.morpheusdata.aws.sync.ServicePlanSync
 import com.morpheusdata.aws.sync.SnapshotSync
 import com.morpheusdata.aws.sync.SubnetSync
 import com.morpheusdata.aws.sync.TransitGatewaySync
@@ -485,6 +486,8 @@ class AWSCloudProvider implements CloudProvider {
 						//rds services
 						new DbSubnetGroupSync(this.plugin,cloudInfo).execute()
 						new AlarmSync(this.plugin,cloudInfo).execute()
+						//service plans
+						new ServicePlanSync(this.plugin,cloudInfo).execute()
 						//vms
 						new VirtualMachineSync(this.plugin,cloudInfo).execute()
 						//volumes
