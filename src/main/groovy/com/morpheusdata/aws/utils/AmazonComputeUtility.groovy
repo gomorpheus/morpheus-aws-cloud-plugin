@@ -88,6 +88,10 @@ class AmazonComputeUtility {
 
 	static cipherTypeList = ['RSA/NONE/PKCS1Padding', 'RSA/ECB/PKCS1Padding', 'RSA/ECB/OAEPWithSHA-1AndMGF1Padding', 'RSA/ECB/OAEPWithSHA-256AndMGF1Padding']
 
+	// load balancer constants
+	static final String LOAD_BALANCER_SCHEME_INTERNAL = 'internal'
+	static final String LOAD_BALANCER_SCHEME_INTERNET_FACING = 'Internet-facing'
+
 	static class InvalidCredentialsRequestHandler extends com.amazonaws.handlers.RequestHandler2 {
 		@Override
 		public void afterAttempt(com.amazonaws.handlers.HandlerAfterAttemptContext context) {

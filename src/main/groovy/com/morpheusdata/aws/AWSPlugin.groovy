@@ -27,11 +27,25 @@ class AWSPlugin extends Plugin {
 		def optionSourceProvider = new AWSOptionSourceProvider(this, this.morpheus)
 		def networkProvider = new AWSNetworkProvider(this, this.morpheus)
 		def dnsProvider = new Route53DnsProvider(this, this.morpheus)
+		def scaleProvider = new AWSScaleProvider(this, this.morpheus)
+
+		// load balancer providers
+		def albProvider = new ALBLoadBalancerProvider(this, this.morpheus)
+		def elbProvider = new ELBLoadBalancerProvider(this, this.morpheus)
+		this.pluginProviders.put(albProvider.code, albProvider)
+		this.pluginProviders.put(elbProvider.code, elbProvider)
+
 		this.pluginProviders.put(provisionProvider.code, provisionProvider)
 		this.pluginProviders.put(cloudProvider.code, cloudProvider)
+
+		// option source providers
+		def lbOptionSourceProvider = new LoadBalancerOptionSourceProvider(this, this.morpheus)
+		this.pluginProviders.put(lbOptionSourceProvider.code, lbOptionSourceProvider)
 		this.pluginProviders.put(optionSourceProvider.code, optionSourceProvider)
+
 		this.pluginProviders.put(networkProvider.code, networkProvider)
 		this.pluginProviders.put(dnsProvider.code, dnsProvider)
+		this.pluginProviders.put(scaleProvider.code, scaleProvider)
 
 		cloudProviderCode = cloudProvider.code
 		networkProviderCode = networkProvider.code
@@ -60,6 +74,18 @@ class AWSPlugin extends Plugin {
 	}
 
 	def getAmazonClient(Cloud cloud, Boolean fresh = false, String region=null) {
+		return AmazonComputeUtility.getAmazonClient(checkCloudCredentials(cloud), fresh, region)
+	}
+
+	def getAmazonElbClient(Cloud cloud, Boolean fresh = false, String region = null) {
+		return AmazonComputeUtility.getAmazonElbClient(checkCloudCredentials(cloud), fresh, region)
+	}
+
+	def getAmazonAutoScaleClient(Cloud cloud, Boolean fresh = false, String region = nul) {
+		return AmazonComputeUtility.getAmazonAutoScalingClient(checkCloudCredentials(cloud), fresh, region)
+	}
+
+	protected Cloud checkCloudCredentials(Cloud cloud) {
 		if(!cloud.accountCredentialLoaded) {
 			AccountCredential accountCredential
 			try {
@@ -71,6 +97,6 @@ class AWSPlugin extends Plugin {
 			cloud.accountCredentialLoaded = true
 			cloud.accountCredentialData = accountCredential?.data
 		}
-		return AmazonComputeUtility.getAmazonClient(cloud, fresh, region)
+		return cloud
 	}
 }
