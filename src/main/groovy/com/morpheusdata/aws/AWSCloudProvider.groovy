@@ -13,6 +13,7 @@ import com.morpheusdata.aws.sync.KeyPairSync
 import com.morpheusdata.aws.sync.NATGatewaySync
 import com.morpheusdata.aws.sync.NetworkInterfaceSync
 import com.morpheusdata.aws.sync.RegionSync
+import com.morpheusdata.aws.sync.RouteTableSync
 import com.morpheusdata.aws.sync.ScaleGroupSync
 import com.morpheusdata.aws.sync.SecurityGroupSync
 import com.morpheusdata.aws.sync.ServicePlanSync
@@ -466,6 +467,7 @@ class AWSCloudProvider implements CloudProvider {
 						new RegionSync(this.plugin,cloudInfo).execute()
 						new VPCSync(this.plugin,cloudInfo).execute()
 						new VPCRouterSync(this.plugin,cloudInfo).execute()
+						new RouteTableSync(this.plugin,cloudInfo).execute()
 						new KeyPairSync(this.plugin,cloudInfo).execute()
 						new SubnetSync(this.plugin,cloudInfo).execute()
 						new ImageSync(this.plugin,cloudInfo).execute()

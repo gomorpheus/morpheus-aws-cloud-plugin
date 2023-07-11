@@ -161,7 +161,7 @@ class ServicePlanSync {
 	}
 
 	private removeMissingServicePlans(Collection<ServicePlanIdentityProjection> removeList) {
-		removeList = removeItems.findAll{ it.deleted != true }
+		removeList = removeList.findAll{ it.deleted != true }
 
 		if(removeList) {
 			log.debug "removeMissingServicePlans: ${cloud} ${removeList.size()}"
