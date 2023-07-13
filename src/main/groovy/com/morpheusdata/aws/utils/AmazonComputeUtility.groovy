@@ -122,10 +122,9 @@ class AmazonComputeUtility {
 		return rtn
 	}
 
-	static testConnection(AccountIntegration accountIntegration) {
-		if(accountIntegration.refType =='Cloud' || accountIntegration.refType =='ComputeZone') {
-			Cloud zone = Cloud.get(accountIntegration.refId)
-			return testConnection(zone)
+	static testConnection(AccountIntegration accountIntegration, Cloud cloud) {
+		if(cloud) {
+			return testConnection(cloud)
 		}
 		// test standalone integration (ie. route53)
 		def rtn = [success:false, invalidLogin:false]
@@ -4913,7 +4912,7 @@ class AmazonComputeUtility {
 		return amazonClient
 	}
 
-	static getAmazonRoute53Client(accountIntegration, Boolean fresh = false, Map proxySettings=null, Map opts=[:], String region=null) {
+	static getAmazonRoute53Client(AccountIntegration accountIntegration, Cloud cloud, Boolean fresh = false, Map proxySettings=null, Map opts=[:], String region=null) {
 		region = region ?: accountIntegration.serviceUrl
 		region = getAmazonEndpointRegion(region)
 		def creds
@@ -4930,14 +4929,13 @@ class AmazonComputeUtility {
 		ClientConfiguration clientConfiguration = new ClientConfiguration()
 		def clientExpires
 		def authConfig = [:]
-		if(accountIntegration.refType =='Cloud' || accountIntegration.refType =='ComputeZone') {
-			def zone = opts.zone ?: Cloud.get(accountIntegration.refId)
-			clientConfiguration = getClientConfiguration(zone)
-			authConfig.accessKey = accountIntegration.credentialData?.username ?: accountIntegration.serviceUsername ?: getAmazonAccessKey(zone)
-			authConfig.secretKey = accountIntegration.credentialData?.password ?: accountIntegration.servicePassword ?: getAmazonSecretKey(zone)
-			authConfig.useHostCredentials = getAmazonUseHostCredentials(zone)
-			authConfig.stsAssumeRole = zone.getConfigProperty('stsAssumeRole')
-			authConfig.endpoint =  getAmazonCostingEndpoint(zone)
+		if(cloud) {
+			clientConfiguration = getClientConfiguration(cloud)
+			authConfig.accessKey = accountIntegration.credentialData?.username ?: accountIntegration.serviceUsername ?: getAmazonAccessKey(cloud)
+			authConfig.secretKey = accountIntegration.credentialData?.password ?: accountIntegration.servicePassword ?: getAmazonSecretKey(cloud)
+			authConfig.useHostCredentials = getAmazonUseHostCredentials(cloud)
+			authConfig.stsAssumeRole = cloud.getConfigProperty('stsAssumeRole')
+			authConfig.endpoint =  getAmazonCostingEndpoint(cloud)
 			authConfig.region = getAmazonEndpointRegion(authConfig.endpoint)
 		} else {
 			authConfig.accessKey = accountIntegration.credentialData?.username ?: accountIntegration.serviceUsername

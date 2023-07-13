@@ -90,7 +90,8 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 				// client must use integration region unless it is all regions (no serviceUrl)
 				def region = record.networkDomain.regionCode ?: integration.serviceUrl
 				region = AmazonComputeUtility.getAmazonEndpointRegion(region)
-				def amazonClient = AmazonComputeUtility.getAmazonRoute53Client(integration, false, null, [:], region)
+				Cloud cloud = getIntegrationCloud(integration)
+				def amazonClient = AmazonComputeUtility.getAmazonRoute53Client(integration, cloud, false, null, [:], region)
 				def recordType = record.type
 				def recordHost = record.content
 				def externalId = "${record.type}-${fqdn}-${region}"
@@ -134,7 +135,8 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 				// client must use integration region unless it is all regions (no serviceUrl)
 				def region = integration.serviceUrl ?: record.networkDomain.regionCode
 				region = AmazonComputeUtility.getAmazonEndpointRegion(region)
-				def amazonClient = AmazonComputeUtility.getAmazonRoute53Client(integration, false, null, [:], region)
+				Cloud cloud = getIntegrationCloud(integration)
+				def amazonClient = AmazonComputeUtility.getAmazonRoute53Client(integration, cloud, false, null, [:], region)
 				def recordType = record.type
 				def recordHost = record.content
 				
@@ -183,6 +185,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 	@Override
 	void refresh(AccountIntegration integration) {
 		try {
+			Cloud cloud = getIntegrationCloud(integration)
             def hostOnline = true //todo: actually check if route 53 is reachable
             if(hostOnline) {
                 Date now = new Date()
@@ -190,12 +193,12 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
                 cacheZoneRecords(integration)
                 log.info("refresh - integration: ${integration.name} - Sync Completed in ${new Date().time - now.time}ms")
                 //JD: do not update status for zone integration only stand alone dns integrations
-                if(isStandAloneIntegration(integration)) {
+                if(!cloud) {
                 	morpheus.integration.updateAccountIntegrationStatus(integration, AccountIntegration.Status.ok).subscribe().dispose()
                 }
             } else {
                 log.warn("refresh - integration: ${integration.name} - Integration appears to be offline")
-                if(isStandAloneIntegration(integration)) {
+                if(!cloud) {
                 	morpheus.integration.updateAccountIntegrationStatus(integration, AccountIntegration.Status.error, "Route 53 integration ${integration.name} not reachable")
                 }
             }
@@ -207,7 +210,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 
 	// Cache Zones methods
 	def cacheZones(AccountIntegration integration, Map opts = [:]) {
-		Cloud cloud = integration.refType == "Cloud" || integration.refType == "ComputeZone" ? morpheus.cloud.getCloudById(integration.refId).blockingGet() : null
+		Cloud cloud = getIntegrationCloud(integration)
 		def amazonEc2Client = AmazonComputeUtility.getAmazonClient(integration, cloud)
 		def regionResults = AmazonComputeUtility.listRegions([amazonClient:amazonEc2Client])
 		def regionList = regionResults.regionList
@@ -217,7 +220,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 		}
 		regionList?.each { region ->
 			def regionCode = region.getRegionName()
-			def amazonClient = AmazonComputeUtility.getAmazonRoute53Client(integration, false, null, [:], regionCode)
+			def amazonClient = AmazonComputeUtility.getAmazonRoute53Client(integration, cloud, false, null, [:], regionCode)
 			def hostedZones = AmazonComputeUtility.listDnsHostedZones(amazonClient)
 			//log.debug("zones: ${hostedZones}")
 			if(hostedZones.success) {
@@ -335,11 +338,11 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 
     // Cache Zone Records methods
     def cacheZoneRecords(AccountIntegration integration, Map opts=[:]) {
-
+    	Cloud cloud = getIntegrationCloud(integration)
         morpheus.network.domain.listIdentityProjections(integration.id).buffer(50).flatMap { Collection<NetworkDomainIdentityProjection> resourceIdents ->
             return morpheus.network.domain.listById(resourceIdents.collect{it.id})
         }.flatMap { NetworkDomain domain ->
-        	def amazonClient = AmazonComputeUtility.getAmazonRoute53Client(integration, false, null, [:], domain.regionCode)
+        	def amazonClient = AmazonComputeUtility.getAmazonRoute53Client(integration, cloud, false, null, [:], domain.regionCode)
             // def listResults = listRecords(integration,domain)
             def listResults = AmazonComputeUtility.listDnsZoneRecords(amazonClient, domain.externalId)
             //todo: change to log.debug, or maybe do not log entire results eh?
@@ -491,10 +494,11 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
             // Validate Connectivity to Amazon Route53
             if(rtn.errors.size() == 0) {
                 log.debug("verifyAccountIntegration - integration: ${integration.name} - checking access to AWS")
-                def testResults = AmazonComputeUtility.testConnection(integration)
+                Cloud cloud = getIntegrationCloud(integration)
+                def testResults = AmazonComputeUtility.testConnection(integration, cloud)
 				if(testResults.success) {
 					def regionCode = AmazonComputeUtility.getAmazonEndpointRegion(integration.serviceUrl)
-					def amazonClient = AmazonComputeUtility.getAmazonRoute53Client(integration, true, null, [:], regionCode)
+					def amazonClient = AmazonComputeUtility.getAmazonRoute53Client(integration, cloud, true, null, [:], regionCode)
 					log.debug("verifyAccountIntegration - integration: ${integration.name} - checking access to DNS Services in region ${regionCode}")
 					def hostedZones = AmazonComputeUtility.listDnsHostedZones(amazonClient)
 					if(hostedZones.success) {
@@ -533,12 +537,14 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
         }
 	}
 
-	Boolean isCloudIntegration(AccountIntegration integration) {
-		integration.refType == 'ComputeZone' || integration.refType == 'Cloud'
+	Cloud getIntegrationCloud(AccountIntegration integration) {
+		if(integration.refType == 'ComputeZone' || integration.refType == 'Cloud') {
+			// this could return null too if refId is missing
+			return morpheus.cloud.getCloudById(integration.refId).blockingGet();
+		} else {
+			return null
+		}
 	}
 
-	Boolean isStandAloneIntegration(AccountIntegration integration) {
-		!isCloudIntegration(integration)
-	}
 
 }
