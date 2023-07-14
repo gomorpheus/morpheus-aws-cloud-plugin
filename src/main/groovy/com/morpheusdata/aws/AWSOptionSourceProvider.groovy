@@ -1,5 +1,6 @@
 package com.morpheusdata.aws
 
+import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.AbstractOptionSourceProvider
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
@@ -44,44 +45,53 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 	}
 
 	def awsPluginRegions(args) {
-		morpheus.referenceData.listByCategory("amazon.ec2.region").toList().blockingGet().sort { it.name }.collect { [value: it.id, name: it.name] }
+		def rtn = []
+		def refDataIds = morpheus.referenceData.listByCategory("amazon.ec2.region").toList().blockingGet().collect { it.id }
+		log.debug("refDataIds: ${refdataIds}")
+		if(refDataIds.size() > 0) {
+			rtn = morpheus.referenceData.listById(refDataIds).toList().blockingGet().sort { it.name }.collect { [value: it.value, name: it.name] }
+		}
+
+		log.debug("results: ${rtn}")
+		return rtn
 	}
 
 	def awsPluginVpc(args) {
-		Cloud cloud = args.zoneId ? morpheusContext.cloud.getCloudById(args.zoneId.toLong()).blockingGet() : null
-		def configMap = cloud.getConfigMap()
-		authConfig.clientEmail = configMap.clientEmail
-		authConfig.privateKey = configMap.privateKey
-		authConfig.projectId = configMap.projectId
+		args = args instanceof Object[] ? args.getAt(0) : args
 
-		def zone = args.zoneId ? zoneService.loadFullZone(args.zoneId.toLong()) : [:]
+		Cloud cloud = args.zoneId ? morpheusContext.cloud.getCloudById(args.zoneId).blockingGet() : null
 
-		if(params.credential) {
-			zone.credentialData = credentialService.loadCredentialConfig(params.credential, params.config).data
-			zone.credentialLoaded = true
+		if(args.credential && cloud.accountCredentialLoaded == false) {
+			def credentialDataResponse = morpheusContext.accountCredential.loadCredentialConfig(args.credential, args.config).blockingGet()
+			if(credentialDataResponse.success) {
+				cloud.accountCredentialData = credentialDataResponse.data
+				cloud.accountCredentialLoaded = true
+			}
 		}
 
 		def config = [
-			accessKey: params.accessKey ?: zone.getConfigProperty('accessKey'),
-			secretKey: params.secretKey ?: zone.getConfigProperty('secretKey'),
-			stsAssumeRole: params.stsAssumeRole ?: zone.getConfigProperty('stsAssumeRole'),
-			useHostCredentials: (params.useHostCredentials ?: zone.getConfigProperty('useHostCredentials')) in [true, 'true', 'on'],
-			endpoint: params.endpoint ?: params.config?.endpoint ?: zone.getConfigProperty('endpoint')
+			accessKey: args.accessKey ?: cloud.getConfigProperty('accessKey'),
+			secretKey: args.secretKey ?: cloud.getConfigProperty('secretKey'),
+			stsAssumeRole: args.stsAssumeRole ?: cloud.getConfigProperty('stsAssumeRole'),
+			useHostCredentials: (args.useHostCredentials ?: cloud.getConfigProperty('useHostCredentials')) in [true, 'true', 'on'],
+			endpoint: args.endpoint ?: args.config?.endpoint ?: cloud.getConfigProperty('endpoint')
 		]
 		if (config.secretKey == '*' * 12) {
 			config.remove('secretKey')
 		}
-		zone.setConfigMap(zone.getConfigMap() + config)
-		def proxy = params.apiProxy ? NetworkProxy.get(params.long('apiProxy')) : null
-		zone.apiProxy = proxy
+		cloud.setConfigMap(cloud.getConfigMap() + config)
+
+		def proxy = args.apiProxy ? morpheusContext.network.networkProxy.getById(args.long('apiProxy')).blockingGet() : null
+		cloud.apiProxy = proxy
 
 		def rtn
-		if(amazonComputeService.testConnection(zone).success) {
-			def vpcResult = amazonComputeService.listVpcs([zone: zone, fresh: true])
+		if(AmazonComputeUtility.testConnection(cloud).success) {
+			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud, true)
+			def vpcResult = AmazonComputeUtility.listVpcs([amazonClient:amazonClient])
 			if(vpcResult.success) {
 				rtn = vpcResult.vpcList.collect {[name:"${it.vpcId} - ${it.tags?.find { tag -> tag.key == 'Name' }?.value ?: 'default'}", value:it.vpcId]}
 			}
 		}
-		rtn ?: []
+		return rtn ?: []
 	}
 }

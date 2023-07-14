@@ -11,10 +11,10 @@ import com.morpheusdata.core.util.ProgressInputStream
 import com.morpheusdata.model.Network
 import com.morpheusdata.model.AccountIntegration
 import groovy.json.JsonOutput
+import groovy.util.logging.Slf4j
 
 import java.text.SimpleDateFormat
 
-import groovy.util.logging.Commons
 import com.bertramlabs.plugins.karman.*
 import javax.crypto.*
 import java.security.*
@@ -79,7 +79,7 @@ import com.amazonaws.services.s3.model.*
 import com.amazonaws.services.simplesystemsmanagement.*
 import com.amazonaws.services.simplesystemsmanagement.model.*
 
-@Commons
+@Slf4j
 class AmazonComputeUtility {
 
 	static diskNames = ['/dev/sda', '/dev/sdf', '/dev/sdg', '/dev/sdh', '/dev/sdi', '/dev/sdj', '/dev/sdk', '/dev/sdl']
@@ -90,7 +90,7 @@ class AmazonComputeUtility {
 	static class InvalidCredentialsRequestHandler extends com.amazonaws.handlers.RequestHandler2 {
 		@Override
 		public void afterAttempt(com.amazonaws.handlers.HandlerAfterAttemptContext context) {
-			if(context.exception?.statusCode == 401 || context.exception?.errorCode == 'AuthFailure') {
+			if((context.exception?.respondsTo("statusCode") && context.exception?.statusCode == 401) || (context.exception?.respondsTo("errorCode") && context.exception?.errorCode == 'AuthFailure')) {
 				//fast fail - prevent unnecessary retries for invalid creds
 				throw context.exception
 			}
@@ -114,10 +114,10 @@ class AmazonComputeUtility {
 			rtn.amazonClient = amazonClient
 			rtn.success = true
 		} catch(com.amazonaws.AmazonServiceException awse) {
-			log.error("testConnection to amazon: ${awse.message}")
+			log.error("testConnection to amazon: {}", awse, awse)
 			rtn.invalidLogin = (awse.errorCode == 'AuthFailure')
 		} catch(e) {
-			log.error("testConnection to amazon: ${e}")
+			log.error("testConnection to amazon: {}", e, e)
 		}
 		return rtn
 	}
@@ -149,10 +149,10 @@ class AmazonComputeUtility {
 			rtn.amazonClient = amazonClient
 			rtn.success = true
 		} catch(com.amazonaws.AmazonServiceException awse) {
-			log.error("testConnection to amazon: ${awse.message}")
+			log.error("testConnection to amazon: {}", awse, awse)
 			rtn.invalidLogin = (awse.errorCode == 'AuthFailure')
 		} catch(e) {
-			log.error("testConnection to amazon: ${e}")
+			log.error("testConnection to amazon: {}", e, e)
 		}
 		return rtn
 		
