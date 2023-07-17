@@ -9,6 +9,7 @@ import com.morpheusdata.model.AccountResourceType
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.ComputeZoneRegion
 import com.morpheusdata.model.projection.AccountResourceIdentityProjection
+import com.morpheusdata.model.projection.ComputeZoneRegionIdentityProjection
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable
 import io.reactivex.Single
@@ -52,27 +53,23 @@ class TransitGatewaySync extends InternalResourceSync{
 		return "amazon.ec2.transit.gateways.${cloud.id}"
 	}
 
-	protected void addMissingTransitGateway(Collection<TransitGateway> addList, String region) {
+	protected void addMissingTransitGateway(Collection<TransitGateway> addList, ComputeZoneRegionIdentityProjection region) {
 		def adds = []
 
 		for(TransitGateway cloudItem in addList) {
-			def name
-			def nameTag = cloudItem.getTags()?.find{it.getKey() == 'Name'}
-			name = nameTag?.value ?: cloudItem.transitGatewayId
-			def addConfig = [owner     :cloud.account, category:getCategory(), code:(getCategory() + '.' + cloudItem.transitGatewayId),
-							 externalId:cloudItem.transitGatewayId, zoneId:cloud.id, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.transitGateway'), resourceType:'TransitGateway',
-							 zoneName  : cloud.name, name: name, displayName: name
-			]
-			AccountResource newResource = new AccountResource(addConfig)
-			newResource.region = new ComputeZoneRegion(regionCode: region)
-			adds << newResource
+			def name = cloudItem.tags?.find { it.key == 'Name' }?.value ?: cloudItem.transitGatewayId
+			adds << new AccountResource(
+				owner:cloud.account, category:getCategory(), code:(getCategory() + '.' + cloudItem.transitGatewayId),
+				externalId:cloudItem.transitGatewayId, zoneId:cloud.id, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.transitGateway'), resourceType:'TransitGateway',
+				zoneName: cloud.name, name: name, displayName: name, region: new ComputeZoneRegion(id: region.id)
+			)
 		}
 		if(adds) {
 			morpheusContext.cloud.resource.create(adds).blockingGet()
 		}
 	}
 
-	protected void updateMatchedTransitGateways(List<SyncTask.UpdateItem<AccountResource, TransitGateway>> updateList, String region) {
+	protected void updateMatchedTransitGateways(List<SyncTask.UpdateItem<AccountResource, TransitGateway>> updateList, ComputeZoneRegionIdentityProjection region) {
 		def updates = []
 		for(update in updateList) {
 			def masterItem = update.masterItem
@@ -85,8 +82,8 @@ class TransitGatewaySync extends InternalResourceSync{
 				existingItem.name = name
 				save = true
 			}
-			if(existingItem.region?.code != region) {
-				existingItem.region = new ComputeZoneRegion(regionCode: region)
+			if(existingItem.region?.id != region.id) {
+				existingItem.region = new ComputeZoneRegion(id: region.id)
 				save = true
 			}
 

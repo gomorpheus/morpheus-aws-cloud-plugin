@@ -9,6 +9,7 @@ import com.morpheusdata.model.AccountResourceType
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.ComputeZoneRegion
 import com.morpheusdata.model.projection.AccountResourceIdentityProjection
+import com.morpheusdata.model.projection.ComputeZoneRegionIdentityProjection
 import groovy.json.JsonOutput
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable
@@ -53,28 +54,24 @@ class TransitGatewayVpcAttachmentSync extends InternalResourceSync {
 		return "amazon.ec2.transit.gateway.attachments.${cloud.id}"
 	}
 
-	protected void addMissingTransitGatewayVpcAttachment(Collection<TransitGatewayVpcAttachment> addList, String region) {
+	protected void addMissingTransitGatewayVpcAttachment(Collection<TransitGatewayVpcAttachment> addList, ComputeZoneRegionIdentityProjection region) {
 		def adds = []
 
 		for(TransitGatewayVpcAttachment cloudItem in addList) {
-			def name
-			def nameTag = cloudItem.getTags()?.find{it.getKey() == 'Name'}
-			name = nameTag?.value ?: cloudItem.transitGatewayAttachmentId
-			def addConfig = [owner: cloud.account, category:getCategory(), code:(getCategory() + '.' + cloudItem.transitGatewayAttachmentId),
-							 externalId:cloudItem.transitGatewayAttachmentId, zoneId:cloud.id, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.transitGatewayAttachment'), resourceType:'TransitGatewayAttachment',
-							 zoneName  : cloud.name, name: name, displayName: name
-			]
-			AccountResource newResource = new AccountResource(addConfig)
-			newResource.region = new ComputeZoneRegion(regionCode: region)
-			newResource.rawData = JsonOutput.toJson([vpcId: cloudItem.getVpcId(), state: cloudItem.getState()])
-			adds << newResource
+			def name = cloudItem.tags?.find { it.key == 'Name' }?.value ?: cloudItem.transitGatewayAttachmentId
+			adds << new AccountResource(
+				owner: cloud.account, category:getCategory(), code:(getCategory() + '.' + cloudItem.transitGatewayAttachmentId),
+				externalId:cloudItem.transitGatewayAttachmentId, zoneId:cloud.id, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.transitGatewayAttachment'), resourceType:'TransitGatewayAttachment',
+				zoneName: cloud.name, name: name, displayName: name, region: new ComputeZoneRegion(id: region.id),
+				rawData: JsonOutput.toJson([vpcId: cloudItem.vpcId, state: cloudItem.state])
+			)
 		}
 		if(adds) {
 			morpheusContext.cloud.resource.create(adds).blockingGet()
 		}
 	}
 
-	protected void updateMatchedTransitGatewayVpcAttachments(List<SyncTask.UpdateItem<AccountResource, TransitGatewayVpcAttachment>> updateList, String region) {
+	protected void updateMatchedTransitGatewayVpcAttachments(List<SyncTask.UpdateItem<AccountResource, TransitGatewayVpcAttachment>> updateList, ComputeZoneRegionIdentityProjection region) {
 		def updates = []
 		for(update in updateList) {
 			def masterItem = update.masterItem
@@ -92,12 +89,10 @@ class TransitGatewayVpcAttachmentSync extends InternalResourceSync {
 				existingItem.rawData = rawData
 				save = true
 			}
-			if(existingItem.region?.code != region) {
-				existingItem.region = new ComputeZoneRegion(regionCode: region)
+			if(existingItem.region?.id != region.id) {
+				existingItem.region = new ComputeZoneRegion(id: region.id)
 				save = true
 			}
-
-
 			if(save) {
 				updates << existingItem
 			}

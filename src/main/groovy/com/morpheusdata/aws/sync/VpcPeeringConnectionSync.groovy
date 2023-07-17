@@ -16,8 +16,6 @@ import io.reactivex.Single
 
 @Slf4j
 class VpcPeeringConnectionSync extends InternalResourceSync {
-	private Map<String, ComputeZoneRegionIdentityProjection> regions
-
 	public VpcPeeringConnectionSync(AWSPlugin plugin, Cloud cloud) {
 		this.plugin = plugin
 		this.cloud = cloud
@@ -25,26 +23,25 @@ class VpcPeeringConnectionSync extends InternalResourceSync {
 	}
 
 	def execute() {
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap {
-			final String regionCode = it.externalId
-			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false,it.externalId)
+		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
+			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, region.externalId)
 			def apiList = AmazonComputeUtility.listVpcPeeringConnections([amazonClient: amazonClient],[:])
 			if(apiList.success) {
-				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.cloud.resource.listIdentityProjections(cloud.id,'aws.cloudFormation.ec2.vpcPeeringConnection',regionCode)
+				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.cloud.resource.listIdentityProjections(cloud.id,'aws.cloudFormation.ec2.vpcPeeringConnection', region.externalId)
 				SyncTask<AccountResourceIdentityProjection, VpcPeeringConnection, AccountResource> syncTask = new SyncTask<>(domainRecords, apiList.vpcPeeringConnections as Collection<VpcPeeringConnection>)
 				return syncTask.addMatchFunction { AccountResourceIdentityProjection domainObject, VpcPeeringConnection data ->
 					domainObject.externalId == data.vpcPeeringConnectionId
 				}.onDelete { removeItems ->
 					removeMissingResources(removeItems)
 				}.onUpdate { List<SyncTask.UpdateItem<AccountResource, VpcPeeringConnection>> updateItems ->
-					updateMatchedVpcPeeringConnections(updateItems,regionCode)
+					updateMatchedVpcPeeringConnections(updateItems, region)
 				}.onAdd { itemsToAdd ->
-					addMissingVpcPeeringConnection(itemsToAdd, regionCode)
+					addMissingVpcPeeringConnection(itemsToAdd, region)
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<AccountResourceIdentityProjection, VpcPeeringConnection>> updateItems ->
 					return morpheusContext.cloud.resource.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.observe()
 			} else {
-				log.error("Error Caching VPC Peering Connections for Region: {} - {}",regionCode,apiList.msg)
+				log.error("Error Caching VPC Peering Connections for Region: {} - {}", region.externalId, apiList.msg)
 				return Single.just(false).toObservable() //ignore invalid region
 			}
 		}.blockingSubscribe()
@@ -54,54 +51,32 @@ class VpcPeeringConnectionSync extends InternalResourceSync {
 		return "amazon.ec2.vpc.peerings.${cloud.id}"
 	}
 
-	protected void addMissingVpcPeeringConnection(Collection<VpcPeeringConnection> addList, String regionCode) {
+	protected void addMissingVpcPeeringConnection(Collection<VpcPeeringConnection> addList, ComputeZoneRegionIdentityProjection region) {
 		def adds = []
-		def region = allRegions[regionCode]
-
-		if(!(region instanceof ComputeZoneRegion)) {
-			region = morpheusContext.cloud.region.listById([region.id]).blockingFirst()
-			allRegions[regionCode] = region
-		}
-
 		for(VpcPeeringConnection cloudItem in addList) {
-			def name
-			def nameTag = cloudItem.getTags()?.find{it.getKey() == 'Name'}
-			name = nameTag?.value ?: cloudItem.vpcPeeringConnectionId
-			def addConfig = [owner:cloud.account, category:getCategory(), code:(getCategory() + '.' + cloudItem.vpcPeeringConnectionId),
-				externalId:cloudItem.vpcPeeringConnectionId, cloudId:cloud.id, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.VpcPeeringConnection'), resourceType:'VpcPeeringConnection',
-				cloudName: cloud.name, name: name, displayName: name, region: region
-			]
-			AccountResource newResource = new AccountResource(addConfig)
-			newResource.region = new ComputeZoneRegion(regionCode: region)
-			adds << newResource
+			def name = cloudItem.tags?.find{it.key == 'Name'}?.value ?: cloudItem.vpcPeeringConnectionId
+			adds << new AccountResource(
+				owner:cloud.account, category:getCategory(), code:(getCategory() + '.' + cloudItem.vpcPeeringConnectionId),
+				externalId:cloudItem.vpcPeeringConnectionId, cloudId:cloud.id, type: new AccountResourceType(code: 'aws.cloudFormation.ec2.VpcPeeringConnection'),
+				resourceType:'VpcPeeringConnection', cloudName: cloud.name, name: name, displayName: name, region: new ComputeZoneRegion(id: region.id)
+			)
 		}
-		if(adds) {
-			morpheusContext.cloud.resource.create(adds).blockingGet()
-		}
+		morpheusContext.cloud.resource.create(adds).blockingGet()
 	}
 
-	protected void updateMatchedVpcPeeringConnections(List<SyncTask.UpdateItem<AccountResource, VpcPeeringConnection>> updateList, String regionCode) {
+	protected void updateMatchedVpcPeeringConnections(List<SyncTask.UpdateItem<AccountResource, VpcPeeringConnection>> updateList, ComputeZoneRegionIdentityProjection region) {
 		def updates = []
-		def region = allRegions[regionCode]
-
-		if(!(region instanceof ComputeZoneRegion)) {
-			region = morpheusContext.cloud.region.listById([region.id]).blockingFirst()
-			allRegions[regionCode] = region
-		}
-
 		for(update in updateList) {
 			def masterItem = update.masterItem
 			def existingItem = update.existingItem
 			Boolean save = false
-			def name
-			def nameTag = masterItem.getTags()?.find{it.getKey() == 'Name'}
-			name = nameTag?.value ?: masterItem.vpcPeeringConnectionId
+			def name = masterItem.tags?.find{it.key == 'Name'}?.value ?: masterItem.vpcPeeringConnectionId
 			if(existingItem.name != name) {
 				existingItem.name = name
 				save = true
 			}
-			if(existingItem.region?.code != regionCode) {
-				existingItem.region = region
+			if(existingItem.region?.id != region.id) {
+				existingItem.region = new ComputeZoneRegion(id: region.id)
 				save = true
 			}
 
@@ -112,9 +87,5 @@ class VpcPeeringConnectionSync extends InternalResourceSync {
 		if(updates) {
 			morpheusContext.cloud.resource.save(updates).blockingGet()
 		}
-	}
-
-	private Map<String, ComputeZoneRegionIdentityProjection> getAllRegions() {
-		regions ?: (regions = morpheusContext.cloud.region.listIdentityProjections(cloud.id).toMap {it.externalId}.blockingGet())
 	}
 }

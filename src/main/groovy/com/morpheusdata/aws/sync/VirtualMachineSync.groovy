@@ -583,7 +583,7 @@ class VirtualMachineSync {
 			//Match truncated names from cloud based on cloud
 			def truncatedName = false
 			if(opts?.maxNameLength) {
-				truncatedName = MorpheusUtils.truncateElipsis(internalName, opts.maxNameLength - 3)
+				truncatedName = AmazonComputeUtility.truncateElipsis(internalName, opts.maxNameLength - 3)
 			}
 			return internalName == externalName || truncatedName == externalName
 		}
