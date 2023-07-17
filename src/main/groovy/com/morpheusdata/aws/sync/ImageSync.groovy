@@ -8,6 +8,7 @@ import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.ImageType
+import com.morpheusdata.model.MetadataTag
 import com.morpheusdata.model.OsType
 import com.morpheusdata.model.VirtualImage
 import com.morpheusdata.model.VirtualImageLocation
@@ -71,7 +72,6 @@ class ImageSync {
 						virtualName: blockDevice.getVirtualName()
 					]
 				}
-				def tagsConfig = cloudItem.tags?.collect { [name: it.key, value: it.value] } ?: []
 				def productCodeConfig = cloudItem.productCodes?.collect { [id: it.productCodeId, type: it.productCodeType] } ?: []
 				def imageConfig = [
 					category          : "amazon.ec2.image.${cloud.id}", imageRegion: regionCode, name: cloudItem.name ?: cloudItem.imageId,
@@ -94,9 +94,12 @@ class ImageSync {
 					imageConfig.osType = allOsTypes['linux']
 
 				def add = new VirtualImage(imageConfig)
-				add.tags = tagsConfig.encodeAsJSON().toString()
 				add.blockDeviceConfig = blockDeviceConfig.encodeAsJSON().toString()
 				add.productCode = productCodeConfig.encodeAsJSON().toString()
+
+				if((cloudItem.tags = [[key:'foo', value:'bar']]))
+					add.metadata = cloudItem.tags.collect { new MetadataTag(name: it.key, value: it.value) }
+
 				adds << add
 			}
 		}
@@ -144,6 +147,7 @@ class ImageSync {
 			def virtualImage = virtualImagesById[existingItem.virtualImage.id]
 			def cloudItem = updateItem.masterItem
 			def save = false
+			def saveImage = false
 			def state = cloudItem.state == 'available' ? 'Active' : cloudItem.state
 			def externalDiskId = cloudItem.blockDeviceMappings.find { mapping -> mapping.deviceName == cloudItem.rootDeviceName }?.ebs?.snapshotId
 
@@ -157,7 +161,7 @@ class ImageSync {
 
 				if(virtualImage.imageLocations?.size() < 2) {
 					virtualImage.name = imageName
-					saveImageList << virtualImage
+					saveImage = true
 				}
 				save = true
 			}
@@ -165,7 +169,6 @@ class ImageSync {
 				existingItem.externalId = cloudItem.imageId
 				save = true
 			}
-
 			if(virtualImage.status != state) {
 				virtualImage.status = state
 				saveImageList << virtualImage
@@ -176,6 +179,18 @@ class ImageSync {
 			}
 			if(save) {
 				saveLocationList << existingItem
+			}
+
+			def masterTags = cloudItem.tags?.sort { it.key }?.collect { [name: it.key, value: it.value] } ?: []
+			if(virtualImage.metadata.sort { it.name }.collect {[name: it.name, value: it.value] }.encodeAsJSON().toString() != masterTags.encodeAsJSON().toString()) {
+				virtualImage.metadata = masterTags.collect {
+					new MetadataTag(name: it.name, value: it.value)
+				}
+				saveImage = true
+			}
+
+			if(saveImage) {
+				saveImageList << virtualImage
 			}
 		}
 
@@ -189,7 +204,7 @@ class ImageSync {
 
 	private removeMissingVirtualImages(Collection<VirtualImageLocationIdentityProjection> removeList) {
 		log.debug "removeMissingVirtualImages: ${cloud} ${removeList.size()}"
-		morpheusContext.virtualImage.location.remove(removeList)
+		morpheusContext.virtualImage.location.remove(removeList).blockingGet()
 	}
 
 	private buildLocationConfig(VirtualImageIdentityProjection virtualImage) {
