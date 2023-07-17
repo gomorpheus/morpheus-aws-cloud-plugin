@@ -55,7 +55,7 @@ class AWSPlugin extends Plugin {
 		this.getProviderByCode(networkProviderCode)
 	}
 
-	def AWSNetworkProvider getDnsProvider() {
+	def Route53DnsProvider getDnsProvider() {
 		this.getProviderByCode(dnsProviderCode)
 	}
 

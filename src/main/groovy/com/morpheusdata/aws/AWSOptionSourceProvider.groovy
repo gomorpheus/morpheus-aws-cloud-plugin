@@ -94,4 +94,23 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		}
 		return rtn ?: []
 	}
+
+	def availabilityZones(params) {
+		def rtn = []
+		def zoneId = MorpheusUtils.getZoneId(params)
+		def zonePoolId = MorpheusUtils.getResourcePoolId(params.network ?: [:])
+		def tmpZone = zoneId ? ComputeZone.read(zoneId) : null
+		def tmpZonePool = zonePoolId ? ComputeZonePool.read(zonePoolId) : null
+		if(tmpZone) {
+			def refQuery = ReferenceData.where { account == tmpZone.owner }
+			if(tmpZonePool && tmpZonePool.regionCode) {
+				refQuery = refQuery.where { category == "amazon.ec2.zone.${tmpZone.id}.${tmpZonePool.regionCode}" || category == "amazon.ec2.zone.${tmpZone.id}" }
+			} else {
+				refQuery = refQuery.where { category =~ "amazon.ec2.zone.${tmpZone.id}" }
+			}
+			rtn = refQuery.list()?.collect { [name:it.name, value:it.name] }
+		}
+
+		return rtn
+	}
 }
