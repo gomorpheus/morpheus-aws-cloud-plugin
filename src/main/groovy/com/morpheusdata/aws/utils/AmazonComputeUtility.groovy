@@ -90,7 +90,7 @@ class AmazonComputeUtility {
 	static class InvalidCredentialsRequestHandler extends com.amazonaws.handlers.RequestHandler2 {
 		@Override
 		public void afterAttempt(com.amazonaws.handlers.HandlerAfterAttemptContext context) {
-			if((context.exception?.respondsTo("statusCode") && context.exception?.statusCode == 401) || (context.exception?.respondsTo("errorCode") && context.exception?.errorCode == 'AuthFailure')) {
+			if(context.exception instanceof com.amazonaws.AmazonServiceException && (context.exception?.statusCode == 401 || context.exception?.errorCode == 'AuthFailure')) {
 				//fast fail - prevent unnecessary retries for invalid creds
 				throw context.exception
 			}
@@ -109,15 +109,17 @@ class AmazonComputeUtility {
 				.withRequestHandlers(new InvalidCredentialsRequestHandler())
 				.withEndpointConfiguration(endpointConfiguration)
 				.build()
+
+
 			def vpcRequest = new DescribeVpcsRequest()
 			rtn.vpcList = amazonClient.describeVpcs(vpcRequest).getVpcs()
 			rtn.amazonClient = amazonClient
 			rtn.success = true
 		} catch(com.amazonaws.AmazonServiceException awse) {
-			log.error("testConnection to amazon: {}", awse, awse)
+			log.error("testConnection to amazon: ${awse}", awse)
 			rtn.invalidLogin = (awse.errorCode == 'AuthFailure')
 		} catch(e) {
-			log.error("testConnection to amazon: {}", e, e)
+			log.error("testConnection to amazon: ${e}", e)
 		}
 		return rtn
 	}
@@ -4385,7 +4387,7 @@ class AmazonComputeUtility {
 				log.debug("using instance profile creds")
 				credsProvider = new InstanceProfileCredentialsProvider()
 			} else {
-				creds = new BasicAWSCredentials(getAmazonAccessKey(zone), getAmazonSecretKey(zone))	
+				creds = new BasicAWSCredentials(getAmazonAccessKey(zone), getAmazonSecretKey(zone))
 				credsProvider = new AWSStaticCredentialsProvider(creds)
 			}
 			rtn.credsProvider = credsProvider

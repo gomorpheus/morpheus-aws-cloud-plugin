@@ -130,13 +130,14 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 
 	@Override
 	ServiceResponse initializeProvider(Cloud cloud) {
+		log.info("Initializeing network provider for ${cloud.name}")
 		ServiceResponse rtn = ServiceResponse.prepare()
 		try {
 			NetworkServer integration = new NetworkServer(
 				name: cloud.name,
 				type: new NetworkServerType(code:"amazon")
 			)
-			morpheus.integration.registerCloudIntegration(cloud.id, integration)
+			morpheus.integration.registerCloudIntegration(cloud.id, integration).blockingGet()
 			ServiceResponse.success = true
 		} catch (Exception e) {
 			rtn.success = false

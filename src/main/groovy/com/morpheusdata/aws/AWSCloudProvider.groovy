@@ -299,7 +299,7 @@ class AWSCloudProvider implements CloudProvider {
 		log.info("validate: {}", cloudInfo)
 		try {
 			if(cloudInfo) {
-				def config = validateCloudRequest.opts.config ?: [:]
+				def config = cloudInfo.getConfigMap()
 				def useHostCredentials = config.useHostCredentials in [true, 'true', 'on']
 				def username, password
 
@@ -641,9 +641,9 @@ class AWSCloudProvider implements CloudProvider {
 		try {
 
 			// initialize providers for this cloud
-			plugin.getNetworkProvider().initializeCloud(cloud)
-			plugin.getDnsProvider().initializeCloud(cloud)
-			// plugin.getStorageProvider().initializeCloud(cloud)
+			plugin.getNetworkProvider().initializeProvider(cloud)
+			plugin.getDnsProvider().initializeProvider(cloud)
+			// plugin.getStorageProvider().initializeProvider(cloud)
 
 			refreshDaily(cloud)
 			refresh(cloud)

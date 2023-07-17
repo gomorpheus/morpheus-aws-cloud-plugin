@@ -58,7 +58,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 				type: new AccountIntegrationType(code:"amazonDns"),
 				serviceUrl: cloud.regionCode
 			)
-			morpheus.integration.registerCloudIntegration(cloud.id, integration)
+			morpheus.integration.registerCloudIntegration(cloud.id, integration).blockingGet()
 			ServiceResponse.success = true
 		} catch (Exception e) {
 			rtn.success = false
