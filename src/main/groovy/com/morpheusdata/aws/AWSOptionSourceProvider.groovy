@@ -61,7 +61,9 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		args = args instanceof Object[] ? args.getAt(0) : args
 
 		Cloud cloud = args.zoneId ? morpheusContext.cloud.getCloudById(args.zoneId).blockingGet() : null
-
+		if(!cloud) {
+			cloud = new Cloud()
+		}
 		if(args.credential && cloud.accountCredentialLoaded == false) {
 			def credentialDataResponse = morpheusContext.accountCredential.loadCredentialConfig(args.credential, args.config).blockingGet()
 			if(credentialDataResponse.success) {
