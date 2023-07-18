@@ -6,6 +6,7 @@ import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.ReferenceData;
+import com.morpheusdata.core.util.MorpheusUtils;
 import groovy.util.logging.Slf4j
 
 @Slf4j
@@ -41,7 +42,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 
 	@Override
 	List<String> getMethodNames() {
-		return new ArrayList<String>(['awsPluginVpc', 'awsPluginRegions'])
+		return new ArrayList<String>(['awsPluginVpc', 'awsPluginRegions', 'amazonAvailabilityZones'])
 	}
 
 	def awsPluginRegions(args) {
@@ -95,20 +96,24 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		return rtn ?: []
 	}
 
-	def availabilityZones(params) {
+	def amazonAvailabilityZones(args) {
+		args = args instanceof Object[] ? args.getAt(0) : args
 		def rtn = []
-		def zoneId = MorpheusUtils.getZoneId(params)
-		def zonePoolId = MorpheusUtils.getResourcePoolId(params.network ?: [:])
-		def tmpZone = zoneId ? ComputeZone.read(zoneId) : null
-		def tmpZonePool = zonePoolId ? ComputeZonePool.read(zonePoolId) : null
+		def zoneId = MorpheusUtils.getZoneId(args)
+		def zonePoolId = MorpheusUtils.getResourcePoolId(args.network ?: [:])
+		def tmpZone = zoneId ? morpheus.cloud.getCloudById(zoneId).blockingGet() : null
+		def tmpZonePool = zonePoolId ? morpheus.cloud.pool.listById([zonePoolId]).toList().blockingGet()?.getAt(0) : null
 		if(tmpZone) {
-			def refQuery = ReferenceData.where { account == tmpZone.owner }
+			def results = []
 			if(tmpZonePool && tmpZonePool.regionCode) {
-				refQuery = refQuery.where { category == "amazon.ec2.zone.${tmpZone.id}.${tmpZonePool.regionCode}" || category == "amazon.ec2.zone.${tmpZone.id}" }
+				def categories = ["amazon.ec2.zone.${tmpZone.id}.${tmpZonePool.regionCode}", "amazon.ec2.zone.${tmpZone.id}"]
+				results = morpheus.referenceData.listByAccountIdAndCategories(tmpZone.owner.id, categories).toList().blockingGet()
 			} else {
-				refQuery = refQuery.where { category =~ "amazon.ec2.zone.${tmpZone.id}" }
+				results = morpheus.referenceData.listByAccountIdAndCategoryMatch(tmpZone.owner.id, "amazon.ec2.zone.${tmpZone.id}").toList().blockingGet()
 			}
-			rtn = refQuery.list()?.collect { [name:it.name, value:it.name] }
+			if(results.size() > 0) {
+				rtn = results?.collect { [name:it.name, value:it.name] }
+			}
 		}
 
 		return rtn

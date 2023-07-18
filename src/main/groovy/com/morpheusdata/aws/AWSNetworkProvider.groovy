@@ -10,6 +10,7 @@ import com.morpheusdata.core.providers.CloudInitializationProvider
 import com.morpheusdata.model.AccountIntegration
 import com.morpheusdata.model.AccountIntegrationType
 import com.morpheusdata.model.Cloud
+import com.morpheusdata.model.ComputeZonePool
 import com.morpheusdata.model.Network
 import com.morpheusdata.model.NetworkRoute
 import com.morpheusdata.model.NetworkRouter
@@ -158,11 +159,12 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 		def rtn = ServiceResponse.prepare()
 		try {
 			if(network.networkServer) {
-				def cloud = network.cloud
-				AmazonEC2Client amazonClient = AmazonComputeUtility.getAmazonClient(cloud, false, network.zonePool?.regionCode)
+				Cloud cloud = network.cloud
+				ComputeZonePool resourcePool = network.zonePoolId ? morpheus.cloud.pool.listById([network.zonePoolId]).toList().blockingGet()?.getAt(0) : null
+				AmazonEC2Client amazonClient = AmazonComputeUtility.getAmazonClient(cloud, false, resourcePool?.regionCode)
 				def networkConfig = [:]
 				networkConfig.name = network.name
-				networkConfig.vpcId = network.zonePool?.externalId
+				networkConfig.vpcId = resourcePool?.externalId
 				networkConfig.availabilityZone = network.availabilityZone
 				networkConfig.active = network.active
 				networkConfig.assignPublicIp = network.assignPublicIp
@@ -172,10 +174,10 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 				def apiResults = AmazonComputeUtility.createSubnet(opts + [amazonClient: amazonClient, config: networkConfig])
 				log.info("network apiResults: {}", apiResults)
 				//create it
-				if( apiResults?.success && apiResults?.error != true) {
+				if(apiResults?.success && apiResults?.error != true) {
 					rtn.success = true
 					network.externalId = apiResults.externalId
-					network.regionCode = network.zonePool?.regionCode
+					network.regionCode = resourcePool?.regionCode
 				}
 				rtn.data = network
 				rtn.msg = apiResults.msg
@@ -194,8 +196,8 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 	 * @return ServiceResponse
 	 */
 	@Override
-	ServiceResponse updateNetwork(Network network, Map opts) {
-		return ServiceResponse.success()
+	ServiceResponse<Network> updateNetwork(Network network, Map opts) {
+		return ServiceResponse.success(network)
 	}
 
 	/**
@@ -209,7 +211,8 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 		def rtn = ServiceResponse.prepare()
 		//remove the network
 		if(network.externalId) {
-			AmazonEC2Client amazonClient = AmazonComputeUtility.getAmazonClient(network.cloud, false, network.zonePool?.regionCode)
+			ComputeZonePool resourcePool = network.zonePoolId ? morpheus.cloud.pool.listById([network.zonePoolId]).toList().blockingGet()?.getAt(0) : null
+			AmazonEC2Client amazonClient = AmazonComputeUtility.getAmazonClient(network.cloud, false, resourcePool?.regionCode)
 			def deleteResults = AmazonComputeUtility.deleteSubnet([amazonClient: amazonClient, network: network])
 			log.debug("deleteResults: {}", deleteResults)
 			if(deleteResults.success == true) {

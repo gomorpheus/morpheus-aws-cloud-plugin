@@ -127,7 +127,7 @@ class SubnetSync {
 			}
 		}
 		if(updates) {
-			morpheusContext.cloud.pool.save(updates).blockingGet()
+			morpheusContext.network.save(updates).blockingGet()
 		}
 	}
 
