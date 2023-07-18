@@ -140,7 +140,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 					hasMulticast:false, hasGre:false, hasBridging:false, hasLoadBalancing:false, hasDnsForwarding:false, hasDhcp:false, supportsEditRoute: true,
 					hasDhcpRelay:false, hasSyslog:false, hasSslVpn:false, hasL2tVpn:false, hasIpsecVpn:false, hasCertificates:false, hasInterfaces: false,
 					hasRouteRedistribution:false, supportsEditFirewallRule: false, hasHighAvailability:false,
-					optionTypes: [
+					routeOptionTypes: [
 						new OptionType(code:'networkRouter.aws.route.table', inputType: OptionType.InputType.SELECT, name:'routeTable', optionSource: 'awsRouteTable', optionSourceType:'amazon',
 							category:'networkRouter.global', fieldName:'routeTable', fieldCode: 'gomorpheus.label.route.table', fieldLabel:'routeTable', fieldContext:'domain', required:true, enabled:true,
 							editable:true, noBlank: true, global:false, displayOrder:10, fieldClass:null, wrapperClass:null

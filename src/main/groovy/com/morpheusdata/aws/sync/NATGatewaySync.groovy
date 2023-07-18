@@ -60,7 +60,7 @@ class NATGatewaySync extends InternalResourceSync {
 			def name = cloudItem.tags?.find { it.key == 'Name' }?.value ?: cloudItem.natGatewayId
 			adds << new AccountResource(
 				owner:cloud.account, category:getCategory(), code:(getCategory() + '.' + cloudItem.natGatewayId),
-				externalId:cloudItem.natGatewayId, zoneId:cloud.id, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.natGateway'), resourceType:'NatGateway',
+				externalId:cloudItem.natGatewayId, cloudId:cloud.id, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.natGateway'), resourceType:'NatGateway',
 				zoneName: cloud.name, name: name, displayName: name, region: new ComputeZoneRegion(id: region.id)
 			)
 		}
