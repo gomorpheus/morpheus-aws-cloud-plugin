@@ -732,7 +732,7 @@ class VirtualMachineSync {
 	}
 
 	private Map<String, ComputeZonePoolIdentityProjection> getAllZonePools() {
-		zonePools ?: (zonePools = morpheusContext.cloud.pool.listIdentityProjections(cloud.id, '').toMap {it.externalId}.blockingGet())
+		zonePools ?: (zonePools = morpheusContext.cloud.pool.listIdentityProjections(cloud.id, '', null).toMap {it.externalId}.blockingGet())
 	}
 
 	private Map<String, ServicePlanIdentityProjection> getAllServicePlans() {

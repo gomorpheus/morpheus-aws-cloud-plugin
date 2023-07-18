@@ -36,7 +36,7 @@ class VPCSync {
 			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false,it.externalId)
 			def vpcResults = AmazonComputeUtility.listVpcs([amazonClient: amazonClient])
 			if(vpcResults.success) {
-				Observable<ComputeZonePoolIdentityProjection> domainRecords = morpheusContext.cloud.pool.listSyncProjections(cloud.id,null)
+				Observable<ComputeZonePoolIdentityProjection> domainRecords = morpheusContext.cloud.pool.listIdentityProjections(cloud.id, null, regionCode)
 				SyncTask<ComputeZonePoolIdentityProjection, Vpc, ComputeZonePool> syncTask = new SyncTask<>(domainRecords, vpcResults.vpcList as Collection<Vpc>)
 				return syncTask.addMatchFunction { ComputeZonePoolIdentityProjection domainObject, Vpc data ->
 					domainObject.externalId == data.getVpcId()
@@ -46,7 +46,6 @@ class VPCSync {
 					updateMatchedVpcs(updateItems,regionCode)
 				}.onAdd { itemsToAdd ->
 					addMissingVpcs(itemsToAdd, regionCode)
-
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<ComputeZonePoolIdentityProjection, Vpc>> updateItems ->
 					return morpheusContext.cloud.pool.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.observe()
@@ -56,7 +55,6 @@ class VPCSync {
 			}
 		}.blockingSubscribe()
 	}
-
 
 	protected void addMissingVpcs(Collection<Vpc> addList, String region) {
 		def adds = []
