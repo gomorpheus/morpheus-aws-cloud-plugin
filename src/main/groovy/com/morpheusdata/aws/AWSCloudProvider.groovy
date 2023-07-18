@@ -159,7 +159,8 @@ class AWSCloudProvider implements CloudProvider {
 			fieldName: 'vpc',
 			inputType: OptionType.InputType.SELECT,
 			optionSource: 'awsPluginVpc',
-			visibleOnCode: 'matchAny::config.isVpc:true,config.isVpc:on'
+			visibleOnCode: 'matchAny::config.isVpc:true,config.isVpc:on',
+			dependsOnCode:"config.endpoint, endpoint, config.accessKey, accessKey, config.secretKey, secretKey, credential, credential.type"
 		)
 		[apiUrl, credentials, accessKey, secretKey, useHostCreds, roleArn, importExisting, isVpc, vpc]
 	}

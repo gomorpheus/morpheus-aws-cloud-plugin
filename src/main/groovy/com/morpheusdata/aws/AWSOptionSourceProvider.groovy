@@ -60,11 +60,11 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 	def awsPluginVpc(args) {
 		args = args instanceof Object[] ? args.getAt(0) : args
 
-		Cloud cloud = args.zoneId ? morpheusContext.cloud.getCloudById(args.zoneId).blockingGet() : null
+		Cloud cloud = args.zoneId ? morpheusContext.cloud.getCloudById(args.zoneId.toLong()).blockingGet() : null
 		if(!cloud) {
 			cloud = new Cloud()
 		}
-		if(args.credential && cloud.accountCredentialLoaded == false) {
+		if(args.credential) {
 			def credentialDataResponse = morpheusContext.accountCredential.loadCredentialConfig(args.credential, args.config).blockingGet()
 			if(credentialDataResponse.success) {
 				cloud.accountCredentialData = credentialDataResponse.data
@@ -73,9 +73,9 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		}
 
 		def config = [
-			accessKey: args.accessKey ?: cloud.getConfigProperty('accessKey'),
-			secretKey: args.secretKey ?: cloud.getConfigProperty('secretKey'),
-			stsAssumeRole: args.stsAssumeRole ?: cloud.getConfigProperty('stsAssumeRole'),
+			accessKey: args.accessKey ?: args.config?.accessKey ?: cloud.getConfigProperty('accessKey'),
+			secretKey: args.secretKey ?: args.config?.secretKey ?: cloud.getConfigProperty('secretKey'),
+			stsAssumeRole: (args.stsAssumeRole ?: args.config?.stsAssumeRole ?: cloud.getConfigProperty('stsAssumeRole')) in [true, 'true', 'on'],
 			useHostCredentials: (args.useHostCredentials ?: cloud.getConfigProperty('useHostCredentials')) in [true, 'true', 'on'],
 			endpoint: args.endpoint ?: args.config?.endpoint ?: cloud.getConfigProperty('endpoint')
 		]
