@@ -22,6 +22,7 @@ import com.morpheusdata.model.NetworkType
 import com.morpheusdata.model.ComputeZonePool as CloudPool
 import com.morpheusdata.model.OptionType
 import com.morpheusdata.response.ServiceResponse
+import com.morpheusdata.core.util.MorpheusUtils
 import groovy.util.logging.Slf4j
 
 @Slf4j
@@ -118,13 +119,46 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 					hasDnsClient:false, hasFirewall:false, hasFirewallGroups: false, hasNat:false, hasRouting:false, hasStaticRouting:false, hasBgp:false, hasOspf:false,
 					hasMulticast:false, hasGre:false, hasBridging:false, hasLoadBalancing:false, hasDnsForwarding:false, hasDhcp:false, supportsEditRoute: false,
 					hasDhcpRelay:false, hasSyslog:false, hasSslVpn:false, hasL2tVpn:false, hasIpsecVpn:false, hasCertificates:false, hasInterfaces: false,
-					hasRouteRedistribution:false, supportsEditFirewallRule: false, hasHighAvailability:false),
+					hasRouteRedistribution:false, supportsEditFirewallRule: false, hasHighAvailability:false,
+					optionTypes: [
+						new OptionType(
+							code:'networkRouter.aws.name', inputType: OptionType.InputType.TEXT, name:'name', category:'networkRouter.aws.internet.gateway',
+							fieldName:'name', fieldCode: 'gomorpheus.optiontype.Name', fieldLabel:'Name', fieldContext:'domain', required:true, enabled:true,
+							editable:true, global:false, placeHolder:null, helpBlock:'', defaultValue:null, custom:false, displayOrder:5, fieldClass:null,
+							wrapperClass:null
+						),
+						new OptionType(
+							code:'networkRouter.aws.internet.gateway.vpc', inputType: OptionType.InputType.SELECT, name:'poolId', optionSource:'zonePoolsIgnoreDefault', dependsOnCode: 'router.zone.id',
+							category:'networkRouter.aws.internet.gateway', fieldName:'poolId', fieldLabel:'Resource Pool', fieldContext:'domain', required:false, enabled:true,
+							editable:true, global:false, placeHolder:null, helpBlock:'', defaultValue:null, custom:false, displayOrder:10, wrapperClass:null, fieldCode:'gomorpheus.label.attached.vpc'
+						)
+					]
+				),
 				new NetworkRouterType(code:'amazonVpcRouter', name:'Amazon VPC Router', creatable:false, description:'Amazon VPC Router',
 					routerService:'amazonNetworkService', enabled:true, hasNetworkServer:true, hasGateway:true, deletable: false,
 					hasDnsClient:false, hasFirewall:false, hasFirewallGroups: false, hasNat:false, hasRouting:true, hasStaticRouting:false, hasBgp:false, hasOspf:false,
 					hasMulticast:false, hasGre:false, hasBridging:false, hasLoadBalancing:false, hasDnsForwarding:false, hasDhcp:false, supportsEditRoute: true,
 					hasDhcpRelay:false, hasSyslog:false, hasSslVpn:false, hasL2tVpn:false, hasIpsecVpn:false, hasCertificates:false, hasInterfaces: false,
-					hasRouteRedistribution:false, supportsEditFirewallRule: false, hasHighAvailability:false)
+					hasRouteRedistribution:false, supportsEditFirewallRule: false, hasHighAvailability:false,
+					optionTypes: [
+						new OptionType(code:'networkRouter.aws.route.table', inputType: OptionType.InputType.SELECT, name:'routeTable', optionSource: 'awsRouteTable', optionSourceType:'amazon',
+							category:'networkRouter.global', fieldName:'routeTable', fieldCode: 'gomorpheus.label.route.table', fieldLabel:'routeTable', fieldContext:'domain', required:true, enabled:true,
+							editable:true, noBlank: true, global:false, displayOrder:10, fieldClass:null, wrapperClass:null
+						),
+						new OptionType(code:'networkRouter.aws.route.network', inputType: OptionType.InputType.TEXT, name:'network',
+							category:'networkRouter.global', fieldName:'source', fieldCode: 'gomorpheus.label.network', fieldLabel:'network', fieldContext:'domain', required:false, enabled:true,
+							editable:true, global:false, placeHolder:'192.160.0.0/24', helpBlock:'', defaultValue:null, custom:false, displayOrder:20, fieldClass:null, wrapperClass:null
+						),
+						new OptionType(code:'networkRouter.aws.route.type', inputType: OptionType.InputType.SELECT, name:'destinationType', optionSource: 'awsRouteDestinationType',optionSourceType:'amazon',
+							category:'networkRouter.global', fieldName:'destinationType', fieldCode: 'gomorpheus.label.destination.type', fieldLabel:'destinationType', fieldContext:'domain', required:true, enabled:true,
+							editable:true, noBlank: true, global:false, placeHolder:null, helpBlock:'', defaultValue:null, custom:false, displayOrder:30, fieldClass:null, wrapperClass:null
+						),
+						new OptionType(code:'networkRouter.aws.route.target', inputType: OptionType.InputType.SELECT, name:'destination', optionSource: 'awsRouteDestination', optionSourceType:'amazon', dependsOnCode: 'networkRouter.aws.route.type',
+							category:'networkRouter.global', fieldName:'destination', fieldCode: 'gomorpheus.label.destination', fieldLabel:'destination', fieldContext:'domain', required:true, enabled:true,
+							editable:true, noBlank: true, global:false, placeHolder:null, helpBlock:'', defaultValue:null, custom:false, displayOrder:40, fieldClass:null, wrapperClass:null
+						)
+					]
+				)
 		]
 
 	}
@@ -280,8 +314,9 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 			def cloud = router.cloud
 			def vpcId
 			CloudPool pool
-			if(router.poolId) {
-				pool = morpheus.cloud.pool.listById([router.poolId]).toList().blockingGet().getAt(0)
+			def poolId = MorpheusUtils.parseLongConfig(router.poolId ? router.poolId : (router.refType == 'ComputeZonePool' ? router.refId : null))
+			if(poolId) {
+				pool = morpheus.cloud.pool.listById([poolId]).toList().blockingGet().getAt(0)
 				vpcId = pool?.externalId
 			}
 			opts += [
@@ -295,7 +330,6 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 			if(apiResults?.success && apiResults?.error != true) {
 				router.externalId = apiResults.internetGatewayId
 				rtn.success = true
-				rtn.data = router
 			} else {
 				rtn.msg = apiResults.msg ?: 'error creating router'
 			}
@@ -303,7 +337,8 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 			log.error("createRouter error: ${e}", e)
 			rtn.msg = 'unknown error creating router'
 		}
-		return ServiceResponse.create(rtn)
+		rtn.data = router
+		return rtn
 	}
 
 	/**
@@ -319,11 +354,11 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 			if(router.type.code == 'amazonVpcRouter') {
 				rtn.success = true
 			} else if(router.type.code == 'amazonInternetGateway') {
-				def poolId = router.poolId ? router.poolId : (router.refType == 'ComputeZonePool' ? router.refId : null)
+				def poolId = MorpheusUtils.parseLongConfig(router.poolId ? router.poolId : (router.refType == 'ComputeZonePool' ? router.refId : null))
 				String regionCode = router.regionCode
 				CloudPool desiredAttachedPool
 				if(poolId) {
-					desiredAttachedPool = morpheus.cloud.pool.listById([router.poolId]).toList().blockingGet().getAt(0)
+					desiredAttachedPool = morpheus.cloud.pool.listById([poolId]).toList().blockingGet().getAt(0)
 					regionCode = desiredAttachedPool?.regionCode
 				}
 				def name = router.name
@@ -350,7 +385,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 							def attachResults = AmazonComputeUtility.attachInternetGateway([vpcId: desiredAttachedVpcId] + opts)
 							if(!attachResults.success) {
 								rtn.msg = attachResults.msg
-								return ServiceResponse.create(rtn)
+								return rtn
 							}
 						}
 					}
@@ -373,6 +408,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 			rtn.msg = 'unknown error creating router'
 		}
 
+		rtn.data = router
 		return rtn
 	}
 
