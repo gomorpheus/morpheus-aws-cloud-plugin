@@ -4480,7 +4480,7 @@ class AmazonComputeUtility {
 		def clientExpires
 
 		if(!creds) {
-			def credsInfo = getAmazonCredentials(zone,clientConfiguration,false,region)
+			def credsInfo = getAmazonCredentials(zone, clientConfiguration,false,region)
 			creds = credsInfo.credentials
 			clientExpires = credsInfo.clientExpires
 			credsProvider = credsInfo.credsProvider as AWSCredentialsProvider

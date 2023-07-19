@@ -195,7 +195,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 			if(network.networkServer) {
 				Cloud cloud = network.cloud
 				ComputeZonePool resourcePool = network.zonePoolId ? morpheus.cloud.pool.listById([network.zonePoolId]).toList().blockingGet()?.getAt(0) : null
-				AmazonEC2Client amazonClient = AmazonComputeUtility.getAmazonClient(cloud, false, resourcePool?.regionCode)
+				AmazonEC2Client amazonClient = plugin.getAmazonClient(cloud, false, resourcePool?.regionCode)
 				def networkConfig = [:]
 				networkConfig.name = network.name
 				networkConfig.vpcId = resourcePool?.externalId
@@ -246,7 +246,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 		//remove the network
 		if(network.externalId) {
 			ComputeZonePool resourcePool = network.zonePoolId ? morpheus.cloud.pool.listById([network.zonePoolId]).toList().blockingGet()?.getAt(0) : null
-			AmazonEC2Client amazonClient = AmazonComputeUtility.getAmazonClient(network.cloud, false, resourcePool?.regionCode)
+			AmazonEC2Client amazonClient = plugin.getAmazonClient(network.cloud, false, resourcePool?.regionCode)
 			def deleteResults = AmazonComputeUtility.deleteSubnet([amazonClient: amazonClient, network: network])
 			log.debug("deleteResults: {}", deleteResults)
 			if(deleteResults.success == true) {
@@ -312,6 +312,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 		try {
 			def name = router.name
 			def cloud = router.cloud
+
 			def vpcId
 			CloudPool pool
 			def poolId = MorpheusUtils.parseLongConfig(router.poolId ? router.poolId : (router.refType == 'ComputeZonePool' ? router.refId : null))
@@ -320,7 +321,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 				vpcId = pool?.externalId
 			}
 			opts += [
-				amazonClient: AmazonComputeUtility.getAmazonClient(cloud,false, pool.regionCode),
+				amazonClient: plugin.getAmazonClient(cloud, false, pool.regionCode),
 				name: name,
 				vpcId: vpcId
 			]
@@ -365,7 +366,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 				def zone = router.cloud
 				def internetGatewayId = router.externalId
 				opts += [
-					amazonClient:AmazonComputeUtility.getAmazonClient(zone,false, regionCode),
+					amazonClient:plugin.getAmazonClient(zone,false, regionCode),
 					 name: name,
 					 internetGatewayId: internetGatewayId
 				]
@@ -425,15 +426,15 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 			} else if(router.type.code == 'amazonInternetGateway') {
 				if(router.externalId) {
 					Cloud cloud = router.cloud
-					def poolId = router.poolId ? router.poolId : (router.refType == 'ComputeZonePool' ? router.refId : null)
+					def poolId = MorpheusUtils.parseLongConfig(router.poolId ? router.poolId : (router.refType == 'ComputeZonePool' ? router.refId : null))
 					String regionCode = router.regionCode
 					CloudPool attachedPool
 					if(poolId) {
-						attachedPool = morpheus.cloud.pool.listById([router.poolId]).toList().blockingGet().getAt(0)
+						attachedPool = morpheus.cloud.pool.listById([poolId]).toList().blockingGet().getAt(0)
 						regionCode = attachedPool?.regionCode
 					}
 					opts += [
-						amazonClient:AmazonComputeUtility.getAmazonClient(cloud,false, regionCode),
+						amazonClient:plugin.getAmazonClient(cloud,false, regionCode),
 						internetGatewayId: router.externalId
 					]
 
@@ -490,15 +491,15 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 			Cloud cloud = router.cloud
 			route.destinationType = opts.route.destinationType
 
-			def poolId = router.poolId ? router.poolId : (router.refType == 'ComputeZonePool' ? router.refId : null)
+			def poolId = MorpheusUtils.parseLongConfig(router.poolId ? router.poolId : (router.refType == 'ComputeZonePool' ? router.refId : null))
 			String regionCode = router.regionCode
 			CloudPool attachedPool
 			if(poolId) {
-				attachedPool = morpheus.cloud.pool.listById([router.poolId]).toList().blockingGet().getAt(0)
+				attachedPool = morpheus.cloud.pool.listById([poolId]).toList().blockingGet().getAt(0)
 				regionCode = attachedPool?.regionCode
 			}
 			opts += [
-				amazonClient:AmazonComputeUtility.getAmazonClient(cloud,false, regionCode),
+				amazonClient:plugin.getAmazonClient(cloud,false, regionCode),
 				destinationCidrBlock: route.source, destinationType: route.destinationType, destination: route.destination, routeTableId: route.routeTable.externalId
 			]
 
@@ -529,15 +530,15 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 		def rtn = [success:false, data:[:], msg:null]
 		try {
 			Cloud cloud = router.cloud
-			def poolId = router.poolId ? router.poolId : (router.refType == 'ComputeZonePool' ? router.refId : null)
+			def poolId = MorpheusUtils.parseLongConfig(router.poolId ? router.poolId : (router.refType == 'ComputeZonePool' ? router.refId : null))
 			String regionCode = router.regionCode
 			CloudPool attachedPool
 			if(poolId) {
-				attachedPool = morpheus.cloud.pool.listById([router.poolId]).toList().blockingGet().getAt(0)
+				attachedPool = morpheus.cloud.pool.listById([poolId]).toList().blockingGet().getAt(0)
 				regionCode = attachedPool?.regionCode
 			}
 			opts += [
-				amazonClient:AmazonComputeUtility.getAmazonClient(cloud,false, regionCode),
+				amazonClient:plugin.getAmazonClient(cloud,false, regionCode),
 				routeTableId: route.routeTable.externalId
 			]
 
