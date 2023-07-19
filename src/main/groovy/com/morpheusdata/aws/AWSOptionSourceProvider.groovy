@@ -42,7 +42,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 
 	@Override
 	List<String> getMethodNames() {
-		return new ArrayList<String>(['awsPluginVpc', 'awsPluginRegions', 'amazonAvailabilityZones'])
+		return new ArrayList<String>(['awsPluginVpc', 'awsPluginRegions', 'amazonAvailabilityZones', 'awsRouteTable', 'awsRouteDestinationType'])
 	}
 
 	def awsPluginRegions(args) {
@@ -120,4 +120,93 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 
 		return rtn
 	}
+
+	def awsRouteTable(args) {\
+		args = args instanceof Object[] ? args.getAt(0) : args
+		log.info("awsRouteTable args: ${args}")
+		def rtn = []
+		def routerId = MorpheusUtils.parseLongConfig(args.routerId)
+		log.info("routerId: $routerId")
+		if(routerId) {
+			def router = morpheus.network.router.listById([routerId]).toList().blockingGet()?.getAt(0)
+			log.info("router: $router")
+			if(router && router.refType == 'ComputeZonePool') {
+				def routeTableIds = morpheus.network.routeTable.listIdentityProjections(router.refId).toList().blockingGet().collect { it.id }
+				log.info("routeTableIds: $routeTableIds")
+				if(routeTableIds.size() > 0) {
+					rtn = morpheus.network.routeTable.listById(routeTableIds).toList().blockingGet().collect {
+						[name: it.name, value: it.id]
+					}
+				}
+			}
+
+		}
+
+		return rtn
+	}
+
+	def awsRouteDestinationType(args) {
+		return [
+			[name: 'Egress Only Internet Gateway', value: 'EGRESS_ONLY_INTERNET_GATEWAY'],
+			[name: 'Instance', value: 'INSTANCE'],
+			[name: 'Internet Gateway', value: 'INTERNET_GATEWAY'],
+			[name: 'NAT Gateway', value: 'NAT_GATEWAY'],
+			[name: 'Network Interface', value: 'NETWORK_INTERFACE'],
+			[name: 'VPC Peering Connection', value: 'VPC_PEERING_CONNECTION'],
+			[name: 'Transit Gateway', value: 'TRANSIT_GATEWAY'],
+			[name: 'Virtual Private Gateway', value: 'GATEWAY']
+		]
+	}
+
+	// def awsRouteDestination(args) {
+	// 	def destinationType = args.route?.destinationType
+	// 	def networkRouteTable = NetworkRouteTable.get(args.route?.routeTable?.toLong())
+	// 	def vpc = networkRouteTable?.zonePool
+	// 	def account = vpc?.owner
+	// 	def resourceType
+	// 	if(networkRouteTable) {
+	// 		switch(destinationType) {
+	// 			case 'EGRESS_ONLY_INTERNET_GATEWAY':
+	// 				resourceType = 'EgressOnlyInternetGateway'
+	// 				break
+	// 			case 'INTERNET_GATEWAY':
+	// 				def networkRouterType = NetworkRouterType.findByCode('amazonInternetGateway')
+	// 				return NetworkRouter.where { poolId == vpc.id && type == networkRouterType }?.collect { [name: it.name, value: it.externalId ]}?.sort{it.name} ?: []
+	// 				break
+	// 			case 'GATEWAY':
+	// 				resourceType = 'VPNGateway'
+	// 				break
+	// 			case 'INSTANCE':
+	// 				return ComputeServer.where { resourcePool == vpc }?.collect { [name: it.displayName ?: it.name, value: it.externalId ]}?.sort{it.name} ?: []
+	// 				break
+	// 			case 'NAT_GATEWAY':
+	// 				resourceType = 'NatGateway'
+	// 				break
+	// 			case 'NETWORK_INTERFACE':
+	// 				resourceType = 'NetworkInterface'
+	// 				break
+	// 			case 'TRANSIT_GATEWAY':
+	// 				def accountResources = AccountResource.where { owner == account && resourceType == 'TransitGatewayAttachment' && zoneId == vpc.zone.id}
+	// 				def filteredAccountResources = []
+	// 				accountResources?.each { ar ->
+	// 					def payload = new groovy.json.JsonSlurper().parseText(ar.rawData ?: '[]')
+	// 					if(payload.vpcId == vpc.externalId && payload.state == 'available') {
+	// 						filteredAccountResources << [name: ar.displayName ?: ar.name, value: ar.externalId]
+	// 					}
+	// 				}
+	// 				filteredAccountResources = filteredAccountResources?.sort{it.name}
+	// 				return filteredAccountResources
+	// 				break
+	// 			case 'VPC_PEERING_CONNECTION':
+	// 				resourceType = 'VPCPeeringConnection'
+	// 				break
+	// 		}
+	//
+	// 		return AccountResource.where { owner == account && resourceType == resourceType && zoneId == vpc.zone.id}?.collect {
+	// 			[name: it.displayName ?: it.name, value: it.externalId]
+	// 		}?.sort{it.name} ?: []
+	// 	}
+	//
+	// 	return []
+	// }
 }
