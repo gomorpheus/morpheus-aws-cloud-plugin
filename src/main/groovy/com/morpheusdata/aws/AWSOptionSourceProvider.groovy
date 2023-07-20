@@ -5,6 +5,7 @@ import com.morpheusdata.core.AbstractOptionSourceProvider
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
 import com.morpheusdata.model.Cloud
+import com.morpheusdata.model.NetworkRouteTable
 import com.morpheusdata.model.ReferenceData;
 import com.morpheusdata.core.util.MorpheusUtils;
 import groovy.util.logging.Slf4j
@@ -42,7 +43,10 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 
 	@Override
 	List<String> getMethodNames() {
-		return new ArrayList<String>(['awsPluginVpc', 'awsPluginRegions', 'amazonAvailabilityZones', 'awsRouteTable', 'awsRouteDestinationType'])
+		return new ArrayList<String>([
+			'awsPluginVpc', 'awsPluginRegions', 'amazonAvailabilityZones', 'awsRouteTable', 'awsRouteDestinationType',
+			'awsRouteDestination'
+		])
 	}
 
 	def awsPluginRegions(args) {
@@ -139,7 +143,6 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 					}
 				}
 			}
-
 		}
 
 		return rtn
@@ -158,55 +161,68 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		]
 	}
 
-	// def awsRouteDestination(args) {
-	// 	def destinationType = args.route?.destinationType
-	// 	def networkRouteTable = NetworkRouteTable.get(args.route?.routeTable?.toLong())
-	// 	def vpc = networkRouteTable?.zonePool
-	// 	def account = vpc?.owner
-	// 	def resourceType
-	// 	if(networkRouteTable) {
-	// 		switch(destinationType) {
-	// 			case 'EGRESS_ONLY_INTERNET_GATEWAY':
-	// 				resourceType = 'EgressOnlyInternetGateway'
-	// 				break
-	// 			case 'INTERNET_GATEWAY':
-	// 				def networkRouterType = NetworkRouterType.findByCode('amazonInternetGateway')
-	// 				return NetworkRouter.where { poolId == vpc.id && type == networkRouterType }?.collect { [name: it.name, value: it.externalId ]}?.sort{it.name} ?: []
-	// 				break
-	// 			case 'GATEWAY':
-	// 				resourceType = 'VPNGateway'
-	// 				break
-	// 			case 'INSTANCE':
-	// 				return ComputeServer.where { resourcePool == vpc }?.collect { [name: it.displayName ?: it.name, value: it.externalId ]}?.sort{it.name} ?: []
-	// 				break
-	// 			case 'NAT_GATEWAY':
-	// 				resourceType = 'NatGateway'
-	// 				break
-	// 			case 'NETWORK_INTERFACE':
-	// 				resourceType = 'NetworkInterface'
-	// 				break
-	// 			case 'TRANSIT_GATEWAY':
-	// 				def accountResources = AccountResource.where { owner == account && resourceType == 'TransitGatewayAttachment' && zoneId == vpc.zone.id}
-	// 				def filteredAccountResources = []
-	// 				accountResources?.each { ar ->
-	// 					def payload = new groovy.json.JsonSlurper().parseText(ar.rawData ?: '[]')
-	// 					if(payload.vpcId == vpc.externalId && payload.state == 'available') {
-	// 						filteredAccountResources << [name: ar.displayName ?: ar.name, value: ar.externalId]
-	// 					}
-	// 				}
-	// 				filteredAccountResources = filteredAccountResources?.sort{it.name}
-	// 				return filteredAccountResources
-	// 				break
-	// 			case 'VPC_PEERING_CONNECTION':
-	// 				resourceType = 'VPCPeeringConnection'
-	// 				break
-	// 		}
-	//
-	// 		return AccountResource.where { owner == account && resourceType == resourceType && zoneId == vpc.zone.id}?.collect {
-	// 			[name: it.displayName ?: it.name, value: it.externalId]
-	// 		}?.sort{it.name} ?: []
-	// 	}
-	//
-	// 	return []
-	// }
+	def awsRouteDestination(args) {
+		args = args instanceof Object[] ? args.getAt(0) : args
+		def rtn = []
+		def destinationType = args.route?.destinationType
+		def networkRouteTableId = MorpheusUtils.parseLongConfig(args.route?.routeTable)
+		if(networkRouteTableId) {
+			NetworkRouteTable networkRouteTable = morpheus.network.routeTable.listById([networkRouteTableId]).toList().blockingGet()?.getAt(0)
+			if(networkRouteTable) {
+				def vpc = networkRouteTable?.zonePool
+				def account = vpc?.owner
+				def resourceType
+				switch(destinationType) {
+					case 'EGRESS_ONLY_INTERNET_GATEWAY':
+						resourceType = 'EgressOnlyInternetGateway'
+						break
+					case 'INTERNET_GATEWAY':
+						List<Long> routerIds = morpheus.network.router.listIdentityProjections(vpc.cloud.id, 'amazonInternetGateway').toList().blockingGet().collect { it.id }
+						if(routerIds.size() > 0) {
+							rtn =  morpheus.network.router.listById(routerIds).toList().blockingGet()?.collect { [name: it.name, value: it.externalId ]}?.sort{it.name } ?: []
+						}
+						break
+					case 'GATEWAY':
+						resourceType = 'VPNGateway'
+						break
+					case 'INSTANCE':
+						rtn = morpheus.computeServer.listByResourcePoolId(vpc.id).toList().blockingGet()?.collect { [name: it.displayName ?: it.name, value: it.externalId ]}?.sort{it.name} ?: []
+						break
+					case 'NAT_GATEWAY':
+						resourceType = 'NatGateway'
+						break
+					case 'NETWORK_INTERFACE':
+						resourceType = 'NetworkInterface'
+						break
+					case 'TRANSIT_GATEWAY':
+						def accountResourceIds = morpheus.cloud.resource.listIdentityProjections(vpc.cloud.id, 'TransitGatewayAttachment', null, account.id).toList().blockingGet()
+						if(accountResourceIds.size() > 0) {
+							rtn = morpheus.cloud.resource.listById([accountResourceIds]).filter {
+								def payload = new groovy.json.JsonSlurper().parseText(it.rawData ?: '[]')
+								return (payload.vpcId == vpc.externalId && payload.state == 'available')
+							}.toList().blockingGet().collect {
+								[name: it.displayName ?: it.name, value: it.externalId]
+							}?.sort{it.name } ?: []
+						}
+						break
+					case 'VPC_PEERING_CONNECTION':
+						resourceType = 'VPCPeeringConnection'
+						break
+				}
+
+				if(resourceType && rtn.size == 0) {
+					def accountResourceIds = morpheus.cloud.resource.listIdentityProjections(vpc.cloud.id, resourceType, null, account.id).toList().blockingGet()
+					log.info("AccountResourceIds: ${accountResourceIds}")
+					if(accountResourceIds.size() > 0) {
+						rtn = morpheus.cloud.resource.listById([accountResourceIds]).toList().blockingGet()?.collect {
+							[name: it.displayName ?: it.name, value: it.externalId]
+						}?.sort { it.name } ?: []
+					}
+				}
+
+			}
+		}
+
+		return rtn
+	}
 }
