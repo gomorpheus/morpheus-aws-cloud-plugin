@@ -174,7 +174,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 				def resourceType
 				switch(destinationType) {
 					case 'EGRESS_ONLY_INTERNET_GATEWAY':
-						resourceType = 'EgressOnlyInternetGateway'
+						resourceType = 'aws.cloudFormation.ec2.egressOnlyInternetGateway'
 						break
 					case 'INTERNET_GATEWAY':
 						List<Long> routerIds = morpheus.network.router.listIdentityProjections(vpc.cloud.id, 'amazonInternetGateway').toList().blockingGet().collect { it.id }
@@ -183,21 +183,21 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 						}
 						break
 					case 'GATEWAY':
-						resourceType = 'VPNGateway'
+						resourceType = 'aws.cloudFormation.ec2.vpnGateway'
 						break
 					case 'INSTANCE':
 						rtn = morpheus.computeServer.listByResourcePoolId(vpc.id).toList().blockingGet()?.collect { [name: it.displayName ?: it.name, value: it.externalId ]}?.sort{it.name} ?: []
 						break
 					case 'NAT_GATEWAY':
-						resourceType = 'NatGateway'
+						resourceType = 'aws.cloudFormation.ec2.natGateway'
 						break
 					case 'NETWORK_INTERFACE':
-						resourceType = 'NetworkInterface'
+						resourceType = 'aws.cloudFormation.ec2.networkInterface'
 						break
 					case 'TRANSIT_GATEWAY':
-						def accountResourceIds = morpheus.cloud.resource.listIdentityProjections(vpc.cloud.id, 'TransitGatewayAttachment', null, account.id).toList().blockingGet()
+						def accountResourceIds = morpheus.cloud.resource.listIdentityProjections(vpc.cloud.id, 'aws.cloudFormation.ec2.transitGatewayAttachment', null, account.id).toList().blockingGet().collect { it.id }
 						if(accountResourceIds.size() > 0) {
-							rtn = morpheus.cloud.resource.listById([accountResourceIds]).filter {
+							rtn = morpheus.cloud.resource.listById(accountResourceIds).filter {
 								def payload = new groovy.json.JsonSlurper().parseText(it.rawData ?: '[]')
 								return (payload.vpcId == vpc.externalId && payload.state == 'available')
 							}.toList().blockingGet().collect {
@@ -206,15 +206,14 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 						}
 						break
 					case 'VPC_PEERING_CONNECTION':
-						resourceType = 'VPCPeeringConnection'
+						resourceType = 'aws.cloudFormation.ec2.vpcPeeringConnection'
 						break
 				}
 
 				if(resourceType && rtn.size == 0) {
-					def accountResourceIds = morpheus.cloud.resource.listIdentityProjections(vpc.cloud.id, resourceType, null, account.id).toList().blockingGet()
-					log.info("AccountResourceIds: ${accountResourceIds}")
+					def accountResourceIds = morpheus.cloud.resource.listIdentityProjections(vpc.cloud.id, resourceType, null, account.id).toList().blockingGet().collect { it.id }
 					if(accountResourceIds.size() > 0) {
-						rtn = morpheus.cloud.resource.listById([accountResourceIds]).toList().blockingGet()?.collect {
+						rtn = morpheus.cloud.resource.listById(accountResourceIds).toList().blockingGet()?.collect {
 							[name: it.displayName ?: it.name, value: it.externalId]
 						}?.sort { it.name } ?: []
 					}

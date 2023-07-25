@@ -59,7 +59,7 @@ class NetworkInterfaceSync extends InternalResourceSync {
 			def name = cloudItem.networkInterfaceId
 			adds << new AccountResource(
 				owner:cloud.account, category:getCategory(), code:(getCategory() + '.' + cloudItem.networkInterfaceId),
-				externalId:cloudItem.networkInterfaceId, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.transitGateway'),
+				externalId:cloudItem.networkInterfaceId, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.networkInterface'),
 				resourceType:'NetworkInterface', name: name, displayName: name, cloudId: cloud.id, cloudName: cloud.name,
 				region: new ComputeZoneRegion(id: region.id)
 			)

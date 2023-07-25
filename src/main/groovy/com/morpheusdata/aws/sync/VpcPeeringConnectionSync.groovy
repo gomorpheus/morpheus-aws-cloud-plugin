@@ -26,12 +26,14 @@ class VpcPeeringConnectionSync extends InternalResourceSync {
 		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
 			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, region.externalId)
 			def apiList = AmazonComputeUtility.listVpcPeeringConnections([amazonClient: amazonClient],[:])
+			log.info("VPC Peering connection results for $region.externalId: ${apiList.vpcPeeringConnections}")
 			if(apiList.success) {
 				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.cloud.resource.listIdentityProjections(cloud.id,'aws.cloudFormation.ec2.vpcPeeringConnection', region.externalId)
 				SyncTask<AccountResourceIdentityProjection, VpcPeeringConnection, AccountResource> syncTask = new SyncTask<>(domainRecords, apiList.vpcPeeringConnections as Collection<VpcPeeringConnection>)
 				return syncTask.addMatchFunction { AccountResourceIdentityProjection domainObject, VpcPeeringConnection data ->
 					domainObject.externalId == data.vpcPeeringConnectionId
 				}.onDelete { removeItems ->
+					log.info("remove missing items: $removeItems")
 					removeMissingResources(removeItems)
 				}.onUpdate { List<SyncTask.UpdateItem<AccountResource, VpcPeeringConnection>> updateItems ->
 					updateMatchedVpcPeeringConnections(updateItems, region)
@@ -54,10 +56,11 @@ class VpcPeeringConnectionSync extends InternalResourceSync {
 	protected void addMissingVpcPeeringConnection(Collection<VpcPeeringConnection> addList, ComputeZoneRegionIdentityProjection region) {
 		def adds = []
 		for(VpcPeeringConnection cloudItem in addList) {
+			log.info("Adding vpc peering connection: ${cloudItem}")
 			def name = cloudItem.tags?.find{it.key == 'Name'}?.value ?: cloudItem.vpcPeeringConnectionId
 			adds << new AccountResource(
 				owner:cloud.account, category:getCategory(), code:(getCategory() + '.' + cloudItem.vpcPeeringConnectionId),
-				externalId:cloudItem.vpcPeeringConnectionId, cloudId:cloud.id, type: new AccountResourceType(code: 'aws.cloudFormation.ec2.VpcPeeringConnection'),
+				externalId:cloudItem.vpcPeeringConnectionId, cloudId:cloud.id, type: new AccountResourceType(code: 'aws.cloudFormation.ec2.vpcPeeringConnection'),
 				resourceType:'VpcPeeringConnection', cloudName: cloud.name, name: name, displayName: name, region: new ComputeZoneRegion(id: region.id)
 			)
 		}
@@ -67,6 +70,7 @@ class VpcPeeringConnectionSync extends InternalResourceSync {
 	protected void updateMatchedVpcPeeringConnections(List<SyncTask.UpdateItem<AccountResource, VpcPeeringConnection>> updateList, ComputeZoneRegionIdentityProjection region) {
 		def updates = []
 		for(update in updateList) {
+			log.info("updating vpc peering connection: ${update.existingItem}")
 			def masterItem = update.masterItem
 			def existingItem = update.existingItem
 			Boolean save = false
