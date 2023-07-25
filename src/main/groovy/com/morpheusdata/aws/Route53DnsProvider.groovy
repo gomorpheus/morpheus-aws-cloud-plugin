@@ -467,34 +467,32 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 	@Override
 	ServiceResponse verifyAccountIntegration(AccountIntegration integration, Map opts) {
 		ServiceResponse rtn = new ServiceResponse()
-        String computerName
-        String command
-
-        // config.zoneFilter is the glob style filter for importing zones
+        Cloud cloud = getIntegrationCloud(integration)
         def config = integration.getConfigMap()
-        //def credentialService = morpheusContext.getAccountCredential()
         log.info("verifyAccountIntegration - Validating integration: ${integration}")
         try {
             // Validate Form options
             rtn.errors = [:]
-            if(!integration.name || integration.name == ''){
-                rtn.errors['name'] = 'name is required'
-            }
-            // JD: we used to require this for integration only, should All be available now?
-            if(!integration.serviceUrl || integration.serviceUrl == ''){
-                rtn.errors['serviceUrl'] = 'Amazon Region is required'
-            }
-            if((!integration.serviceUsername || integration.serviceUsername == '') && (!integration.credentialData?.username || integration.credentialData?.username == '')){
-                rtn.errors['serviceUsername'] = 'Access Key is required'
-            }
-            if((!integration.servicePassword || integration.servicePassword == '') && (!integration.credentialData?.password || integration.credentialData?.password == '')){
-                rtn.errors['servicePassword'] = 'Secret Key is required'
-            }
+            // cloud integrations use the cloud settings
+            if(!cloud) {
+	            if(!integration.name || integration.name == ''){
+	                rtn.errors['name'] = 'name is required'
+	            }
+	            // JD: we used to require this for integration only, should All be available now?
+	            if((!integration.serviceUrl || integration.serviceUrl == '')){
+	                rtn.errors['serviceUrl'] = 'Amazon Region is required'
+	            }
+	            if((!integration.serviceUsername || integration.serviceUsername == '') && (!integration.credentialData?.username || integration.credentialData?.username == '')){
+	                rtn.errors['serviceUsername'] = 'Access Key is required'
+	            }
+	            if((!integration.servicePassword || integration.servicePassword == '') && (!integration.credentialData?.password || integration.credentialData?.password == '')){
+	                rtn.errors['servicePassword'] = 'Secret Key is required'
+	            }
+	        }
 
             // Validate Connectivity to Amazon Route53
             if(rtn.errors.size() == 0) {
                 log.debug("verifyAccountIntegration - integration: ${integration.name} - checking access to AWS")
-                Cloud cloud = getIntegrationCloud(integration)
                 def testResults = AmazonComputeUtility.testConnection(integration, cloud)
 				if(testResults.success) {
 					def regionCode = AmazonComputeUtility.getAmazonEndpointRegion(integration.serviceUrl)
