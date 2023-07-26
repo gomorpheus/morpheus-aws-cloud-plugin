@@ -478,19 +478,40 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 	}
 
 	/**
+	 * Additional configuration on the router route
+	 * @param router NetworkRouter information
+	 * @param route NetworkRoute to prepare
+	 * @param routeConfig configuration options for the NetworkRoute
+	 * @param opts additional configuration options
+	 * @return ServiceResponse with a NetworkRoute data attribute
+	 */
+	ServiceResponse<NetworkRoute> prepareRouterRoute(NetworkRouter router, NetworkRoute route, Map routeConfig, Map opts) {
+		ServiceResponse<NetworkRoute> rtn = ServiceResponse.prepare(route)
+		route.destinationType = opts.route.destinationType
+
+		Long routeTableId = MorpheusUtils.parseLongConfig(opts.route.routeTable)
+		log.debug("routeTableID: $routeTableId")
+		if(routeTableId) {
+			route.routeTable = morpheus.network.routeTable.listById([routeTableId]).toList().blockingGet().getAt(0)
+			log.debug("routeTable: $route.routeTable")
+		}
+
+		return rtn
+	};
+
+
+	/**
 	 * Create the NetworkRoute submitted
 	 * @param network Network information
 	 * @param networkRoute NetworkRoute information
 	 * @param opts additional configuration options
 	 * @return ServiceResponse
 	 */
-	ServiceResponse createRouterRoute(NetworkRouter router, NetworkRoute route, Map opts) {
+	ServiceResponse<NetworkRoute> createRouterRoute(NetworkRouter router, NetworkRoute route, Map opts) {
 		log.debug "createRoute: ${router}, ${route}, ${opts}"
-		def rtn = ServiceResponse.prepare([externalId:null])
+		def rtn = ServiceResponse.prepare(route)
 		try {
 			Cloud cloud = router.cloud
-			route.destinationType = opts.route.destinationType
-
 			def poolId = MorpheusUtils.parseLongConfig(router.poolId ? router.poolId : (router.refType == 'ComputeZonePool' ? router.refId : null))
 			String regionCode = router.regionCode
 			CloudPool attachedPool
@@ -498,8 +519,11 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 				attachedPool = morpheus.cloud.pool.listById([poolId]).toList().blockingGet().getAt(0)
 				regionCode = attachedPool?.regionCode
 			}
+
+			def amazonClient = plugin.getAmazonClient(cloud, false, regionCode)
+			log.debug("RouteTable: $route.routeTable, externalId: ${route.routeTable?.externalId}")
 			opts += [
-				amazonClient:plugin.getAmazonClient(cloud,false, regionCode),
+				amazonClient: amazonClient,
 				destinationCidrBlock: route.source, destinationType: route.destinationType, destination: route.destination, routeTableId: route.routeTable.externalId
 			]
 
@@ -527,7 +551,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 	 */
 	ServiceResponse deleteRouterRoute(NetworkRouter router, NetworkRoute route, Map opts) {
 		log.debug "deleteRoute: ${router}, ${route}"
-		def rtn = [success:false, data:[:], msg:null]
+		def rtn = ServiceResponse.prepare()
 		try {
 			Cloud cloud = router.cloud
 			def poolId = MorpheusUtils.parseLongConfig(router.poolId ? router.poolId : (router.refType == 'ComputeZonePool' ? router.refId : null))
@@ -564,7 +588,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 			log.error("deleteRoute error: ${e}", e)
 			rtn.msg = 'unknown error deleting route'
 		}
-		return ServiceResponse.create(rtn)
+		return rtn
 	};
 
 	private buildRouteExternalId(CreateRouteRequest amazonRoute) {
