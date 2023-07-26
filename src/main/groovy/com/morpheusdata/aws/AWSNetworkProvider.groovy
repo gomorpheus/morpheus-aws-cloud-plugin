@@ -206,7 +206,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 				networkConfig.cidr = network.cidr
 				log.debug("sending network config: {}", networkConfig)
 				def apiResults = AmazonComputeUtility.createSubnet(opts + [amazonClient: amazonClient, config: networkConfig])
-				log.info("network apiResults: {}", apiResults)
+				log.debug("network apiResults: {}", apiResults)
 				//create it
 				if(apiResults?.success && apiResults?.error != true) {
 					rtn.success = true
@@ -327,7 +327,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 			]
 
 			def apiResults = AmazonComputeUtility.createRouter(opts)
-			log.info("route apiResults: {}", apiResults)
+			log.debug("route apiResults: {}", apiResults)
 			if(apiResults?.success && apiResults?.error != true) {
 				router.externalId = apiResults.internetGatewayId
 				rtn.success = true
@@ -444,7 +444,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 						// Must first detach from the VPC
 						def detachResults = AmazonComputeUtility.detachInternetGateway([vpcId: attachedPool.externalId] + opts)
 
-						log.info("detachResults: {}", detachResults)
+						log.debug("detachResults: {}", detachResults)
 						if(!detachResults.success) {
 							if(detachResults.msg?.contains('InvalidInternetGatewayID')){
 								performDelete = true
@@ -521,14 +521,13 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 			}
 
 			def amazonClient = plugin.getAmazonClient(cloud, false, regionCode)
-			log.debug("RouteTable: $route.routeTable, externalId: ${route.routeTable?.externalId}")
 			opts += [
 				amazonClient: amazonClient,
 				destinationCidrBlock: route.source, destinationType: route.destinationType, destination: route.destination, routeTableId: route.routeTable.externalId
 			]
 
 			def apiResults = AmazonComputeUtility.createRoute(opts)
-			log.info("route apiResults: {}", apiResults)
+			log.debug("route apiResults: {}", apiResults)
 			if(apiResults?.success && apiResults?.error != true) {
 				rtn.success = true
 				route.status = 'active'
@@ -574,7 +573,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 
 			def deleteResults = AmazonComputeUtility.deleteRoute(opts)
 
-			log.info("deleteResults: {}", deleteResults)
+			log.debug("deleteResults: {}", deleteResults)
 			if(deleteResults.success == true) {
 				rtn.success = true
 			} else if(deleteResults.errorCode == 404) {
