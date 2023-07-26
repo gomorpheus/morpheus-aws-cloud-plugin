@@ -131,8 +131,7 @@ class AmazonComputeUtility {
 		// test standalone integration (ie. route53)
 		def rtn = [success:false, invalidLogin:false]
 		try {
-			// def endpoint = getAmazonEndpoint(zone)
-			def endpoint = accountIntegration.serviceUrl
+			def endpoint = getAmazonEndpoint(accountIntegration)
 			def region = getAmazonEndpointRegion(endpoint)
 			def endpointConfiguration = new com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration(endpoint, region)
 			def authConfig = [:]
@@ -4350,11 +4349,23 @@ class AmazonComputeUtility {
 		}
 	}
 
-	static String getAmazonEndpoint(zone) {
+	static String defaultEndpoint = "ec2.us-east-1.amazonaws.com"
+
+	static String getAmazonEndpoint(Cloud zone) {
 		def config = zone.getConfigMap()
-		if(config?.endpoint)
+		if(config?.endpoint) {
 			return config.endpoint
-		throw new Exception('no amazon endpoint specified')
+		} else {
+			return defaultEndpoint //default to us-east
+		}
+	}
+
+	static String getAmazonEndpoint(AccountIntegration accountIntegration) {
+		if(accountIntegration.serviceUrl) {
+			return accountIntegration.serviceUrl
+		} else {
+			return defaultEndpoint //default to us-east
+		}
 	}
 
 	static String getAmazonEndpointRegion(String endpoint) {
@@ -4505,8 +4516,6 @@ class AmazonComputeUtility {
 	}
 
 	static getAmazonClient(AccountIntegration accountIntegration, Cloud cloud, Boolean fresh=false, String region=null) {
-		region = region ?: accountIntegration.serviceUrl
-		region = getAmazonEndpointRegion(region)
 		def creds
 		def credsProvider
 		def clientCacheKey = "accountIntegration:${accountIntegration.id ?: java.util.UUID.randomUUID().toString()}:${region}"
@@ -4520,7 +4529,8 @@ class AmazonComputeUtility {
 		def builder = AmazonEC2ClientBuilder.standard()
 		ClientConfiguration clientConfiguration = new ClientConfiguration()
 		def clientExpires
-		
+		region = region ?: getAmazonEndpoint(cloud ?: accountIntegration)
+		region = getAmazonEndpointRegion(region)
 		def authConfig = [:]
 		if(cloud) {
 			clientConfiguration = getClientConfiguration(cloud)
@@ -4528,12 +4538,12 @@ class AmazonComputeUtility {
 			authConfig.secretKey = accountIntegration.credentialData?.password ?: accountIntegration.servicePassword ?: getAmazonSecretKey(cloud)
 			authConfig.useHostCredentials = getAmazonUseHostCredentials(cloud)
 			authConfig.stsAssumeRole = cloud.getConfigProperty('stsAssumeRole')
-			authConfig.endpoint =  getAmazonCostingEndpoint(cloud)
-			authConfig.region = getAmazonEndpointRegion(authConfig.endpoint)
+			// authConfig.endpoint =  getAmazonCostingEndpoint(cloud)
+			// authConfig.region = getAmazonEndpointRegion(authConfig.endpoint)
 		} else {
 			authConfig.accessKey = accountIntegration.credentialData?.username ?: accountIntegration.serviceUsername
 			authConfig.secretKey = accountIntegration.credentialData?.password ?: accountIntegration.servicePassword
-			authConfig.region = region
+			// authConfig.region = region
 			// if(proxySettings) {
 			// 	authConfig.apiProxy = proxySettings
 			// }
@@ -4915,8 +4925,6 @@ class AmazonComputeUtility {
 	}
 
 	static getAmazonRoute53Client(AccountIntegration accountIntegration, Cloud cloud, Boolean fresh = false, Map proxySettings=null, Map opts=[:], String region=null) {
-		region = region ?: accountIntegration.serviceUrl
-		region = getAmazonEndpointRegion(region)
 		def creds
 		def credsProvider
 		def clientCacheKey = "accountIntegration:${accountIntegration.id ?: java.util.UUID.randomUUID().toString()}:${region}"
@@ -4931,18 +4939,20 @@ class AmazonComputeUtility {
 		ClientConfiguration clientConfiguration = new ClientConfiguration()
 		def clientExpires
 		def authConfig = [:]
+		region = region ?: getAmazonEndpoint(cloud ?: accountIntegration)
+		region = getAmazonEndpointRegion(region)
 		if(cloud) {
 			clientConfiguration = getClientConfiguration(cloud)
 			authConfig.accessKey = accountIntegration.credentialData?.username ?: accountIntegration.serviceUsername ?: getAmazonAccessKey(cloud)
 			authConfig.secretKey = accountIntegration.credentialData?.password ?: accountIntegration.servicePassword ?: getAmazonSecretKey(cloud)
 			authConfig.useHostCredentials = getAmazonUseHostCredentials(cloud)
 			authConfig.stsAssumeRole = cloud.getConfigProperty('stsAssumeRole')
-			authConfig.endpoint =  getAmazonCostingEndpoint(cloud)
-			authConfig.region = getAmazonEndpointRegion(authConfig.endpoint)
+			// authConfig.endpoint =  getAmazonCostingEndpoint(cloud)
+			// authConfig.region = getAmazonEndpointRegion(authConfig.endpoint)
 		} else {
 			authConfig.accessKey = accountIntegration.credentialData?.username ?: accountIntegration.serviceUsername
 			authConfig.secretKey = accountIntegration.credentialData?.password ?: accountIntegration.servicePassword
-			authConfig.region = region
+			// authConfig.region = region
 			if(proxySettings) {
 				authConfig.apiProxy = proxySettings
 			}
