@@ -199,7 +199,10 @@ class AmazonComputeUtility {
 			TagSpecification tagSpecification = new TagSpecification()
 			tagSpecification.withResourceType(ResourceType.Instance)
 			tagSpecification.setTags(tagList)
-			createServer.withTagSpecifications(tagSpecification)
+			TagSpecification volumeTagSpecification = new TagSpecification()
+			tagSpecification.withResourceType(ResourceType.Volume)
+			tagSpecification.setTags(tagList)
+			createServer.withTagSpecifications(tagSpecification,volumeTagSpecification)
 			//cloud config
 			if(opts.cloudConfig)
 				createServer.withUserData(opts.cloudConfig.bytes.encodeBase64().toString())
@@ -296,6 +299,9 @@ class AmazonComputeUtility {
 			def nameTag = new com.amazonaws.services.ec2.model.Tag('Name', opts.name ?: "morpheus node")
 			def resourceList = new LinkedList<String>()
 			resourceList.add(opts.server?.externalId ?: opts.serverId)
+			if(opts.resources) {
+				resourceList += opts.resources
+			}
 			def tagList = new LinkedList<com.amazonaws.services.ec2.model.Tag>()
 			tagList.add(nameTag)
 			opts.tagList?.each {
@@ -326,6 +332,9 @@ class AmazonComputeUtility {
 			def nameTag = new com.amazonaws.services.ec2.model.Tag('Name', opts.name ?:"morpheus node")
 			def resourceList = new LinkedList<String>()
 			resourceList.add(opts.server?.externalId ?: opts.serverId)
+			if(opts.resources) {
+				resourceList += opts.resources
+			}
 			def tagList = new LinkedList<com.amazonaws.services.ec2.model.Tag>()
 			tagList.add(nameTag)
 			opts.tagList?.each {
