@@ -26,7 +26,7 @@ import com.morpheusdata.aws.sync.VPCSync
 import com.morpheusdata.aws.sync.VirtualMachineSync
 import com.morpheusdata.aws.sync.VolumeSync
 import com.morpheusdata.aws.sync.VpcPeeringConnectionSync
-import com.morpheusdata.aws.sync.VpnGatewaysSync
+import com.morpheusdata.aws.sync.VpnGatewaySync
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.backup.AbstractBackupProvider
 import com.morpheusdata.core.CloudProvider
@@ -475,7 +475,7 @@ class AWSCloudProvider implements CloudProvider {
 						new SecurityGroupSync(this.plugin, cloudInfo).execute()
 						new InstanceProfileSync(this.plugin,cloudInfo).execute()
 						new IAMRoleSync(this.plugin,cloudInfo).execute()
-						new VpnGatewaysSync(this.plugin,cloudInfo).execute()
+						new VpnGatewaySync(this.plugin,cloudInfo).execute()
 						new InternetGatewaySync(this.plugin,cloudInfo).execute()
 						//lb services
 						new AlbSync(this.plugin,cloudInfo).execute()

@@ -15,7 +15,7 @@ import io.reactivex.Observable
 import io.reactivex.Single
 
 @Slf4j
-class VpnGatewaysSync extends InternalResourceSync {
+class VpnGatewaySync extends InternalResourceSync {
 	VpnGatewaysSync(AWSPlugin plugin, Cloud cloud) {
 		this.plugin = plugin
 		this.cloud = cloud
