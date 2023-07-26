@@ -16,7 +16,8 @@ import io.reactivex.Single
 
 @Slf4j
 class VpnGatewaySync extends InternalResourceSync {
-	VpnGatewaysSync(AWSPlugin plugin, Cloud cloud) {
+
+	VpnGatewaySync(AWSPlugin plugin, Cloud cloud) {
 		this.plugin = plugin
 		this.cloud = cloud
 		this.morpheusContext = plugin.morpheusContext
