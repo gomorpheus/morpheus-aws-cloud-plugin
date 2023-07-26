@@ -15,7 +15,7 @@ import groovy.util.logging.Slf4j
 
 import java.text.SimpleDateFormat
 
-import com.bertramlabs.plugins.karman.*
+import com.bertramlabs.plugins.karman.StorageProvider
 import javax.crypto.*
 import java.security.*
 import java.security.spec.*
@@ -66,7 +66,7 @@ import com.amazonaws.services.organizations.*
 import com.amazonaws.services.organizations.model.* //DetachPolicyRequest
 //orgs
 import com.amazonaws.services.pricing.*
-import com.amazonaws.services.pricing.model.* 
+import com.amazonaws.services.pricing.model.*
 //costing
 import com.amazonaws.services.costexplorer.*
 import com.amazonaws.services.costexplorer.model.*
@@ -601,7 +601,7 @@ class AmazonComputeUtility {
 	}
 
 	static listAvailabilityZones(opts) {
-	def rtn = [success:false, zoneList:[]]
+		def rtn = [success:false, zoneList:[]]
 		try {
 			AmazonEC2Client amazonClient = opts.amazonClient as AmazonEC2Client
 			def zoneRequest = new DescribeAvailabilityZonesRequest()
@@ -614,7 +614,7 @@ class AmazonComputeUtility {
 	}
 
 	static listSecurityGroups(opts) {
-	def rtn = [success:false, securityList:[]]
+		def rtn = [success:false, securityList:[]]
 		try {
 			def amazonClient = opts.amazonClient
 			def vpcId = opts.zone.getConfigProperty('vpc')
