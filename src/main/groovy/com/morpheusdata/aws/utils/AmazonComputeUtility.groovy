@@ -4,6 +4,7 @@ import com.amazonaws.client.builder.AwsClientBuilder
 import com.amazonaws.retry.RetryMode
 import com.amazonaws.retry.RetryPolicy
 import com.amazonaws.services.simplesystemsmanagement.model.GetParametersRequest
+import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.KeyPair
 import com.morpheusdata.core.util.KeyUtility
@@ -97,14 +98,14 @@ class AmazonComputeUtility {
 		}
 	}
 
-	static testConnection(Cloud zone) {
+	static testConnection(Cloud cloud) {
 		def rtn = [success:false, invalidLogin:false]
 		try {
-			def endpoint = getAmazonEndpoint(zone)
+			def endpoint = getAmazonEndpoint(cloud)
 			def endpointConfiguration = new com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration(endpoint, getAmazonEndpointRegion(endpoint))
-			def clientConfiguration = getClientConfiguration(zone)
+			def clientConfiguration = getClientConfiguration(cloud)
 			def amazonClient = AmazonEC2Client.builder()
-				.withCredentials(getAmazonCredentials(zone, clientConfiguration).credsProvider)
+				.withCredentials(getAmazonCredentials(cloud, clientConfiguration).credsProvider)
 				.withClientConfiguration(clientConfiguration)
 				.withRequestHandlers(new InvalidCredentialsRequestHandler())
 				.withEndpointConfiguration(endpointConfiguration)
@@ -1035,7 +1036,7 @@ class AmazonComputeUtility {
 		def rtn = [success:false, elasticIPs:[]]
 		try {
 			def amazonClient = opts.amazonClient
-			def domainType = opts.zone.getConfigProperty('vpc') ? 'vpc' : 'standard'
+			def domainType = opts.cloud.getConfigProperty('vpc') ? 'vpc' : 'standard'
 			DescribeAddressesRequest describeAddressesRequest = new DescribeAddressesRequest().withFilters(new LinkedList<Filter>())
 			describeAddressesRequest.getFilters().add(new Filter().withName("domain").withValues(domainType))
 			rtn.elasticIPs = amazonClient.describeAddresses().getAddresses()
@@ -2067,7 +2068,7 @@ class AmazonComputeUtility {
 				results.success = rtn.instanceList?.size() > 0
 			}
 			if(results.success == true) {
-				def volumeId = opts.server.volumeId
+				def volumeId = opts.server.rootVolumeId
 				if(volumeId) {
 					sleep(180000)
 					opts.volumeId = volumeId
@@ -2491,20 +2492,21 @@ class AmazonComputeUtility {
 		return rtn
 	}
 
-	static validateServerConfig(Map opts=[:]) {
+	static validateServerConfig(MorpheusContext morpheusContext, Map opts =[:]) {
 		def rtn = [success:false, errors: []]
 		try {
-			def zone = Cloud.read(opts.zoneId)
+			def cloud = morpheusContext.cloud.getCloudById(opts.zoneId?.toLong()).blockingGet()
+			AmazonEC2 amazonClient = getAmazonClient(cloud,false, null)
 			// Validate enough Elastic IPs left
 			if(opts.publicIpType == 'elasticIp') {
-				def elasticIPsResult = listElasticIPs([amazonClient: opts.amazonClient, zone: zone])
+				def elasticIPsResult = listElasticIPs([amazonClient: amazonClient, cloud: cloud])
 				def currentCount = elasticIPsResult.elasticIPs?.size() ?: 0
 				log.debug "currentCount: ${currentCount}"
-				def accountAttributesResult = listAccountAttributes([amazonClient: opts.amazonClient])
+				def accountAttributesResult = listAccountAttributes([amazonClient: amazonClient])
 				// Setting for # of allowed elastic IPs is defined on VPC and classic.. determine which one to use
 				def maxElasticIPs = 0
 				def attributeValue
-				if(zone.getConfigProperty('vpc') || zone.getConfigProperty('isVpc') ) {
+				if(cloud.getConfigProperty('vpc') || cloud.getConfigProperty('isVpc') ) {
 					attributeValue = accountAttributesResult.results?.accountAttributes?.find { it.attributeName == 'vpc-max-elastic-ips' }?.attributeValues?.attributeValue
 				} else {
 					attributeValue = accountAttributesResult.results?.accountAttributes?.find { it.attributeName == 'max-elastic-ips' }?.attributeValues?.attributeValue
@@ -2517,14 +2519,14 @@ class AmazonComputeUtility {
 					rtn.errors += [field: 'publicIpType', msg: 'Not enough Elastic IPs available']
 				}
 			}
-			if(zone?.configMap?.vpc || zone.configMap?.isVpc) {
+			if(cloud?.configMap?.vpc || cloud.configMap?.isVpc) {
 				if(!opts.subnetId) {
 					if(opts.networkInterfaces?.size() > 0) {
 						def hasNetwork = true
 						def sameNetwork = true
 						def matchNetwork
 						opts.networkInterfaces?.each {
-							log.debug("availability zone: ${it.network.availabilityZone}")
+							log.debug("availability cloud: ${it.network.availabilityZone}")
 							if(it.network.group != null) {
 								hasNetwork = true
 							} else if(it.network.id == null || it.network.id == '') {
@@ -2532,11 +2534,11 @@ class AmazonComputeUtility {
 							} else {
 								def networkId
 								def networkObj
+								networkId = it.network.id.toLong()
 								try {
-									networkId = it.network.id.toLong()
-									networkObj = Network.get(networkId)
-								}catch(e){
-									networkObj = Network.findByName(it.network.idName)
+									networkObj = morpheusContext.network.listById([networkId]).firstOrError().blockingGet()
+								} catch(e) {
+									log.error("Error finding network ${it.network.name}")
 								}
 
 								if(matchNetwork == null) {
@@ -2547,13 +2549,13 @@ class AmazonComputeUtility {
 								}
 							}
 						}
-						if(!opts.vpcId) {
+						if(!opts.resourcePool) {
 							rtn.errors += [field:'resourcePoolId', msg: 'You must choose a VPC']
 						}
 						if(hasNetwork != true)
 							rtn.errors += [field:'networkInterface', msg:'You must choose a subnet for each network']
 						if(sameNetwork != true)
-							rtn.errors += [field:'networkInterface', msg:'You must choose subnets in the same availability zone']
+							rtn.errors += [field:'networkInterface', msg:'You must choose subnets in the same availability cloud']
 					} else {
 						rtn.errors += [field:'subnetId', msg:'You must choose a subnet']
 					}
@@ -2568,7 +2570,7 @@ class AmazonComputeUtility {
 				}
 			}
 			else if(!opts.availabilityId) {
-				rtn.errors += [field: 'availabilityId', msg: 'You must choose a zone']
+				rtn.errors += [field: 'availabilityId', msg: 'You must choose a cloud']
 			}
 			if(opts.imageType && !opts.isMigration) {
 				if(opts.imageType == 'private' && !opts.imageId) {
@@ -4340,8 +4342,8 @@ class AmazonComputeUtility {
 	}
 
 
-	static getAmazonStsExternalId(zone) {
-		def config = zone.getConfigMap()
+	static getAmazonStsExternalId(Cloud cloud) {
+		def config = cloud.getConfigMap()
 		if(config?.stsExternalId) {
 			return config.stsExternalId
 		} else {
@@ -4349,8 +4351,8 @@ class AmazonComputeUtility {
 		}
 	}
 
-	static getAmazonUseHostCredentials(zone) {
-		def config = zone?.getConfigMap()
+	static getAmazonUseHostCredentials(Cloud cloud) {
+		def config = cloud?.getConfigMap()
 		if(config?.useHostCredentials) {
 			return config.useHostCredentials in [true, 'true', 'on']
 		} else {
@@ -4360,8 +4362,8 @@ class AmazonComputeUtility {
 
 	static String defaultEndpoint = "ec2.us-east-1.amazonaws.com"
 
-	static String getAmazonEndpoint(Cloud zone) {
-		def config = zone.getConfigMap()
+	static String getAmazonEndpoint(Cloud cloud) {
+		def config = cloud.getConfigMap()
 		if(config?.endpoint) {
 			return config.endpoint
 		} else {

@@ -590,7 +590,7 @@ class AWSCloudProvider implements CloudProvider {
 		log.debug("startServer: ${computeServer}")
 		def rtn = [success:false]
 		try {
-			return nutanixPrismProvisionProvider().startServer(computeServer)
+			return ec2ProvisionProvider().startServer(computeServer)
 		} catch(e) {
 			rtn.msg = "Error starting server: ${e.message}"
 			log.error("startServer error: ${e}", e)
@@ -603,7 +603,7 @@ class AWSCloudProvider implements CloudProvider {
 		log.debug("stopServer: ${computeServer}")
 		def rtn = [success:false]
 		try {
-			return nutanixPrismProvisionProvider().stopServer(computeServer)
+			return ec2ProvisionProvider().stopServer(computeServer)
 		} catch(e) {
 			rtn.msg = "Error stoping server: ${e.message}"
 			log.error("stopServer error: ${e}", e)
@@ -616,7 +616,7 @@ class AWSCloudProvider implements CloudProvider {
 		log.debug("deleteServer: ${computeServer}")
 		def rtn = [success:false]
 		try {
-			return nutanixPrismProvisionProvider().deleteServer(computeServer)
+			return ec2ProvisionProvider().deleteServer(computeServer)
 		} catch(e) {
 			rtn.msg = "Error deleting server: ${e.message}"
 			log.error("deleteServer error: ${e}", e)
@@ -674,6 +674,10 @@ class AWSCloudProvider implements CloudProvider {
 	@Override
 	String getDefaultNetworkServerTypeCode() {
 		return "amazon-network-server"
+	}
+
+	EC2ProvisionProvider ec2ProvisionProvider() {
+		this.plugin.getProviderByCode('amazon-ec2-provision-provider')
 	}
 
 }

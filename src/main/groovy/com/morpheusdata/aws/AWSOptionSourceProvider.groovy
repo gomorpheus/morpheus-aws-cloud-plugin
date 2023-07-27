@@ -45,7 +45,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 	List<String> getMethodNames() {
 		return new ArrayList<String>([
 			'awsPluginVpc', 'awsPluginRegions', 'amazonAvailabilityZones', 'awsRouteTable', 'awsRouteDestinationType',
-			'awsRouteDestination'
+			'awsRouteDestination', 'amazonEc2SecurityGroup', 'amazonEc2PublicIpType'
 		])
 	}
 
@@ -223,5 +223,55 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		}
 
 		return rtn
+	}
+
+	def amazonEc2SecurityGroup(args) {
+		//AC - TODO - Overhaul security group location fetch to allow multiple zone pools and filter based on id rather than category?
+		def cloudId = getCloudId(args)
+		if(cloudId) {
+			Cloud tmpCloud = morpheusContext.cloud.getCloudById(cloudId).blockingGet()
+			List zonePools
+			if(args.config?.resourcePoolId) {
+				def poolId = args.config.resourcePoolId
+				if(poolId instanceof List) {
+					poolId = poolId.first()
+				}
+				if(poolId instanceof String && poolId.startsWith('pool-')) {
+					poolId = poolId.substring(5).toLong()
+				}
+				zonePools = morpheusContext.cloud.pool.listById([poolId]).toList().blockingGet()
+			}
+			def poolIds = zonePools?.collect { it.id }
+			List options = morpheusContext.securityGroup.location.listIdentityProjections(tmpCloud.id, null, null).toList().blockingGet()
+			List allLocs = morpheusContext.securityGroup.location.listByIds(options.collect {it?.id}).filter {poolIds.contains(it?.zonePool?.id)}.toList().blockingGet()
+			def x =  allLocs.collect {[name: it.name, value: it.externalId]}.sort {it.name.toLowerCase()}
+			return x
+		} else {
+			return []
+		}
+	}
+
+	def amazonEc2PublicIpType(args) {
+		return [
+				[name:'Subnet Default', value:'subnet'],
+				[name:'Assign EIP', value:'elasticIp']
+		]
+	}
+
+	private static getCloudId(args) {
+		def cloudId = null
+		if(args?.size() > 0) {
+			def firstArg =  args.getAt(0)
+			if(firstArg?.zoneId) {
+				cloudId = firstArg.zoneId.toLong()
+				return cloudId
+			}
+			if(firstArg?.domain?.zone?.id) {
+				cloudId = firstArg.domain.zone.id.toLong()
+				return cloudId
+			}
+		}
+		return cloudId
+
 	}
 }
