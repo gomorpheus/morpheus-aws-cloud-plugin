@@ -46,6 +46,9 @@ class RegionSync {
 			}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<ComputeZoneRegionIdentityProjection, Region>> updateItems ->
 				morpheusContext.cloud.region.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 			}.start()
+
+			//upload missing key pairs
+			ensureKeyPairs()
 		}
 	}
 
@@ -63,5 +66,30 @@ class RegionSync {
 
 	protected removeMissingRegions(List removeList) {
 		morpheusContext.cloud.region.remove(removeList).blockingGet()
+	}
+
+	protected ensureKeyPairs() {
+		def save
+		def keyPair = morpheusContext.cloud.findOrGenerateKeyPair(cloud.account).blockingGet()
+
+		morpheusContext.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+			def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
+			def keyLocationId = "amazon-${cloud.id}-${region.externalId}".toString()
+			def keyResults = AmazonComputeUtility.uploadKeypair(
+				[key: keyPair, account: cloud.account, zone: cloud, keyName: keyPair.getConfigProperty(keyLocationId), amazonClient:amazonClient]
+			)
+			if(keyResults.success) {
+				if (keyResults.uploaded) {
+					keyPair.setConfigProperty(keyLocationId, keyResults.keyName)
+					save = true
+				}
+			} else {
+				log.error "unable to upload keypair"
+			}
+		}
+
+		if(save) {
+			morpheusContext.keyPair.save([keyPair]).blockingGet()
+		}
 	}
 }

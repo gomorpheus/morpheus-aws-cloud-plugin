@@ -15,6 +15,7 @@ import com.morpheusdata.aws.sync.NetworkInterfaceSync
 import com.morpheusdata.aws.sync.RegionSync
 import com.morpheusdata.aws.sync.RouteTableSync
 import com.morpheusdata.aws.sync.ScaleGroupSync
+//import com.morpheusdata.aws.sync.ScaleGroupVirtualMachinesSync
 import com.morpheusdata.aws.sync.SecurityGroupSync
 import com.morpheusdata.aws.sync.ServicePlanSync
 import com.morpheusdata.aws.sync.SnapshotSync
@@ -462,47 +463,41 @@ class AWSCloudProvider implements CloudProvider {
 				def client = plugin.getAmazonClient(cloudInfo,true)
 				def testResults = AmazonComputeUtility.testConnection(cloudInfo)
 				if(testResults.success) {
-					def keyResults = ensureAmazonKeyPair(cloudInfo, client)
-
-					if(keyResults.success == true) {
-						new RegionSync(this.plugin,cloudInfo).execute()
-						new VPCSync(this.plugin,cloudInfo).execute()
-						new VPCRouterSync(this.plugin,cloudInfo).execute()
-						new RouteTableSync(this.plugin,cloudInfo).execute()
-						new KeyPairSync(this.plugin,cloudInfo).execute()
-						new SubnetSync(this.plugin,cloudInfo).execute()
-						new ImageSync(this.plugin,cloudInfo).execute()
-						new SecurityGroupSync(this.plugin, cloudInfo).execute()
-						new InstanceProfileSync(this.plugin,cloudInfo).execute()
-						new IAMRoleSync(this.plugin,cloudInfo).execute()
-						new VpnGatewaysSync(this.plugin,cloudInfo).execute()
-						new InternetGatewaySync(this.plugin,cloudInfo).execute()
-						//lb services
-						new AlbSync(this.plugin,cloudInfo).execute()
-						new ElbSync(this.plugin,cloudInfo).execute()
-						//resources
-						new EgressOnlyInternetGatewaySync(this.plugin,cloudInfo).execute()
-						new NATGatewaySync(this.plugin,cloudInfo).execute()
-						new TransitGatewaySync(this.plugin,cloudInfo).execute()
-						new TransitGatewayVpcAttachmentSync(this.plugin,cloudInfo).execute()
-						new NetworkInterfaceSync(this.plugin,cloudInfo).execute()
-						new VpcPeeringConnectionSync(this.plugin,cloudInfo).execute()
-						//rds services
-						new DbSubnetGroupSync(this.plugin,cloudInfo).execute()
-						new AlarmSync(this.plugin,cloudInfo).execute()
-						//service plans
-						new ServicePlanSync(this.plugin,cloudInfo).execute()
-						//vms
-						new VirtualMachineSync(this.plugin,cloudInfo).execute()
-						//volumes
-						new VolumeSync(this.plugin,cloudInfo).execute()
-						new SnapshotSync(this.plugin,cloudInfo).execute()
-						new ScaleGroupSync(this.plugin,cloudInfo).execute()
-						rtn = ServiceResponse.success()
-
-					} else {
-						rtn = ServiceResponse.error('error uploading keypair')
-					}
+					new RegionSync(this.plugin,cloudInfo).execute()
+					new VPCSync(this.plugin,cloudInfo).execute()
+					new VPCRouterSync(this.plugin,cloudInfo).execute()
+					new RouteTableSync(this.plugin,cloudInfo).execute()
+					new KeyPairSync(this.plugin,cloudInfo).execute()
+					new SubnetSync(this.plugin,cloudInfo).execute()
+					new ImageSync(this.plugin,cloudInfo).execute()
+					new SecurityGroupSync(this.plugin, cloudInfo).execute()
+					new InstanceProfileSync(this.plugin,cloudInfo).execute()
+					new IAMRoleSync(this.plugin,cloudInfo).execute()
+					new VpnGatewaysSync(this.plugin,cloudInfo).execute()
+					new InternetGatewaySync(this.plugin,cloudInfo).execute()
+					//lb services
+					new AlbSync(this.plugin,cloudInfo).execute()
+					new ElbSync(this.plugin,cloudInfo).execute()
+					//resources
+					new EgressOnlyInternetGatewaySync(this.plugin,cloudInfo).execute()
+					new NATGatewaySync(this.plugin,cloudInfo).execute()
+					new TransitGatewaySync(this.plugin,cloudInfo).execute()
+					new TransitGatewayVpcAttachmentSync(this.plugin,cloudInfo).execute()
+					new NetworkInterfaceSync(this.plugin,cloudInfo).execute()
+					new VpcPeeringConnectionSync(this.plugin,cloudInfo).execute()
+					//rds services
+					new DbSubnetGroupSync(this.plugin,cloudInfo).execute()
+					new AlarmSync(this.plugin,cloudInfo).execute()
+					//service plans
+					new ServicePlanSync(this.plugin,cloudInfo).execute()
+					//vms
+					new VirtualMachineSync(this.plugin,cloudInfo).execute()
+					//volumes
+					new VolumeSync(this.plugin,cloudInfo).execute()
+					new SnapshotSync(this.plugin,cloudInfo).execute()
+					new ScaleGroupSync(this.plugin,cloudInfo).execute()
+					//new ScaleGroupVirtualMachinesSync(this.plugin,cloudInfo).execute()
+					rtn = ServiceResponse.success()
 				} else {
 					rtn = ServiceResponse.error(testResults.invalidLogin == true ? 'invalid credentials' : 'error connecting')
 				}
@@ -653,22 +648,6 @@ class AWSCloudProvider implements CloudProvider {
 			log.error("refresh cloud error: ${e}", e)
 		}
 		rtn
-	}
-
-	private ensureAmazonKeyPair(cloud, amazonClient = null) {
-		amazonClient = amazonClient ?: plugin.getAmazonClient(cloud)
-		def keyPair = morpheusContext.cloud.findOrGenerateKeyPair(cloud.account).blockingGet()
-		def keyLocationId = "amazon-${cloud.id}".toString()
-		def keyResults = AmazonComputeUtility.uploadKeypair(
-			[key: keyPair, account: cloud.account, zone: cloud, keyName: keyPair.getConfigProperty(keyLocationId), amazonClient:amazonClient]
-		)
-		if(keyResults.success) {
-			if(keyResults.uploaded) {
-				keyPair.setConfigProperty(keyLocationId, keyResults.keyName)
-				morpheusContext.cloud.updateKeyPair(keyPair, cloud)
-			}
-		}
-		keyResults
 	}
 
 	@Override
