@@ -1,47 +1,40 @@
 package com.morpheusdata.aws
 
 import com.amazonaws.services.ec2.AmazonEC2
-import com.bertramlabs.plugins.karman.CloudFile
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.AbstractProvisionProvider
 import com.morpheusdata.core.MorpheusContext
-import com.morpheusdata.core.Plugin
 import com.morpheusdata.core.util.ComputeUtility
-import com.morpheusdata.core.util.HttpApiClient
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.ComputeCapacityInfo
 import com.morpheusdata.model.ComputeServer
 import com.morpheusdata.model.ComputeServerInterface
 import com.morpheusdata.model.ComputeServerInterfaceType
 import com.morpheusdata.model.ComputeTypeLayout
-import com.morpheusdata.model.ComputeZonePool
+import com.morpheusdata.model.ComputeTypeSet
 import com.morpheusdata.model.ComputeZoneRegion
-import com.morpheusdata.model.Datastore
+import com.morpheusdata.model.ContainerType
 import com.morpheusdata.model.HostType
-import com.morpheusdata.model.Icon
+import com.morpheusdata.model.ImageType
 import com.morpheusdata.model.Instance
 import com.morpheusdata.model.Network
-import com.morpheusdata.model.NetworkProxy
 import com.morpheusdata.model.OptionType
 import com.morpheusdata.model.OsType
-import com.morpheusdata.model.PlatformType
-import com.morpheusdata.model.ProcessEvent
-import com.morpheusdata.model.ProxyConfiguration
 import com.morpheusdata.model.ServicePlan
 import com.morpheusdata.model.StorageVolume
 import com.morpheusdata.model.StorageVolumeType
 import com.morpheusdata.model.VirtualImage
 import com.morpheusdata.model.VirtualImageLocation
 import com.morpheusdata.model.Workload
+import com.morpheusdata.model.provisioning.HostRequest
+import com.morpheusdata.model.provisioning.NetworkConfiguration
 import com.morpheusdata.model.provisioning.WorkloadRequest
 import com.morpheusdata.request.ResizeRequest
-import com.morpheusdata.request.UpdateModel
+import com.morpheusdata.response.HostResponse
 import com.morpheusdata.response.PrepareWorkloadResponse
 import com.morpheusdata.response.ServiceResponse
 import com.morpheusdata.response.WorkloadResponse
-import groovy.json.JsonSlurper
 import groovy.util.logging.Slf4j
-import org.apache.http.client.utils.URIBuilder
 
 @Slf4j
 class EC2ProvisionProvider extends AbstractProvisionProvider {
@@ -59,7 +52,35 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	Collection<OptionType> getOptionTypes() {
-		new ArrayList<OptionType>()
+		def options = []
+		options << new OptionType([
+				name : 'securityGroup',
+				code : 'amazon-ec2-provision-security-group',
+				fieldName : 'securityId',
+				fieldContext : 'config',
+				fieldLabel : 'Security Groups',
+				required : false,
+				inputType : OptionType.InputType.MULTI_SELECT,
+				displayOrder : 100,
+				optionSource: 'amazonEc2SecurityGroup'
+
+		])
+		options << new OptionType([
+				name : 'publicIP',
+				code : 'amazon-ec2-provision-public-id',
+				fieldName : 'publicIpType',
+				fieldContext : 'config',
+				fieldLabel : 'Public IP',
+				required : false,
+				defaultValue: 'subnet',
+				noBlank: true,
+				inputType : OptionType.InputType.SELECT,
+				displayOrder : 101,
+				optionSource: 'amazonEc2PublicIpType'
+
+		])
+
+		return options
 	}
 
 	/**
@@ -78,6 +99,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	Collection<ServicePlan> getServicePlans() {
+		def servicePlans = []
 		new ArrayList<ServicePlan>()
 	}
 
@@ -88,6 +110,72 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	@Override
 	Collection<ComputeServerInterfaceType> getComputeServerInterfaceTypes() {
 		new ArrayList<ComputeServerInterfaceType>()
+	}
+
+	/**
+	 * Provides a Collection of {@link StorageVolumeType} related to this ProvisioningProvider for the root volume
+	 * @return Collection of StorageVolumeType
+	 */
+	@Override
+	Collection<StorageVolumeType> getRootVolumeStorageTypes() {
+		getStorageVolumeTypes()
+	}
+
+	/**
+	 * Provides a Collection of {@link StorageVolumeType} related to this ProvisioningProvider for adding data volumes
+	 * @return Collection of StorageVolumeType
+	 */
+	@Override
+	Collection<StorageVolumeType> getDataVolumeStorageTypes() {
+		def volumeTypes = getStorageVolumeTypes()
+
+		volumeTypes << new StorageVolumeType([
+				code: 'amazon-st1',
+				name: 'st1',
+				displayOrder: 3
+		])
+
+		volumeTypes << new StorageVolumeType([
+				code: 'amazon-sc1',
+				name: 'sc1',
+				displayOrder: 4
+		])
+
+		return volumeTypes
+	}
+
+	//Helper method for provider storage types
+	private getStorageVolumeTypes() {
+		def volumeTypes = []
+
+		volumeTypes << new StorageVolumeType([
+				code: 'amazon-gp2',
+				name: 'gp2',
+				defaultType: true,
+				displayOrder: 0
+		])
+
+		volumeTypes << new StorageVolumeType([
+				code: 'amazon-gp3',
+				name: 'gp3',
+				displayOrder: 1
+		])
+
+		volumeTypes << new StorageVolumeType([
+				code: 'amazon-io1',
+				name: 'io1',
+				configurableIOPS:true,
+				minIOPS:100,
+				maxIOPS:20000,
+				displayOrder: 2
+		])
+
+		volumeTypes << new StorageVolumeType([
+				code: 'amazon-standard',
+				name: 'standard',
+		])
+
+		volumeTypes
 	}
 
 	/**
@@ -127,6 +215,42 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	}
 
 	/**
+	 * Determines if this provision type has resources pools that can be selected or not.
+	 * @return Boolean representation of whether or not this provision type has resource pools
+	 */
+	@Override
+	Boolean hasComputeZonePools() {
+		true
+	}
+
+	/**
+	 * Determines if this provision type allows the rot volume to be renamed.
+	 * @return Boolean representation of whether or not this provision type allows the rot volume to be renamed
+	 */
+	@Override
+	Boolean canCustomizeRootVolume() {
+		return true
+	}
+
+	/**
+	 * Determines if this provision type allows the root volume to be resized.
+	 * @return Boolean representation of whether or not this provision type allows the root volume to be resized
+	 */
+	@Override
+	Boolean canResizeRootVolume() {
+		return true
+	}
+
+	/**
+	 * Determines if this provision type allows the user to add data volumes.
+	 * @return Boolean representation of whether or not this provision type allows the user to add data volumes
+	 */
+	@Override
+	Boolean canCustomizeDataVolumes() {
+		return true
+	}
+
+	/**
 	 * Validates the provided provisioning options of a workload. A return of success = false will halt the
 	 * creation and display errors
 	 * @param opts options
@@ -135,7 +259,21 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	ServiceResponse validateWorkload(Map opts) {
-		return null
+		log.debug("validateWorkload: ${opts}")
+		ServiceResponse rtn = new ServiceResponse(true, null, [:], null)
+		try {
+			def validateTemplate = opts.template != null
+			def validationResults = AmazonComputeUtility.validateServerConfig(morpheusContext, [validateTemplate:validateTemplate] + opts)
+			if(!validationResults.success) {
+				validationResults.errors?.each { it ->
+					rtn.addError(it.field, it.msg)
+				}
+			}
+
+		} catch(e) {
+			log.error("validateWorkload error: ${e}", e)
+		}
+		return rtn
 	}
 
 	/**
@@ -175,22 +313,13 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 * @param opts additional configuration options that may have been passed during provisioning
 	 * @return Response from API
 	 */
-	default ServiceResponse<PrepareWorkloadResponse> prepareWorkload(Workload workload, WorkloadRequest workloadRequest, Map opts) {
+	 ServiceResponse<PrepareWorkloadResponse> prepareWorkload(Workload workload, WorkloadRequest workloadRequest, Map opts) {
 		ServiceResponse<PrepareWorkloadResponse> resp = new ServiceResponse<>()
-		resp.data = new PrepareWorkloadResponse(workload: workload)
+		resp.data = new PrepareWorkloadResponse(workload: workload, options: [sendIp: false])
+
 
 		ComputeServer server = workload.server
-		//lets compute the resource pool we need to attach to the server and ComputeZoneRegion
-		def vpcId = getResourceGroupId(workload.server.cloud.getConfigMap(), workload.getConfigMap())
-		if(!vpcId && server.resourcePool) {
-			vpcId = server.resourcePool.externalId
-		}
-		if(vpcId instanceof Map) {
-			vpcId = vpcId.id
-		} //handling legacy formats
-		ComputeZonePool zonePool = morpheus.cloud.pool.listByCloudAndExternalIdIn(server.cloud.id,vpcId).blockingFirst()
 
-		server.resourcePool = zonePool
 		if (server.resourcePool.regionCode) {
 			ComputeZoneRegion region = morpheus.cloud.region.findByCloudAndRegionCode(server.cloud.id,server.resourcePool.regionCode).blockingGet().get()
 			server.volumes?.each { vol ->
@@ -198,12 +327,12 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 			}
 		}
 		//build config
-		AmazonEC2 amazonClient = AmazonComputeUtility.getAmazonClient(workload.server.cloud,false,workload.server.resourcePool.regionCode)
+		AmazonEC2 amazonClient = AmazonComputeUtility.getAmazonClient(workload.server.cloud,false, workload.server.resourcePool.regionCode)
 		//lets figure out what image we are deploying
 		def imageType = workload.getConfigMap().imageType ?: 'default' //amazon generic instance type has a radio button for this
 		def virtualImage = getWorkloadImage(amazonClient,server.resourcePool.regionCode,workload, opts)
 		if(virtualImage) {
-			if(virtualImage.imageType != 'ami' || imageType == 'local')
+			if(virtualImage.imageType != ImageType.ami || imageType == 'local')
 			{
 				//we have to upload TODO: upload OVF Import from old importImage Method
 			} else {
@@ -212,14 +341,13 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 				VirtualImageLocation location = ensureVirtualImageLocation(amazonClient,server.resourcePool.regionCode,virtualImage,server.cloud)
 				resp.data.setVirtualImageLocation(location)
 			}
+			resp.success = true
 			return resp
 		} else {
 			return ServiceResponse.error("Virtual Image not found")
 		}
 
 	}
-
-
 
 
 	/**
@@ -234,7 +362,485 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	ServiceResponse<WorkloadResponse> runWorkload(Workload workload, WorkloadRequest workloadRequest, Map opts) {
-		return null
+		log.debug "runWorkload: ${workload} ${workloadRequest} ${opts}"
+		AmazonEC2 amazonClient
+	    WorkloadResponse workloadResponse = new WorkloadResponse(success: true, installAgent: false)
+		ComputeServer server = workload.server
+		try {
+			Cloud cloud = server.cloud
+			VirtualImage virtualImage = server.sourceImage
+			amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, server.resourcePool.regionCode)
+
+			def runConfig = buildWorkloadRunConfig(workload, workloadRequest, virtualImage, amazonClient, opts)
+
+			runVirtualMachine(runConfig, workloadResponse, opts + [amazonClient: amazonClient])
+
+			return new ServiceResponse<WorkloadResponse>(success: true, data: workloadResponse)
+
+		} catch (e) {
+			log.error "runWorkload: ${e}", e
+			workloadResponse.setError(e.message)
+			return new ServiceResponse(success: false, msg: e.message, error: e.message, data: workloadResponse)
+		}
+	}
+
+	@Override
+	ServiceResponse finalizeWorkload(Workload workload) {
+		log.debug "finalizeWorkload: ${workload?.id}"
+		ComputeServer server = workload.server
+		return finalizeServer(server)
+	}
+
+	@Override
+	ServiceResponse prepareHost(ComputeServer server, HostRequest hostRequest, Map opts) {
+		log.debug "prepareHost: ${server} ${hostRequest} ${opts}"
+
+		def rtn = [success: false, msg: null]
+		try {
+			VirtualImage virtualImage
+			Long computeTypeSetId = server.typeSet?.id
+			if(computeTypeSetId) {
+				ComputeTypeSet computeTypeSet = morpheus.computeTypeSet.get(computeTypeSetId).blockingGet()
+				if(computeTypeSet.containerType) {
+					ContainerType containerType = morpheus.containerType.get(computeTypeSet.containerType.id).blockingGet()
+					virtualImage = containerType.virtualImage
+				}
+			}
+			if(!virtualImage) {
+				rtn.msg = "No virtual image selected"
+			} else {
+				server.sourceImage = virtualImage
+				saveAndGet(server)
+				rtn.success = true
+			}
+		} catch(e) {
+			rtn.msg = "Error in prepareHost: ${e}"
+			log.error("${rtn.msg}, ${e}", e)
+
+		}
+		new ServiceResponse(rtn.success, rtn.msg, null, [options: [sendIp: false]])
+
+	}
+
+	@Override
+	//TODO - AC
+	ServiceResponse<HostResponse> runHost(ComputeServer server, HostRequest hostRequest, Map opts) {
+		log.debug "runHost: ${server} ${hostRequest} ${opts}"
+		AmazonEC2 amazonClient
+		HostResponse hostResponse = new HostResponse(success: true, installAgent: false)
+		try {
+			WorkloadResponse workloadResponse = new WorkloadResponse(success: true, installAgent: false)
+			Cloud cloud = server.cloud
+			VirtualImage virtualImage = server.sourceImage
+			amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, server.resourcePool.regionCode)
+
+			def runConfig = buildHostRunConfig(server, hostRequest, virtualImage, amazonClient, opts)
+
+			runVirtualMachine(runConfig, workloadResponse, opts + [amazonClient: amazonClient])
+
+			hostResponse = workloadResponseToHostResponse(workloadResponse)
+
+			if (hostResponse.success != true) {
+				return new ServiceResponse(success: false, msg: hostResponse.message ?: 'vm config error', error: hostResponse.message, data: hostResponse)
+			} else {
+				return new ServiceResponse<HostResponse>(success: true, data: hostResponse)
+			}
+
+		} catch (e) {
+			log.error "runWorkload: ${e}", e
+			hostResponse.setError(e.message)
+			return new ServiceResponse(success: false, msg: e.message, error: e.message, data: hostResponse)
+		}
+	}
+
+	@Override
+	ServiceResponse finalizeHost(ComputeServer server) {
+		def rtn = [success: true, msg: null]
+		log.debug "finalizeHost: ${workload?.id}"
+		return finalizeServer(server)
+	}
+
+	private finalizeServer(ComputeServer server) {
+		def rtn = [success: true, msg: null]
+		log.debug "finalizeWorkload: ${workload?.id}"
+		try {
+			if(server && server.uuid && server.resourcePool?.externalId) {
+				def amazonClient = AmazonComputeUtility.getAmazonClient(server.cloud, false, server.resourcePool.regionCode)
+				Map serverDetails = AmazonComputeUtility.checkServerReady([amazonClient: amazonClient, server: server])
+				if (serverDetails.success && serverDetails.results) {
+					def privateIp = serverDetails.results.getPrivateIpAddress()
+					def publicIp = serverDetails.results.getPublicIpAddress()
+					if (server.internalIp != privateIp) {
+						server.internalIp = privateIp
+						server.externalIp = publicIp
+						morpheusContext.computeServer.save([server]).blockingGet()
+					}
+				}
+			}
+		} catch(e) {
+			rtn.success = false
+			rtn.msg = "Error in finalizing server: ${e.message}"
+			log.error "Error in finalizeWorkload: ${e}", e
+		}
+		return new ServiceResponse(rtn.success, rtn.msg, null, null)
+	}
+
+
+	protected buildHostRunConfig(ComputeServer server, HostRequest hostRequest, VirtualImage virtualImage, AmazonEC2 amazonClient, Map opts) {
+
+		Cloud cloud = server.cloud
+		StorageVolume rootVolume = server.volumes?.find{it.rootVolume == true}
+
+
+		def maxMemory = server.maxMemory?.div(ComputeUtility.ONE_MEGABYTE)
+		def maxStorage = rootVolume.getMaxStorage()
+
+		def serverConfig = server.getConfigMap()
+
+		def runConfig = [:] + opts + buildRunConfig(server, virtualImage, hostRequest.networkConfiguration, amazonClient, serverConfig)
+
+		println "\u001B[33mAC Log - EC2ProvisionProvider:buildHostRunConfig- ${runConfig}\u001B[0m"
+
+		runConfig += [
+				name              : server.name,
+				account 		  : server.account,
+				osDiskSize		  : maxStorage.div(ComputeUtility.ONE_GIGABYTE),
+				maxStorage        : maxStorage,
+				maxMemory		  : maxMemory,
+				applianceServerUrl: hostRequest.cloudConfigOpts?.applianceUrl,
+				timezone          : (server.getConfigProperty('timezone') ?: cloud.timezone),
+				proxySettings     : hostRequest.proxyConfiguration,
+				noAgent           : (opts.config?.containsKey("noAgent") == true && opts.config.noAgent == true),
+				installAgent      : (opts.config?.containsKey("noAgent") == false || (opts.config?.containsKey("noAgent") && opts.config.noAgent != true)),
+				userConfig		  : hostRequest.usersConfiguration,
+				cloudConfig		  : hostRequest.cloudConfigUser,
+				networkConfig	  : hostRequest.networkConfiguration
+		]
+		return runConfig
+	}
+
+	protected buildWorkloadRunConfig(Workload workload, WorkloadRequest workloadRequest, VirtualImage virtualImage, AmazonEC2 amazonClient, Map opts) {
+		Map workloadConfig = workload.getConfigMap()
+		ComputeServer server = workload.server
+		Cloud cloud = server.cloud
+		StorageVolume rootVolume = server.volumes?.find{it.rootVolume == true}
+
+
+		def maxMemory = server.maxMemory?.div(ComputeUtility.ONE_MEGABYTE)
+		def maxStorage = rootVolume.getMaxStorage()
+
+		def runConfig = [:] + opts + buildRunConfig(server, virtualImage, workloadRequest.networkConfiguration, amazonClient, workloadConfig)
+
+		runConfig += [
+				name              : server.name,
+				instanceId		  : workload.instance.id,
+				containerId       : workload.id,
+				account 		  : server.account,
+				osDiskSize		  : maxStorage.div(ComputeUtility.ONE_GIGABYTE),
+				maxStorage        : maxStorage,
+				maxMemory		  : maxMemory,
+				applianceServerUrl: workloadRequest.cloudConfigOpts?.applianceUrl,
+				workloadConfig    : workload.getConfigMap(),
+				timezone          : (server.getConfigProperty('timezone') ?: cloud.timezone),
+				proxySettings     : workloadRequest.proxyConfiguration,
+				noAgent           : (opts.config?.containsKey("noAgent") == true && opts.config.noAgent == true),
+				installAgent      : (opts.config?.containsKey("noAgent") == false || (opts.config?.containsKey("noAgent") && opts.config.noAgent != true)),
+				userConfig        : workloadRequest.usersConfiguration,
+				cloudConfig	      : workloadRequest.cloudConfigUser,
+				networkConfig	  : workloadRequest.networkConfiguration
+		]
+		return runConfig
+
+	}
+
+	protected buildRunConfig(ComputeServer server, VirtualImage virtualImage, NetworkConfiguration networkConfiguration, AmazonEC2 amazonClient, config) {
+
+		Cloud cloud = server.cloud
+		def network = networkConfiguration.primaryInterface?.network
+		if(!network && server.interfaces) {
+			network = server.interfaces.find {it.primaryInterface}?.network
+		}
+		println "\u001B[33mAC Log - EC2ProvisionProvider:buildRunConfig network - ${network}\u001B[0m"
+		def availabilityId = config.availabilityId ?: network?.availabilityZone ?: null
+		def rootVolume = server.volumes?.find{it.rootVolume == true}
+		def dataDisks = server?.volumes?.findAll{it.rootVolume == false}?.sort{it.id}
+		def maxStorage
+		if(rootVolume) {
+			maxStorage = rootVolume.maxStorage
+		} else {
+			maxStorage = config.maxStorage ?: server.plan.maxStorage
+		}
+
+
+		def runConfig = [
+				serverId: server.id,
+				encryptEbs: config.encryptEbs,
+				amazonClient: amazonClient,
+				name: server.name,
+				vpcRef: server.resourcePool?.externalId,
+				securityRef: config.securityId,
+				subnetRef: network?.externalId,
+				flavorRef: server.plan.externalId,
+				zoneRef: availabilityId,
+				server: server,
+				imageType: virtualImage.imageType,
+				endpoint: AmazonComputeUtility.getAmazonEndpoint(cloud),
+				serverOs: server.serverOs ?: virtualImage.osType,
+				osType: (virtualImage.osType?.platform == 'windows' ? 'windows' : 'linux') ?: virtualImage.platform,
+				platform: (virtualImage.osType?.platform == 'windows' ? 'windows' : 'linux') ?: virtualImage.platform,
+				kmsKeyId: config.kmsKeyId,
+				osDiskSize : maxStorage.div(ComputeUtility.ONE_GIGABYTE),
+				maxStorage : maxStorage,
+				osDiskType: rootVolume?.type?.name ?: 'gp2',
+				iops: rootVolume?.maxIOPS,
+				osDiskName:'/dev/sda1',
+				dataDisks: dataDisks,
+				rootVolume:rootVolume,
+				//cachePath: virtualImageService.getLocalCachePath(),
+				virtualImage: virtualImage,
+				hostname: server.getExternalHostname(),
+				hosts: server.getExternalHostname(),
+				diskList:[],
+				domainName: server.getExternalDomain(),
+				securityGroups: config.securityGroups,
+				serverInterfaces:server.interfaces,
+				publicIpType: config.publicIpType ?: 'subnet',
+				fqdn: server.getExternalHostname() + '.' + server.getExternalDomain(),
+		]
+
+		def rootSnapshot
+		def snapshots
+		if(config.cloneContainerId) {
+			def cloneContainer = morpheusContext.workload.get(opts.cloneContainerId).blockingGet()
+			if(cloneContainer) {
+				def cloneContainerConfig = cloneContainer.getConfigProperties()
+				runConfig.containerConfig = [availabilityZone:  cloneContainerConfig.availabilityZone]
+			}
+			//snapshots = amazonSnapshotBackupService.getSnapshotsForBackupResult(opts.backupSetId, opts.cloneContainerId)
+			if(snapshots) {
+				//rootSnapshot = snapshots.find{it.diskType == "root"}
+				//assignSnapshotsToStorageVolumes(container, snapshots)
+			}
+		}
+		//TODO - tags
+		//runConfig.tagList = buildMetadataTagList(container, [maxNameLength: 128, maxValueLength: 256])
+
+		//TODO - licenses
+		//runConfig.licenses = licenseService.applyLicense(vImage, 'ComputeServer', opts.server.id, opts.server.account)?.data?.licenses
+		runConfig.virtualImageLocation = ensureVirtualImageLocation(amazonClient,server.resourcePool.regionCode,virtualImage,server.cloud)
+		runConfig.imageRef = runConfig.virtualImageLocation.externalId
+		runConfig.osDiskSnapshot = runConfig.virtualImageLocation.externalDiskId
+		if(rootSnapshot) {
+			//this is a clone/restore so use the snapshot image
+			log.info("Creating server from snapshot ${rootSnapshot.snapshotId} image ${runConfig.imageRef}")
+			runConfig.osDiskSnapshot = rootSnapshot.snapshotId
+		}
+		return runConfig
+	}
+
+	private void runVirtualMachine(Map runConfig, WorkloadResponse workloadResponse, Map opts) {
+		try {
+
+			runConfig.template = runConfig.imageId
+			def runResults = insertVm(runConfig, workloadResponse, opts)
+			if(workloadResponse.success) {
+				finalizeVm(runConfig, workloadResponse, runResults)
+			}
+
+		} catch(e) {
+			log.error("runVirtualMachine error:${e}", e)
+			workloadResponse.setError('failed to upload image file')
+		}
+	}
+
+	protected insertVm(Map runConfig, WorkloadResponse workloadResponse, Map opts) {
+		def taskResults = [success:false]
+		ComputeServer server = runConfig.server
+		//def instance = Instance.get(runConfig.instanceId)
+		//def containerConfig = runConfig.container.getConfigProperties()
+		//user config
+
+		opts.createUserList = runConfig.userConfig.createUsers
+//		if(opts.keepServerType != true) {
+//			def newType = findVmNodeZoneType(server.cloud.type, serverUpdates.osType)
+//			if(newType && server.computeServerType != newType)
+//				serverUpdates.computeServerType = newType
+//		}
+
+//		if(serverUpdates.osType == 'windows') {
+//			opts.setAdminPassword = false
+//			opts.createUsers = false
+//			// opts.unattendCustomized = true
+//			def globalAdminPassword = settingsService.getProvisioningSettings(opts.account).provisioningSettings.windowsPassword?.value
+//			if(globalAdminPassword) {
+//				opts.findAdminPassword = false
+//				cloudConfigOpts.adminPassword = globalAdminPassword
+//				serverUpdates.sshPassword = globalAdminPassword
+//			}
+//		}
+
+		//save server
+		runConfig.server = saveAndGet(server)
+		def imageResults = AmazonComputeUtility.loadImage([amazonClient:opts.amazonClient, imageId:runConfig.imageRef])
+		//user key - TODO
+		//ensureAmazonKeyPair(runConfig, opts.amazonClient, opts.account, server.zone, runConfig.userConfig.primaryKey)
+		//root volume
+		def blockDeviceMap = imageResults.image.getBlockDeviceMappings()
+		def blockDeviceDisks = blockDeviceMap.findAll{it.getEbs() != null && it.getEbs().getSnapshotId() != null}
+		if(blockDeviceDisks) {
+			def rootDisk = blockDeviceDisks?.first()
+			runConfig.osDiskName = rootDisk.deviceName
+			println "setting osDiskName: ${runConfig.osDiskName}"
+		}
+		//data volumes
+		if(runConfig.dataDisks)
+			runConfig.diskList = buildDataDiskList(server, runConfig.dataDisks, imageResults)
+		def createResults = AmazonComputeUtility.createServer(runConfig)
+		log.debug("create server: ${createResults}")
+		if(createResults.success == true && createResults.server) {
+			if(runConfig.networkConfig.haveDhcpReservation == true) {
+				//TODO
+				//def reservationResults = reserveNetworkPoolAddresses(runConfig.server, runConfig)
+				//log.info("reservationResults: ${reservationResults}")
+			}
+			server.externalId = createResults.externalId
+			server.powerState = 'on'
+			server.region = new ComputeZoneRegion(code: server.resourcePool.regionCode)
+			workloadResponse.externalId = server.externalId
+			server = saveAndGet(server)
+			runConfig.server = server
+
+			AmazonComputeUtility.waitForServerExists(runConfig)
+			//wait for ready
+			def statusResults = AmazonComputeUtility.checkServerReady(runConfig)
+			if(statusResults.success == true) {
+				//good to go
+				def serverDetails = AmazonComputeUtility.getServerDetail(runConfig)
+				if(serverDetails.success == true) {
+					log.debug("server details: {}", serverDetails)
+					//update volume info
+					setRootVolumeInfo(runConfig.rootVolume, serverDetails.server)
+					setVolumeInfo(runConfig.dataDisks, serverDetails.volumes)
+					setNetworkInfo(runConfig.serverInterfaces, serverDetails.networks)
+					//update network info
+					def privateIp = serverDetails.server.getPrivateIpAddress()
+					def publicIp = serverDetails.server.getPublicIpAddress()
+					def serverConfigOpts = [:]
+					if(opts.containerConfig?.publicIpType?.toString() == 'elasticIp' || server.getConfigMap()?.customOptions?.publicIpType?.toString() == 'elasticIp') {
+						def lock
+						try {
+							lock = morpheusContext.acquireLock("container.amazon.allocateIp.${runConfig.zone.id}".toString(), [timeout: 660l * 1000l])
+							def freeIp = AmazonComputeUtility.getFreeEIP([zone: opts.zone, amazonClient:opts.amazonClient])
+							def allocationId
+							def eipPublicIp
+							if(freeIp.success) {
+								allocationId = freeIp.allocationId
+								eipPublicIp = freeIp.publicIp
+							} else {
+
+								def createEIPResults = AmazonComputeUtility.createEIP([zone: opts.zone, amazonClient:opts.amazonClient])
+								if(createEIPResults.success) {
+									allocationId = createEIPResults.result.allocationId
+									eipPublicIp = createEIPResults.result?.publicIp
+								}
+							}
+							if(allocationId) {
+								def associateResult = AmazonComputeUtility.associateEIP([allocationId: allocationId, zone: opts.zone, amazonClient:opts.amazonClient, externalId: createResults.externalId])
+								if(eipPublicIp) {
+									publicIp = eipPublicIp
+									serverConfigOpts.eipPublicIp = eipPublicIp
+									serverConfigOpts.eipAllocationId = allocationId
+									serverConfigOpts.eipAssociationId = associateResult?.result?.associationId
+								}
+							}
+
+						} catch(e) {
+							log.error("execContainer error: ${e}", e)
+						} finally {
+							if(lock) {
+								morpheusContext.releaseLock("container.amazon.allocateIp.${runConfig.zone.id}".toString(),[lock:lock])
+							}
+						}
+
+					}
+					//update network info
+					applyComputeServerNetwork(server, privateIp, publicIp, null, null, serverConfigOpts)
+
+					//add extra nics
+					if(runConfig.networkConfig?.extraInterfaces?.size() > 0) {
+						runConfig.networkConfig.extraInterfaces?.eachWithIndex { extraInterface, index ->
+							def networkConfig = [serverId:createResults.externalId, amazonClient:opts.amazonClient, securityGroups:runConfig.securityGroups,
+												 subnetId:extraInterface.externalId, deviceIndex:(index + 1)]
+							if (extraInterface.doStatic && extraInterface.ipAddress)
+								networkConfig.ipAddress = extraInterface.ipAddress
+							def networkResults = AmazonComputeUtility.addNetworkInterface(networkConfig)
+							log.info("networkResults: ${networkResults}")
+							if(networkResults.success == true && networkResults.networkInterface?.getNetworkInterfaceId()) {
+								networkConfig.networkInterfaceId = networkResults.networkInterface?.getNetworkInterfaceId()
+								def attachResults = AmazonComputeUtility.attachNetworkInterface(networkConfig)
+								log.info("attachResults: ${attachResults}")
+								if(attachResults.success == true) {
+									def privateIps = networkResults.networkInterface.getPrivateIpAddresses()
+									if(privateIps?.size() > 0) {
+										def newPrivateIp = privateIps.first().getPrivateIpAddress()
+										def newNetworkUpdates = [internalId:networkResults.networkInterface?.getNetworkInterfaceId(), externalId:attachResults.attachmentId,
+																 uniqueId:"morpheus-nic-${runConfig.instanceId  ? runConfig.instanceId + "-" + runConfig.containerId : runConfig.serverId}-${index + 1}"]
+										applyComputeServerNetwork(server, newPrivateIp, null, null, null, [:], index + 1, newNetworkUpdates)
+									}
+								} else {
+									//lets just remove it then
+									AmazonComputeUtility.deleteNetworkInterface(networkConfig)
+								}
+							}
+						}
+					}
+					//get password
+					if(runConfig.osType == 'windows' && runConfig.virtualImage.isCloudInit) {
+						def passwordResults = AmazonComputeUtility.checkPasswordReady(runConfig)
+						if(passwordResults.success == true) {
+							log.debug("got win password")//: ${passwordResults.password}")
+							if(opts.findAdminPassword == true)
+								taskResults.newPassword = passwordResults.password
+							else
+								opts.resetPassword = true
+						}
+					}
+					taskResults.server = createResults.server
+					taskResults.success = true
+				} else {
+					taskResults.message = 'Failed to get server status'
+				}
+			} else {
+				taskResults.message = 'Failed to create server'
+			}
+		} else {
+			taskResults.message = createResults.msg
+		}
+		return taskResults
+	}
+
+	def finalizeVm(Map runConfig, WorkloadResponse workloadResponse, Map runResults) {
+		log.debug("runTask onComplete: workloadResponse: ${workloadResponse}")
+		ComputeServer server = morpheusContext.computeServer.get(runConfig.serverId).blockingGet()
+		try {
+			if(workloadResponse.success == true) {
+				server.sshHost = runResults.sshHost
+				server.status = 'provisioned'
+				server.statusDate = new Date()
+				server.serverType = 'ami'
+				server.osDevice = '/dev/xvda'
+				server.lvmEnabled = false
+				server.managed = true
+				if(runResults.newPassword)
+					server.sshPassword = runResults.newPassword
+				server.capacityInfo = new ComputeCapacityInfo(maxCores:1, maxMemory:runConfig.maxMemory,
+						maxStorage:runConfig.maxStorage)
+				saveAndGet(server)
+			}
+		} catch(e) {
+			log.error("finalizeVm error: ${e}", e)
+			workloadResponse.setError('failed to run server: ' + e)
+		}
 	}
 
 	/**
@@ -255,7 +861,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	ServiceResponse startWorkload(Workload workload) {
-		log.debug("stopWorkload: ${server}")
+		log.debug("stopWorkload: ${workload}")
 		startServer(workload.server)
 	}
 
@@ -367,13 +973,12 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 		if(server && server.uuid && server.resourcePool?.externalId) {
 			def amazonClient = AmazonComputeUtility.getAmazonClient(server.cloud,false, server.resourcePool.regionCode)
 			Map serverDetails = AmazonComputeUtility.checkServerReady([amazonClient:amazonClient, server:server])
-			if(serverDetails.success && serverDetails.server) {
+			if(serverDetails.success && serverDetails.results) {
 				rtn.externalId = serverUuid
 				rtn.success = serverDetails.success
-				rtn.publicIp = serverDetails.publicIpAddress
-				rtn.privateIp = serverDetails.privateIpAddress
-				rtn.hostname = serverDetails.tags?.find { it.key == 'Name' }?.value ?: serverDetails.instanceId
-				return ServiceResponse.success(rtn)
+				rtn.publicIp = serverDetails.results.getPublicIpAddress()
+				rtn.privateIp = serverDetails.results.getPrivateIpAddress()
+				rtn.hostname = serverDetails.results.getTags()?.find { it.key == 'Name' }?.value ?: serverDetails.instanceId
 				return ServiceResponse.success(rtn)
 			} else {
 				return ServiceResponse.error("Server not ready/does not exist")
@@ -399,7 +1004,12 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	ServiceResponse resizeWorkload(Instance instance, Workload workload, ResizeRequest resizeRequest, Map opts) {
-		return null
+		def server = morpheusContext.computeServer.get(workload.server.id).blockingGet()
+		if(server) {
+			return internalResizeServer(server, resizeRequest, opts)
+		} else {
+			return ServiceResponse.error("No server provided")
+		}
 	}
 
 	/**
@@ -416,7 +1026,199 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	ServiceResponse resizeServer(ComputeServer server, ResizeRequest resizeRequest, Map opts) {
-		return null
+		return internalResizeServer(server, resizeRequest, opts)
+	}
+
+
+	private ServiceResponse internalResizeServer(ComputeServer server, ResizeRequest resizeRequest, Map opts) {
+		println "\u001B[33mAC Log - EC2ProvisionProvider:internalResizeServer- ${server} ${resizeRequest.dump()}\u001B[0m"
+		def rtn = [success:false, supported:true]
+		def amazonOpts = [server:server]
+		Cloud cloud = server.cloud
+		ServicePlan plan = resizeRequest.plan
+		try {
+
+			def encryptEbs = cloud.getConfigProperty('ebsEncryption') == 'on'
+
+			amazonOpts.account = server.account
+			amazonOpts.amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, server.resourcePool.regionCode)
+			def serverId = server.id
+
+			def statusResults = AmazonComputeUtility.waitForServerStatus(amazonOpts, 80)
+			if(statusResults.success == true) {
+
+				//instance size
+				if (plan?.id != server.plan?.id) {
+					amazonOpts.flavorId = plan.externalId
+					log.info("Resizing Plan")
+					AmazonComputeUtility.resizeInstance(amazonOpts)
+					server.plan = plan
+					server.maxMemory = plan.maxMemory
+					server.maxCores = plan.maxCores
+					server.setConfigProperty('maxMemory', plan.maxMemory)
+					server = saveAndGet(server)
+				}
+
+				//disk sizes
+
+				def maxStorage = resizeRequest.maxStorage
+				def newCounter = server.volumes?.size()
+				def availabilityZone
+				def allStorageVolumeTypes
+				if (resizeRequest.volumesUpdate) {
+					def serverDetails = AmazonComputeUtility.getServerDetail(amazonOpts)
+					availabilityZone = serverDetails.server.getPlacement().getAvailabilityZone()
+					allStorageVolumeTypes = morpheusContext.storageVolume.storageVolumeType.listAll().toMap { it.id }.blockingGet()
+				}
+
+				resizeRequest.volumesUpdate?.each { volumeUpdate ->
+					log.info("resizing vm storage: count: ${volumeUpdate}")
+					StorageVolume existing = volumeUpdate.existingModel
+					Map updateProps = volumeUpdate.updateProps
+					if (existing) {
+						def iops = updateProps.maxIOPS ? updateProps.maxIOPS.toInteger() : null
+
+						//existing disk - resize it
+						if (updateProps.maxStorage > existing.maxStorage || (iops && allStorageVolumeTypes[updateProps.storageType]?.configurableIOPS && iops != existing.maxIOPS)) {
+							def volumeId = existing.externalId
+							def resizeResults = AmazonComputeUtility.resizeVolume([encryptEbs: encryptEbs, name: updateProps.name, volumeId: volumeId, size: updateProps.size, iops: iops, deleteOriginalVolumes: opts.deleteOriginalVolumes == true || opts.deleteOriginalVolumes == 'on'] + amazonOpts)
+							if (resizeResults.success == true) {
+								existing.maxIOPS = iops
+								existing.externalId = resizeResults.newVolumeId
+								existing.maxStorage = updateProps.maxStorage.toLong()
+								morpheusContext.storageVolume.save([existing]).blockingGet()
+							} else {
+								rtn.setError("Failed to expand Disk: ${existing.name}")
+							}
+						}
+					} else {
+
+						//new disk add it
+						if (!updateProps.maxStorage) {
+							updateProps.maxStorage = updateProps.size ? (updateProps.size.toDouble() * ComputeUtility.ONE_GIGABYTE).toLong() : 0
+						}
+						def volumeType = allStorageVolumeTypes[updateProps.storageType?.toInteger()]
+						def diskType = volumeType ? volumeType?.name : 'gp2'
+						def addDiskResults = AmazonComputeUtility.addVolume([name: updateProps.name, size: updateProps.size, iops: updateProps.maxIOPS ? updateProps.maxIOPS.toInteger() : null,
+																			 amazonClient: amazonOpts.amazonClient, availabilityId: availabilityZone, encryptEbs: encryptEbs, diskType: diskType, kmsKeyId: server.getConfigProperty('kmsKeyId')])
+						if (!addDiskResults.success)
+							throw new Exception("Error in creating new volume: ${addDiskResults}")
+						def newVolumeId = addDiskResults.volume.volumeId
+						def checkReadyResult = AmazonComputeUtility.checkVolumeReady([volumeId: newVolumeId, amazonClient: amazonOpts.amazonClient])
+						if (!checkReadyResult.success)
+							throw new Exception("Volume never became ready: ${checkReadyResult}")
+						// Attach the new one
+						def attachResults = AmazonComputeUtility.attachVolume([volumeId: newVolumeId, serverId: amazonOpts.server.externalId, amazonClient: amazonOpts.amazonClient])
+						if (!attachResults.success)
+							throw new Exception("Volume failed to attach: ${attachResults}")
+						def waitAttachResults = AmazonComputeUtility.waitForVolumeState([volumeId: newVolumeId, requestedState: 'in-use', amazonClient: amazonOpts.amazonClient])
+						if (!waitAttachResults.success)
+							throw new Exception("Volume never attached: ${waitAttachResults}")
+
+						def deviceName = waitAttachResults.results?.volume?.getAttachments()?.find { it.instanceId == amazonOpts.server.externalId }?.getDevice()
+						def newVolume = new StorageVolume(
+								refType: 'ComputeZone',
+								refId: cloud.id,
+								regionCode: server.region?.regionCode,
+								account: server.account,
+								maxStorage: updateProps.maxStorage,
+								maxIOPS: updateProps.maxIops,
+								type: volumeType,
+								externalId: newVolumeId,
+								deviceName: deviceName,
+								deviceDisplayName: AmazonComputeUtility.extractDiskDisplayName(deviceName)?.replaceAll('sd', 'xvd'),
+								name: newVolumeId,
+								displayOrder: newCounter,
+								status: 'provisioned',
+								rootVolume: ['/dev/sda1','/dev/xvda','xvda','sda1','sda'].contains(deviceName)
+						)
+						morpheusContext.storageVolume.create([newVolume], server).blockingGet()
+						server = morpheusContext.computeServer.get(server.id).blockingGet()
+						newCounter++
+					}
+
+				}
+
+				//delete any removed volumes
+				resizeRequest.volumesDelete.each { volume ->
+					log.info("Deleting volume : ${volume.externalId}")
+					def volumeId = volume.externalId
+					def detachResults = AmazonComputeUtility.detachVolume([volumeId: volumeId, instanceId: server.externalId, amazonClient: amazonOpts.amazonClient])
+					if (detachResults.success == true) {
+						AmazonComputeUtility.deleteVolume([volumeId: volumeId, amazonClient: amazonOpts.amazonClient])
+						morpheusContext.storageVolume.remove([volume], server, true).blockingGet()
+					}
+				}
+
+				//network adapters
+				def securityGroups = server.getConfigProperty('securityGroups')
+				//controllers
+				resizeRequest?.interfacesAdd?.eachWithIndex { networkAdd, index ->
+
+					log.info("adding network: ${networkAdd}")
+					def newIndex = server.interfaces?.size()
+					Network networkObj = morpheusContext.network.listById([networkAdd.network.id.toLong()]).firstOrError().blockingGet()
+					def networkConfig = [serverId: server.externalId, amazonClient: amazonOpts.amazonClient, securityGroups: securityGroups,
+										 subnetId: networkObj.externalId]
+					def networkResults = AmazonComputeUtility.addNetworkInterface(networkConfig)
+					log.info("network results: ${networkResults}")
+					def nic = networkResults.networkInterface
+					println "\u001B[33mAC Log - EC2ProvisionProvider:internalResizeServer- ${networkResults}\u001B[0m"
+					def platform = server.platform
+					def nicName
+					if(platform == 'windows') {
+						nicName = (index == 0) ? 'Ethernet' : 'Ethernet ' + (index + 1)
+					} else if(platform == 'linux') {
+						nicName = "eth${index}"
+					} else {
+						nicName = "eth${index}"
+					}
+					if (networkResults.success == true && nic?.getNetworkInterfaceId()) {
+						networkConfig.networkInterfaceId = nic?.getNetworkInterfaceId()
+						def attachResults = AmazonComputeUtility.attachNetworkInterface(networkConfig)
+						if (attachResults.success == true) {
+							def newInterface = new ComputeServerInterface([
+									externalId      : attachResults.attachmentId,
+									internalId      : nic?.getNetworkInterfaceId(),
+									uniqueId        : "morpheus-nic-${serverId}-${newIndex}",
+									name            : nicName,
+									ipAddress       : nic?.getPrivateIpAddress(),
+									network         : networkObj,
+									displayOrder    : newIndex,
+									primaryInterface: networkAdd?.network?.isPrimary ? true : false
+							])
+							morpheusContext.computeServer.computeServerInterface.create([newInterface], server).blockingGet()
+							// Need to refetch the server
+							server = morpheusContext.computeServer.get(server.id).blockingGet()
+
+						}
+					}
+
+				}
+				resizeRequest?.interfacesDelete?.eachWithIndex { networkDelete, index ->
+					def deleteConfig = [serverId    : server.externalId, amazonClient: amazonOpts.amazonClient, networkInterfaceId: networkDelete.internalId,
+										attachmentId: networkDelete.externalId]
+					def detachResults = AmazonComputeUtility.detachNetworkInterface(deleteConfig)
+					log.debug("detachResults: ${detachResults}")
+					if (detachResults.success == true) {
+						def deleteResults = AmazonComputeUtility.deleteNetworkInterface(deleteConfig)
+						if (deleteResults.success == true) {
+							morpheusContext.computeServer.computeServerInterface.remove([networkDelete], server).blockingGet()
+							server = morpheusContext.computeServer.get(server.id).blockingGet()
+						}
+					}
+				}
+
+				rtn.success = true
+			}
+		} catch(ex) {
+			log.error("Error resizing amazon instance to ${plan.name}", ex)
+			rtn.success = false
+			rtn.msg = "Error resizing amazon instance to ${plan.name} ${ex.getMessage()}"
+			rtn.error= "Error resizing amazon instance to ${plan.name} ${ex.getMessage()}"
+		}
+		return new ServiceResponse(success: rtn.success, data: [supported: rtn.supported])
+
 	}
 
 	/**
@@ -520,7 +1322,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 			if(publicImageId?.startsWith('!')) {
 				return rtn
 			}
-			VirtualImageLocation existing = morpheus.virtualImage.location.findVirtualImageLocationByExternalIdForCloudAndType(publicImageId,zone.id,regionCode,'ami',account.id).blockingGet()
+			VirtualImageLocation existing = morpheus.virtualImage.location.findVirtualImageLocationByExternalIdForCloudAndType(publicImageId,zone.id,regionCode,'ami',account.id).blockingGet().get()
 
 			log.info("saveAccountImage existing: ${existing}")
 			if(existing) {
@@ -593,14 +1395,15 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 		return rtn
 	}
 
+
 	protected VirtualImageLocation ensureVirtualImageLocation(AmazonEC2 amazonClient, String region, VirtualImage virtualImage, Cloud cloud) {
 
-		def rtn = virtualImage.locations?.find{it.refType == 'ComputeZone' && it.refId == cloud.id && it.imageRegion == region}
+		def rtn = virtualImage.imageLocations?.find{it.refType == 'ComputeZone' && it.refId == cloud.id && it.imageRegion == region}
 		if(!rtn) {
-			rtn = virtualImage.locations?.find{it.refType == 'ComputeZone' && it.refId == cloud.id}
+			rtn = virtualImage.imageLocations?.find{it.refType == 'ComputeZone' && it.refId == cloud.id}
 		}
 		if(!rtn) {
-			rtn = virtualImage.locations?.find{it.imageRegion == region}
+			rtn = virtualImage.imageLocations?.find{it.imageRegion == region}
 		}
 		if(!rtn) {
 			if(virtualImage.isPublic) {
@@ -609,13 +1412,12 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 				if(publicImageResults.success && publicImageResults.image) {
 					def diskId = publicImageResults.image.blockDeviceMappings.find{ mapping -> mapping.deviceName == publicImageResults.image.rootDeviceName}?.ebs?.snapshotId
 					def newLocation = new VirtualImageLocation(virtualImage: virtualImage,imageName: virtualImage.name, externalId: publicImageResults.image.getImageId(), imageRegion: region, externalDiskId: diskId)
-					newLocation = morpheus.virtualImage.location.create(newLocation).blockingGet()
+					newLocation = morpheus.virtualImage.location.create(newLocation, cloud).blockingGet()
 					return newLocation
 				}
 			}
 			if(!virtualImage.externalDiskId && virtualImage.externalId) {
 				def imageResults = AmazonComputeUtility.loadImage([amazonClient:amazonClient, imageId:virtualImage.externalId])
-
 			}
 			rtn = new VirtualImageLocation([externalId:virtualImage.externalId, externalDiskId:virtualImage.externalDiskId])
 		}
@@ -638,5 +1440,224 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 		if(!rtn)
 			rtn = containerConfig['resourcePool']
 		return rtn
+	}
+
+	protected ComputeServer saveAndGet(ComputeServer server) {
+		def saveSuccessful = morpheusContext.computeServer.save([server]).blockingGet()
+		if(!saveSuccessful) {
+			log.warn("Error saving server: ${server?.id}" )
+		}
+		return morpheusContext.computeServer.get(server.id).blockingGet()
+	}
+
+	def buildDataDiskList(server, dataDisks, imageResults) {
+		def rtn = []
+		if(dataDisks) {
+			def blockDeviceMap = imageResults.image.getBlockDeviceMappings()
+			def blockDeviceDisks = blockDeviceMap.findAll{it.getEbs() != null && it.getEbs().getSnapshotId() != null}
+			def blockDeviceDataDiskCount = blockDeviceDisks?.size() - 1 //root volume already handled
+			server.dataDevice = null
+			dataDisks?.eachWithIndex { dataVolume, index ->
+				def volume = StorageVolume.get(dataVolume.id)
+				if(index >= blockDeviceDataDiskCount - 1) {
+					def deviceName = AmazonComputeUtility.getFreeVolumeName(blockDeviceDisks, index)
+					rtn << [diskType:volume?.type?.name ?: 'gp2', diskSize:volume.maxStorage.div(ComputeUtility.ONE_GIGABYTE),
+							deviceName:deviceName.deviceName, iops: volume.maxIOPS] //iops
+					dataVolume.deviceName = deviceName.deviceName
+					dataVolume.deviceDisplayName = extractDiskDisplayName(deviceName.deviceName)
+					volume.deviceName = deviceName.deviceName
+					volume.deviceDisplayName = extractDiskDisplayName(deviceName.deviceName)
+					if(server.dataDevice == null)
+						server.dataDevice = changeDiskDisplayName(volume.deviceName)
+					volume.save(flush:true)
+				}
+			}
+			server.save(flush:true)
+		}
+		return rtn
+	}
+
+	def extractDiskDisplayName(name) {
+		def rtn = name
+		if(rtn) {
+			def lastSlash = rtn.lastIndexOf('/')
+			if(lastSlash > -1)
+				rtn = rtn.substring(lastSlash + 1)
+		}
+		return rtn
+	}
+
+	private changeDiskDisplayName(name) {
+		name = name?.replaceAll('sd', 'xvd')
+		if(name?.endsWith('1'))
+			name = name.substring(0, name.length() - 1)
+		return name
+	}
+
+	def setNetworkInfo(serverInterfaces, externalNetworks, newInterface = null) {
+		log.info("networks: ${externalNetworks}")
+		try {
+			if(externalNetworks?.size() > 0) {
+				serverInterfaces?.eachWithIndex { networkInterface, index ->
+					if(networkInterface.externalId) {
+						//check for changes?
+					} else {
+						def matchNetwork = externalNetworks.find{ it.row == networkInterface.displayOrder }
+						if(matchNetwork) {
+							networkInterface.externalId = "${matchNetwork.externalId}"
+							if(matchNetwork.macAddress && matchNetwork.macAddress != networkInterface.macAddress)
+								networkInterface.macAddress = matchNetwork.macAddress
+							if(networkInterface.type == null)
+								networkInterface.type = new ComputeServerInterfaceType(code: 'standard')
+							if(!networkInterface.name)
+								networkInterface.name = matchNetwork.name
+							networkInterface.description = matchNetwork.description
+						}
+					}
+				}
+				morpheusContext.computeServer.computeServerInterface.save(serverInterfaces)
+			}
+		} catch(e) {
+			log.error("setNetworkInfo error: ${e}", e)
+		}
+	}
+
+	def applyNetworkInterfaceUpdates(networkInterface, configMap) {
+		def rtn
+		if(networkInterface) {
+			configMap.each { key, value ->
+				if(key == 'type')
+					networkInterface[key] = ComputeServerInterfaceType.findByCode(value)
+				else
+					networkInterface[key] = value
+			}
+			networkInterface.save(flush:true)
+			rtn = networkInterface
+		}
+		return rtn
+	}
+
+	def setRootVolumeInfo(StorageVolume rootVolume, awsInstance) {
+		if(rootVolume && awsInstance) {
+			def rootDeviceName = awsInstance?.getRootDeviceName()
+			def awsRootDisk = awsInstance?.getBlockDeviceMappings()?.find { it.getDeviceName() == rootDeviceName }
+			if(awsRootDisk) {
+				rootVolume.externalId = awsRootDisk.getEbs().getVolumeId()
+				rootVolume.deviceName = rootDeviceName
+				rootVolume.deviceDisplayName = extractDiskDisplayName(rootDeviceName)
+			}
+			morpheusContext.storageVolume.save([rootVolume])
+		}
+	}
+
+	def setVolumeInfo(serverVolumes, externalVolumes, doRoot = false) {
+		log.info("external volumes: ${externalVolumes}")
+		try {
+			def maxCount = externalVolumes?.size()
+			serverVolumes.sort{it.displayOrder}.eachWithIndex { volume, index ->
+				if(index < maxCount && (volume.rootVolume != true || doRoot == true)) {
+					if(volume.externalId) {
+						log.debug("volume already assigned: ${volume.externalId}")
+					} else {
+						def volumeMatch = externalVolumes.find{it.deviceName == volume.deviceName}
+						log.debug("looking for volume: ${volume.deviceName} found: ${volumeMatch}")
+						if(volumeMatch) {
+							volume.status = 'provisioned'
+						    volume.externalId = volumeMatch.volumeId
+						}
+					}
+				}
+			}
+			morpheusContext.storageVolume.save(serverVolumes)
+		} catch(e) {
+			log.error("setVolumeInfo error: ${e}", e)
+		}
+	}
+
+
+	private applyComputeServerNetwork(server, privateIp, publicIp = null, hostname = null, networkPoolId = null, configOpts = [:], index = 0, networkOpts = [:]) {
+		configOpts.each { k,v ->
+			server.setConfigProperty(k, v)
+		}
+		def network
+		if(privateIp) {
+			privateIp = privateIp?.toString().contains("\n") ? privateIp.toString().replace("\n", "") : privateIp.toString()
+			def newInterface = false
+			server.internalIp = privateIp
+			server.sshHost = privateIp
+			log.debug("Setting private ip on server:${server.sshHost}")
+			network = server.interfaces?.find{it.ipAddress == privateIp}
+
+			if(network == null) {
+				if(index == 0)
+					network = server.interfaces?.find{it.primaryInterface == true}
+				if(network == null)
+					network = server.interfaces?.find{it.displayOrder == index}
+				if(network == null)
+					network = server.interfaces?.size() > index ? server.interfaces[index] : null
+			}
+			if(network == null) {
+				def interfaceName = server.sourceImage?.interfaceName ?: 'eth0'
+				network = new ComputeServerInterface(name:interfaceName, ipAddress:privateIp, primaryInterface:true,
+						displayOrder:(server.interfaces?.size() ?: 0) + 1)
+				newInterface = true
+			} else {
+				network.ipAddress = privateIp
+			}
+			if(publicIp) {
+				publicIp = publicIp?.toString().contains("\n") ? publicIp.toString().replace("\n", "") : publicIp.toString()
+				network.publicIpAddress = publicIp
+				server.externalIp = publicIp
+			}
+			if(networkPoolId) {
+				network.poolAssigned = true
+				network.networkPool = NetworkPool.get(networkPoolId.toLong())
+			}
+			if(hostname) {
+				server.hostname = hostname
+			}
+
+			if(networkOpts) {
+				networkOpts.each { key, value ->
+					network[key] = value
+				}
+			}
+
+			if(newInterface == true)
+				morpheusContext.computeServer.computeServerInterface.create([network], server).blockingGet()
+			else
+				morpheusContext.computeServer.computeServerInterface.save([network])
+		}
+		saveAndGet(server)
+		return network
+	}
+
+
+	/**
+	 * A unique shortcode used for referencing the provided provider provision type. Make sure this is going to be unique as any data
+	 * that is seeded or generated related to this provider will reference it by this code.
+	 * @return short code string that should be unique across all other plugin implementations.
+	 */
+	@Override
+	String getProvisionTypeCode() {
+		return "amazon"
+	}
+
+	/**
+	 * Specifies which deployment service should be used with this provider. In this case we are using the vm service
+	 * @return the name of the service
+	 */
+	@Override
+	String getDeployTargetService() {
+		return "vmDeployTargetService"
+	}
+
+	/**
+	 * Specifies what format of nodes are created by this provider. In this case we are using the vm format
+	 * @return the name of the format
+	 */
+	@Override
+	String getNodeFormat() {
+		return "vm"
 	}
 }

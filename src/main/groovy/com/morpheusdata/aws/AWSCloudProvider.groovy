@@ -27,7 +27,7 @@ import com.morpheusdata.aws.sync.VPCSync
 import com.morpheusdata.aws.sync.VirtualMachineSync
 import com.morpheusdata.aws.sync.VolumeSync
 import com.morpheusdata.aws.sync.VpcPeeringConnectionSync
-import com.morpheusdata.aws.sync.VpnGatewaysSync
+import com.morpheusdata.aws.sync.VpnGatewaySync
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.backup.AbstractBackupProvider
 import com.morpheusdata.core.CloudProvider
@@ -473,7 +473,7 @@ class AWSCloudProvider implements CloudProvider {
 					new SecurityGroupSync(this.plugin, cloudInfo).execute()
 					new InstanceProfileSync(this.plugin,cloudInfo).execute()
 					new IAMRoleSync(this.plugin,cloudInfo).execute()
-					new VpnGatewaysSync(this.plugin,cloudInfo).execute()
+					new VpnGatewaySync(this.plugin,cloudInfo).execute()
 					new InternetGatewaySync(this.plugin,cloudInfo).execute()
 					//lb services
 					new AlbSync(this.plugin,cloudInfo).execute()
@@ -585,7 +585,7 @@ class AWSCloudProvider implements CloudProvider {
 		log.debug("startServer: ${computeServer}")
 		def rtn = [success:false]
 		try {
-			return nutanixPrismProvisionProvider().startServer(computeServer)
+			return ec2ProvisionProvider().startServer(computeServer)
 		} catch(e) {
 			rtn.msg = "Error starting server: ${e.message}"
 			log.error("startServer error: ${e}", e)
@@ -598,7 +598,7 @@ class AWSCloudProvider implements CloudProvider {
 		log.debug("stopServer: ${computeServer}")
 		def rtn = [success:false]
 		try {
-			return nutanixPrismProvisionProvider().stopServer(computeServer)
+			return ec2ProvisionProvider().stopServer(computeServer)
 		} catch(e) {
 			rtn.msg = "Error stoping server: ${e.message}"
 			log.error("stopServer error: ${e}", e)
@@ -611,7 +611,7 @@ class AWSCloudProvider implements CloudProvider {
 		log.debug("deleteServer: ${computeServer}")
 		def rtn = [success:false]
 		try {
-			return nutanixPrismProvisionProvider().deleteServer(computeServer)
+			return ec2ProvisionProvider().deleteServer(computeServer)
 		} catch(e) {
 			rtn.msg = "Error deleting server: ${e.message}"
 			log.error("deleteServer error: ${e}", e)
@@ -653,6 +653,10 @@ class AWSCloudProvider implements CloudProvider {
 	@Override
 	String getDefaultNetworkServerTypeCode() {
 		return "amazon-network-server"
+	}
+
+	EC2ProvisionProvider ec2ProvisionProvider() {
+		this.plugin.getProviderByCode('amazon-ec2-provision-provider')
 	}
 
 }

@@ -114,51 +114,51 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 	@Override
 	Collection<NetworkRouterType> getRouterTypes() {
 		return [
-				new NetworkRouterType(code:'amazonInternetGateway', name:'Amazon Internet Gateway', creatable:true, description:'Amazon Internet Gateway',
-					routerService:'amazonInternetGatewayService', enabled:true, hasNetworkServer:false, hasGateway:true, deletable: true,
-					hasDnsClient:false, hasFirewall:false, hasFirewallGroups: false, hasNat:false, hasRouting:false, hasStaticRouting:false, hasBgp:false, hasOspf:false,
-					hasMulticast:false, hasGre:false, hasBridging:false, hasLoadBalancing:false, hasDnsForwarding:false, hasDhcp:false, supportsEditRoute: false,
-					hasDhcpRelay:false, hasSyslog:false, hasSslVpn:false, hasL2tVpn:false, hasIpsecVpn:false, hasCertificates:false, hasInterfaces: false,
-					hasRouteRedistribution:false, supportsEditFirewallRule: false, hasHighAvailability:false,
-					optionTypes: [
-						new OptionType(
-							code:'networkRouter.aws.name', inputType: OptionType.InputType.TEXT, name:'name', category:'networkRouter.aws.internet.gateway',
-							fieldName:'name', fieldCode: 'gomorpheus.optiontype.Name', fieldLabel:'Name', fieldContext:'domain', required:true, enabled:true,
-							editable:true, global:false, placeHolder:null, helpBlock:'', defaultValue:null, custom:false, displayOrder:5, fieldClass:null,
-							wrapperClass:null
-						),
-						new OptionType(
-							code:'networkRouter.aws.internet.gateway.vpc', inputType: OptionType.InputType.SELECT, name:'poolId', optionSource:'zonePoolsIgnoreDefault', dependsOnCode: 'router.zone.id',
-							category:'networkRouter.aws.internet.gateway', fieldName:'poolId', fieldLabel:'Resource Pool', fieldContext:'domain', required:false, enabled:true,
-							editable:true, global:false, placeHolder:null, helpBlock:'', defaultValue:null, custom:false, displayOrder:10, wrapperClass:null, fieldCode:'gomorpheus.label.attached.vpc'
-						)
-					]
-				),
-				new NetworkRouterType(code:'amazonVpcRouter', name:'Amazon VPC Router', creatable:false, description:'Amazon VPC Router',
-					routerService:'amazonNetworkService', enabled:true, hasNetworkServer:true, hasGateway:true, deletable: false,
-					hasDnsClient:false, hasFirewall:false, hasFirewallGroups: false, hasNat:false, hasRouting:true, hasStaticRouting:false, hasBgp:false, hasOspf:false,
-					hasMulticast:false, hasGre:false, hasBridging:false, hasLoadBalancing:false, hasDnsForwarding:false, hasDhcp:false, supportsEditRoute: true,
-					hasDhcpRelay:false, hasSyslog:false, hasSslVpn:false, hasL2tVpn:false, hasIpsecVpn:false, hasCertificates:false, hasInterfaces: false,
-					hasRouteRedistribution:false, supportsEditFirewallRule: false, hasHighAvailability:false,
-					routeOptionTypes: [
-						new OptionType(code:'networkRouter.aws.route.table', inputType: OptionType.InputType.SELECT, name:'routeTable', optionSource: 'awsRouteTable', optionSourceType:'amazon',
-							category:'networkRouter.global', fieldName:'routeTable', fieldCode: 'gomorpheus.label.route.table', fieldLabel:'routeTable', fieldContext:'domain', required:true, enabled:true,
-							editable:true, noBlank: true, global:false, displayOrder:10, fieldClass:null, wrapperClass:null
-						),
-						new OptionType(code:'networkRouter.aws.route.network', inputType: OptionType.InputType.TEXT, name:'network',
-							category:'networkRouter.global', fieldName:'source', fieldCode: 'gomorpheus.label.network', fieldLabel:'network', fieldContext:'domain', required:false, enabled:true,
-							editable:true, global:false, placeHolder:'192.160.0.0/24', helpBlock:'', defaultValue:null, custom:false, displayOrder:20, fieldClass:null, wrapperClass:null
-						),
-						new OptionType(code:'networkRouter.aws.route.type', inputType: OptionType.InputType.SELECT, name:'destinationType', optionSource: 'awsRouteDestinationType',optionSourceType:'amazon',
-							category:'networkRouter.global', fieldName:'destinationType', fieldCode: 'gomorpheus.label.destination.type', fieldLabel:'destinationType', fieldContext:'domain', required:true, enabled:true,
-							editable:true, noBlank: true, global:false, placeHolder:null, helpBlock:'', defaultValue:null, custom:false, displayOrder:30, fieldClass:null, wrapperClass:null
-						),
-						new OptionType(code:'networkRouter.aws.route.target', inputType: OptionType.InputType.SELECT, name:'destination', optionSource: 'awsRouteDestination', optionSourceType:'amazon', dependsOnCode: 'networkRouter.aws.route.type',
-							category:'networkRouter.global', fieldName:'destination', fieldCode: 'gomorpheus.label.destination', fieldLabel:'destination', fieldContext:'domain', required:true, enabled:true,
-							editable:true, noBlank: true, global:false, placeHolder:null, helpBlock:'', defaultValue:null, custom:false, displayOrder:40, fieldClass:null, wrapperClass:null
-						)
-					]
-				)
+			new NetworkRouterType(code:'amazonInternetGateway', name:'Amazon Internet Gateway', creatable:true, description:'Amazon Internet Gateway',
+				routerService:'amazonInternetGatewayService', enabled:true, hasNetworkServer:false, hasGateway:true, deletable: true,
+				hasDnsClient:false, hasFirewall:false, hasFirewallGroups: false, hasNat:false, hasRouting:false, hasStaticRouting:false, hasBgp:false, hasOspf:false,
+				hasMulticast:false, hasGre:false, hasBridging:false, hasLoadBalancing:false, hasDnsForwarding:false, hasDhcp:false, supportsEditRoute: false,
+				hasDhcpRelay:false, hasSyslog:false, hasSslVpn:false, hasL2tVpn:false, hasIpsecVpn:false, hasCertificates:false, hasInterfaces: false,
+				hasRouteRedistribution:false, supportsEditFirewallRule: false, hasHighAvailability:false,
+				optionTypes: [
+					new OptionType(
+						code:'networkRouter.aws.name', inputType: OptionType.InputType.TEXT, name:'name', category:'networkRouter.aws.internet.gateway',
+						fieldName:'name', fieldCode: 'gomorpheus.optiontype.Name', fieldLabel:'Name', fieldContext:'domain', required:true, enabled:true,
+						editable:true, global:false, placeHolder:null, helpBlock:'', defaultValue:null, custom:false, displayOrder:5, fieldClass:null,
+						wrapperClass:null
+					),
+					new OptionType(
+						code:'networkRouter.aws.internet.gateway.vpc', inputType: OptionType.InputType.SELECT, name:'poolId', optionSource:'zonePoolsIgnoreDefault', dependsOnCode: 'router.zone.id',
+						category:'networkRouter.aws.internet.gateway', fieldName:'poolId', fieldLabel:'Resource Pool', fieldContext:'domain', required:false, enabled:true,
+						editable:true, global:false, placeHolder:null, helpBlock:'', defaultValue:null, custom:false, displayOrder:10, wrapperClass:null, fieldCode:'gomorpheus.label.attached.vpc'
+					)
+				]
+			),
+			new NetworkRouterType(code:'amazonVpcRouter', name:'Amazon VPC Router', creatable:false, description:'Amazon VPC Router',
+				routerService:'amazonNetworkService', enabled:true, hasNetworkServer:true, hasGateway:true, deletable: false,
+				hasDnsClient:false, hasFirewall:false, hasFirewallGroups: false, hasNat:false, hasRouting:true, hasStaticRouting:false, hasBgp:false, hasOspf:false,
+				hasMulticast:false, hasGre:false, hasBridging:false, hasLoadBalancing:false, hasDnsForwarding:false, hasDhcp:false, supportsEditRoute: true,
+				hasDhcpRelay:false, hasSyslog:false, hasSslVpn:false, hasL2tVpn:false, hasIpsecVpn:false, hasCertificates:false, hasInterfaces: false,
+				hasRouteRedistribution:false, supportsEditFirewallRule: false, hasHighAvailability:false,
+				routeOptionTypes: [
+					new OptionType(code:'networkRouter.aws.route.table', inputType: OptionType.InputType.SELECT, name:'routeTable', optionSource: 'awsRouteTable', optionSourceType:'amazon',
+						category:'networkRouter.global', fieldName:'routeTable', fieldCode: 'gomorpheus.label.route.table', fieldLabel:'routeTable', fieldContext:'domain', required:true, enabled:true,
+						editable:true, noBlank: true, global:false, displayOrder:10, fieldClass:null, wrapperClass:null
+					),
+					new OptionType(code:'networkRouter.aws.route.network', inputType: OptionType.InputType.TEXT, name:'network',
+						category:'networkRouter.global', fieldName:'source', fieldCode: 'gomorpheus.label.network', fieldLabel:'network', fieldContext:'domain', required:false, enabled:true,
+						editable:true, global:false, placeHolder:'192.160.0.0/24', helpBlock:'', defaultValue:null, custom:false, displayOrder:20, fieldClass:null, wrapperClass:null
+					),
+					new OptionType(code:'networkRouter.aws.route.type', inputType: OptionType.InputType.SELECT, name:'destinationType', optionSource: 'awsRouteDestinationType',optionSourceType:'amazon',
+						category:'networkRouter.global', fieldName:'destinationType', fieldCode: 'gomorpheus.label.destination.type', fieldLabel:'destinationType', fieldContext:'domain', required:true, enabled:true,
+						editable:true, noBlank: true, global:false, placeHolder:null, helpBlock:'', defaultValue:null, custom:false, displayOrder:30, fieldClass:null, wrapperClass:null
+					),
+					new OptionType(code:'networkRouter.aws.route.target', inputType: OptionType.InputType.SELECT, name:'destination', optionSource: 'awsRouteDestination', optionSourceType:'amazon', dependsOnCode: 'networkRouter.aws.route.type',
+						category:'networkRouter.global', fieldName:'destination', fieldCode: 'gomorpheus.label.destination', fieldLabel:'destination', fieldContext:'domain', required:true, enabled:true,
+						editable:true, noBlank: true, global:false, placeHolder:null, helpBlock:'', defaultValue:null, custom:false, displayOrder:40, fieldClass:null, wrapperClass:null
+					)
+				]
+			)
 		]
 
 	}
@@ -195,7 +195,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 			if(network.networkServer) {
 				Cloud cloud = network.cloud
 				ComputeZonePool resourcePool = network.zonePoolId ? morpheus.cloud.pool.listById([network.zonePoolId]).toList().blockingGet()?.getAt(0) : null
-				AmazonEC2Client amazonClient = AmazonComputeUtility.getAmazonClient(cloud, false, resourcePool?.regionCode)
+				AmazonEC2Client amazonClient = plugin.getAmazonClient(cloud, false, resourcePool?.regionCode)
 				def networkConfig = [:]
 				networkConfig.name = network.name
 				networkConfig.vpcId = resourcePool?.externalId
@@ -206,7 +206,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 				networkConfig.cidr = network.cidr
 				log.debug("sending network config: {}", networkConfig)
 				def apiResults = AmazonComputeUtility.createSubnet(opts + [amazonClient: amazonClient, config: networkConfig])
-				log.info("network apiResults: {}", apiResults)
+				log.debug("network apiResults: {}", apiResults)
 				//create it
 				if(apiResults?.success && apiResults?.error != true) {
 					rtn.success = true
@@ -246,7 +246,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 		//remove the network
 		if(network.externalId) {
 			ComputeZonePool resourcePool = network.zonePoolId ? morpheus.cloud.pool.listById([network.zonePoolId]).toList().blockingGet()?.getAt(0) : null
-			AmazonEC2Client amazonClient = AmazonComputeUtility.getAmazonClient(network.cloud, false, resourcePool?.regionCode)
+			AmazonEC2Client amazonClient = plugin.getAmazonClient(network.cloud, false, resourcePool?.regionCode)
 			def deleteResults = AmazonComputeUtility.deleteSubnet([amazonClient: amazonClient, network: network])
 			log.debug("deleteResults: {}", deleteResults)
 			if(deleteResults.success == true) {
@@ -312,6 +312,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 		try {
 			def name = router.name
 			def cloud = router.cloud
+
 			def vpcId
 			CloudPool pool
 			def poolId = MorpheusUtils.parseLongConfig(router.poolId ? router.poolId : (router.refType == 'ComputeZonePool' ? router.refId : null))
@@ -320,13 +321,13 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 				vpcId = pool?.externalId
 			}
 			opts += [
-				amazonClient: AmazonComputeUtility.getAmazonClient(cloud,false, pool.regionCode),
+				amazonClient: plugin.getAmazonClient(cloud, false, pool.regionCode),
 				name: name,
 				vpcId: vpcId
 			]
 
 			def apiResults = AmazonComputeUtility.createRouter(opts)
-			log.info("route apiResults: {}", apiResults)
+			log.debug("route apiResults: {}", apiResults)
 			if(apiResults?.success && apiResults?.error != true) {
 				router.externalId = apiResults.internetGatewayId
 				rtn.success = true
@@ -365,7 +366,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 				def zone = router.cloud
 				def internetGatewayId = router.externalId
 				opts += [
-					amazonClient:AmazonComputeUtility.getAmazonClient(zone,false, regionCode),
+					amazonClient:plugin.getAmazonClient(zone,false, regionCode),
 					 name: name,
 					 internetGatewayId: internetGatewayId
 				]
@@ -425,15 +426,15 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 			} else if(router.type.code == 'amazonInternetGateway') {
 				if(router.externalId) {
 					Cloud cloud = router.cloud
-					def poolId = router.poolId ? router.poolId : (router.refType == 'ComputeZonePool' ? router.refId : null)
+					def poolId = MorpheusUtils.parseLongConfig(router.poolId ? router.poolId : (router.refType == 'ComputeZonePool' ? router.refId : null))
 					String regionCode = router.regionCode
 					CloudPool attachedPool
 					if(poolId) {
-						attachedPool = morpheus.cloud.pool.listById([router.poolId]).toList().blockingGet().getAt(0)
+						attachedPool = morpheus.cloud.pool.listById([poolId]).toList().blockingGet().getAt(0)
 						regionCode = attachedPool?.regionCode
 					}
 					opts += [
-						amazonClient:AmazonComputeUtility.getAmazonClient(cloud,false, regionCode),
+						amazonClient:plugin.getAmazonClient(cloud,false, regionCode),
 						internetGatewayId: router.externalId
 					]
 
@@ -443,7 +444,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 						// Must first detach from the VPC
 						def detachResults = AmazonComputeUtility.detachInternetGateway([vpcId: attachedPool.externalId] + opts)
 
-						log.info("detachResults: {}", detachResults)
+						log.debug("detachResults: {}", detachResults)
 						if(!detachResults.success) {
 							if(detachResults.msg?.contains('InvalidInternetGatewayID')){
 								performDelete = true
@@ -477,33 +478,56 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 	}
 
 	/**
+	 * Additional configuration on the router route
+	 * @param router NetworkRouter information
+	 * @param route NetworkRoute to prepare
+	 * @param routeConfig configuration options for the NetworkRoute
+	 * @param opts additional configuration options
+	 * @return ServiceResponse with a NetworkRoute data attribute
+	 */
+	ServiceResponse<NetworkRoute> prepareRouterRoute(NetworkRouter router, NetworkRoute route, Map routeConfig, Map opts) {
+		ServiceResponse<NetworkRoute> rtn = ServiceResponse.prepare(route)
+		route.destinationType = opts.route.destinationType
+
+		Long routeTableId = MorpheusUtils.parseLongConfig(opts.route.routeTable)
+		log.debug("routeTableID: $routeTableId")
+		if(routeTableId) {
+			route.routeTable = morpheus.network.routeTable.listById([routeTableId]).toList().blockingGet().getAt(0)
+			log.debug("routeTable: $route.routeTable")
+		}
+
+		return rtn
+	};
+
+
+	/**
 	 * Create the NetworkRoute submitted
 	 * @param network Network information
 	 * @param networkRoute NetworkRoute information
 	 * @param opts additional configuration options
 	 * @return ServiceResponse
 	 */
-	ServiceResponse createRouterRoute(NetworkRouter router, NetworkRoute route, Map opts) {
+	ServiceResponse<NetworkRoute> createRouterRoute(NetworkRouter router, NetworkRoute route, Map opts) {
 		log.debug "createRoute: ${router}, ${route}, ${opts}"
-		def rtn = ServiceResponse.prepare([externalId:null])
+		def rtn = ServiceResponse.prepare(route)
 		try {
 			Cloud cloud = router.cloud
-			route.destinationType = opts.route.destinationType
-
-			def poolId = router.poolId ? router.poolId : (router.refType == 'ComputeZonePool' ? router.refId : null)
+			def poolId = MorpheusUtils.parseLongConfig(router.poolId ? router.poolId : (router.refType == 'ComputeZonePool' ? router.refId : null))
 			String regionCode = router.regionCode
 			CloudPool attachedPool
 			if(poolId) {
-				attachedPool = morpheus.cloud.pool.listById([router.poolId]).toList().blockingGet().getAt(0)
+				attachedPool = morpheus.cloud.pool.listById([poolId]).toList().blockingGet().getAt(0)
 				regionCode = attachedPool?.regionCode
 			}
+
+			def amazonClient = plugin.getAmazonClient(cloud, false, regionCode)
 			opts += [
-				amazonClient:AmazonComputeUtility.getAmazonClient(cloud,false, regionCode),
+				amazonClient: amazonClient,
 				destinationCidrBlock: route.source, destinationType: route.destinationType, destination: route.destination, routeTableId: route.routeTable.externalId
 			]
 
 			def apiResults = AmazonComputeUtility.createRoute(opts)
-			log.info("route apiResults: {}", apiResults)
+			log.debug("route apiResults: {}", apiResults)
 			if(apiResults?.success && apiResults?.error != true) {
 				rtn.success = true
 				route.status = 'active'
@@ -526,18 +550,18 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 	 */
 	ServiceResponse deleteRouterRoute(NetworkRouter router, NetworkRoute route, Map opts) {
 		log.debug "deleteRoute: ${router}, ${route}"
-		def rtn = [success:false, data:[:], msg:null]
+		def rtn = ServiceResponse.prepare()
 		try {
 			Cloud cloud = router.cloud
-			def poolId = router.poolId ? router.poolId : (router.refType == 'ComputeZonePool' ? router.refId : null)
+			def poolId = MorpheusUtils.parseLongConfig(router.poolId ? router.poolId : (router.refType == 'ComputeZonePool' ? router.refId : null))
 			String regionCode = router.regionCode
 			CloudPool attachedPool
 			if(poolId) {
-				attachedPool = morpheus.cloud.pool.listById([router.poolId]).toList().blockingGet().getAt(0)
+				attachedPool = morpheus.cloud.pool.listById([poolId]).toList().blockingGet().getAt(0)
 				regionCode = attachedPool?.regionCode
 			}
 			opts += [
-				amazonClient:AmazonComputeUtility.getAmazonClient(cloud,false, regionCode),
+				amazonClient:plugin.getAmazonClient(cloud,false, regionCode),
 				routeTableId: route.routeTable.externalId
 			]
 
@@ -549,7 +573,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 
 			def deleteResults = AmazonComputeUtility.deleteRoute(opts)
 
-			log.info("deleteResults: {}", deleteResults)
+			log.debug("deleteResults: {}", deleteResults)
 			if(deleteResults.success == true) {
 				rtn.success = true
 			} else if(deleteResults.errorCode == 404) {
@@ -563,7 +587,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 			log.error("deleteRoute error: ${e}", e)
 			rtn.msg = 'unknown error deleting route'
 		}
-		return ServiceResponse.create(rtn)
+		return rtn
 	};
 
 	private buildRouteExternalId(CreateRouteRequest amazonRoute) {

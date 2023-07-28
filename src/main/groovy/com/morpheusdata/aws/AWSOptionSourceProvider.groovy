@@ -5,6 +5,7 @@ import com.morpheusdata.core.AbstractOptionSourceProvider
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
 import com.morpheusdata.model.Cloud
+import com.morpheusdata.model.NetworkRouteTable
 import com.morpheusdata.model.ReferenceData;
 import com.morpheusdata.core.util.MorpheusUtils;
 import groovy.util.logging.Slf4j
@@ -42,7 +43,10 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 
 	@Override
 	List<String> getMethodNames() {
-		return new ArrayList<String>(['awsPluginVpc', 'awsPluginRegions', 'amazonAvailabilityZones'])
+		return new ArrayList<String>([
+			'awsPluginVpc', 'awsPluginRegions', 'amazonAvailabilityZones', 'awsRouteTable', 'awsRouteDestinationType',
+			'awsRouteDestination', 'amazonEc2SecurityGroup', 'amazonEc2PublicIpType'
+		])
 	}
 
 	def awsPluginRegions(args) {
@@ -119,5 +123,155 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		}
 
 		return rtn
+	}
+
+	def awsRouteTable(args) {\
+		args = args instanceof Object[] ? args.getAt(0) : args
+		log.info("awsRouteTable args: ${args}")
+		def rtn = []
+		def routerId = MorpheusUtils.parseLongConfig(args.routerId)
+		log.info("routerId: $routerId")
+		if(routerId) {
+			def router = morpheus.network.router.listById([routerId]).toList().blockingGet()?.getAt(0)
+			log.info("router: $router")
+			if(router && router.refType == 'ComputeZonePool') {
+				def routeTableIds = morpheus.network.routeTable.listIdentityProjections(router.refId).toList().blockingGet().collect { it.id }
+				log.info("routeTableIds: $routeTableIds")
+				if(routeTableIds.size() > 0) {
+					rtn = morpheus.network.routeTable.listById(routeTableIds).toList().blockingGet().collect {
+						[name: it.name, value: it.id]
+					}
+				}
+			}
+		}
+
+		return rtn
+	}
+
+	def awsRouteDestinationType(args) {
+		return [
+			[name: 'Egress Only Internet Gateway', value: 'EGRESS_ONLY_INTERNET_GATEWAY'],
+			[name: 'Instance', value: 'INSTANCE'],
+			[name: 'Internet Gateway', value: 'INTERNET_GATEWAY'],
+			[name: 'NAT Gateway', value: 'NAT_GATEWAY'],
+			[name: 'Network Interface', value: 'NETWORK_INTERFACE'],
+			[name: 'VPC Peering Connection', value: 'VPC_PEERING_CONNECTION'],
+			[name: 'Transit Gateway', value: 'TRANSIT_GATEWAY'],
+			[name: 'Virtual Private Gateway', value: 'GATEWAY']
+		]
+	}
+
+	def awsRouteDestination(args) {
+		args = args instanceof Object[] ? args.getAt(0) : args
+		def rtn = []
+		def destinationType = args.route?.destinationType
+		def networkRouteTableId = MorpheusUtils.parseLongConfig(args.route?.routeTable)
+		if(networkRouteTableId) {
+			NetworkRouteTable networkRouteTable = morpheus.network.routeTable.listById([networkRouteTableId]).toList().blockingGet()?.getAt(0)
+			if(networkRouteTable) {
+				def vpc = networkRouteTable?.zonePool
+				def account = vpc?.owner
+				def resourceType
+				switch(destinationType) {
+					case 'EGRESS_ONLY_INTERNET_GATEWAY':
+						resourceType = 'aws.cloudFormation.ec2.egressOnlyInternetGateway'
+						break
+					case 'INTERNET_GATEWAY':
+						List<Long> routerIds = morpheus.network.router.listIdentityProjections(vpc.cloud.id, 'amazonInternetGateway').toList().blockingGet().collect { it.id }
+						if(routerIds.size() > 0) {
+							rtn =  morpheus.network.router.listById(routerIds).toList().blockingGet()?.collect { [name: it.name, value: it.externalId ]}?.sort{it.name } ?: []
+						}
+						break
+					case 'GATEWAY':
+						resourceType = 'aws.cloudFormation.ec2.vpnGateway'
+						break
+					case 'INSTANCE':
+						rtn = morpheus.computeServer.listByResourcePoolId(vpc.id).toList().blockingGet()?.collect { [name: it.displayName ?: it.name, value: it.externalId ]}?.sort{it.name} ?: []
+						break
+					case 'NAT_GATEWAY':
+						resourceType = 'aws.cloudFormation.ec2.natGateway'
+						break
+					case 'NETWORK_INTERFACE':
+						resourceType = 'aws.cloudFormation.ec2.networkInterface'
+						break
+					case 'TRANSIT_GATEWAY':
+						def accountResourceIds = morpheus.cloud.resource.listIdentityProjections(vpc.cloud.id, 'aws.cloudFormation.ec2.transitGatewayAttachment', null, account.id).toList().blockingGet().collect { it.id }
+						if(accountResourceIds.size() > 0) {
+							rtn = morpheus.cloud.resource.listById(accountResourceIds).filter {
+								def payload = new groovy.json.JsonSlurper().parseText(it.rawData ?: '[]')
+								return (payload.vpcId == vpc.externalId && payload.state == 'available')
+							}.toList().blockingGet().collect {
+								[name: it.displayName ?: it.name, value: it.externalId]
+							}?.sort{it.name } ?: []
+						}
+						break
+					case 'VPC_PEERING_CONNECTION':
+						resourceType = 'aws.cloudFormation.ec2.vpcPeeringConnection'
+						break
+				}
+
+				if(resourceType && rtn.size == 0) {
+					def accountResourceIds = morpheus.cloud.resource.listIdentityProjections(vpc.cloud.id, resourceType, null, account.id).toList().blockingGet().collect { it.id }
+					if(accountResourceIds.size() > 0) {
+						rtn = morpheus.cloud.resource.listById(accountResourceIds).toList().blockingGet()?.collect {
+							[name: it.displayName ?: it.name, value: it.externalId]
+						}?.sort { it.name } ?: []
+					}
+				}
+
+			}
+		}
+
+		return rtn
+	}
+
+	def amazonEc2SecurityGroup(args) {
+		//AC - TODO - Overhaul security group location fetch to allow multiple zone pools and filter based on id rather than category?
+		def cloudId = getCloudId(args)
+		if(cloudId) {
+			Cloud tmpCloud = morpheusContext.cloud.getCloudById(cloudId).blockingGet()
+			List zonePools
+			if(args.config?.resourcePoolId) {
+				def poolId = args.config.resourcePoolId
+				if(poolId instanceof List) {
+					poolId = poolId.first()
+				}
+				if(poolId instanceof String && poolId.startsWith('pool-')) {
+					poolId = poolId.substring(5).toLong()
+				}
+				zonePools = morpheusContext.cloud.pool.listById([poolId]).toList().blockingGet()
+			}
+			def poolIds = zonePools?.collect { it.id }
+			List options = morpheusContext.securityGroup.location.listIdentityProjections(tmpCloud.id, null, null).toList().blockingGet()
+			List allLocs = morpheusContext.securityGroup.location.listByIds(options.collect {it?.id}).filter {poolIds.contains(it?.zonePool?.id)}.toList().blockingGet()
+			def x =  allLocs.collect {[name: it.name, value: it.externalId]}.sort {it.name.toLowerCase()}
+			return x
+		} else {
+			return []
+		}
+	}
+
+	def amazonEc2PublicIpType(args) {
+		return [
+				[name:'Subnet Default', value:'subnet'],
+				[name:'Assign EIP', value:'elasticIp']
+		]
+	}
+
+	private static getCloudId(args) {
+		def cloudId = null
+		if(args?.size() > 0) {
+			def firstArg =  args.getAt(0)
+			if(firstArg?.zoneId) {
+				cloudId = firstArg.zoneId.toLong()
+				return cloudId
+			}
+			if(firstArg?.domain?.zone?.id) {
+				cloudId = firstArg.domain.zone.id.toLong()
+				return cloudId
+			}
+		}
+		return cloudId
+
 	}
 }

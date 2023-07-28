@@ -68,24 +68,24 @@ class ServicePlanSync {
 
 			// Fairly arbitrary maxStorage settings.. derived (roughly) from our initial amazon seed sizes
 			def maxStorage
-			if(maxMemory <= 2 * com.morpheus.util.ComputeUtility.ONE_GIGABYTE) {
-				maxStorage = 20l * com.morpheus.util.ComputeUtility.ONE_GIGABYTE
-			} else if(maxMemory <= 7 * com.morpheus.util.ComputeUtility.ONE_GIGABYTE) {
-				maxStorage = 40l * com.morpheus.util.ComputeUtility.ONE_GIGABYTE
-			} else if(maxMemory <= 8 * com.morpheus.util.ComputeUtility.ONE_GIGABYTE) {
-				maxStorage = 80l * com.morpheus.util.ComputeUtility.ONE_GIGABYTE
-			} else if(maxMemory <= 15 * com.morpheus.util.ComputeUtility.ONE_GIGABYTE) {
-				maxStorage = 150l * com.morpheus.util.ComputeUtility.ONE_GIGABYTE
-			} else if(maxMemory <= 20 * com.morpheus.util.ComputeUtility.ONE_GIGABYTE) {
-				maxStorage = 160l * com.morpheus.util.ComputeUtility.ONE_GIGABYTE
-			} else if(maxMemory <= 30 * com.morpheus.util.ComputeUtility.ONE_GIGABYTE) {
-				maxStorage = 300l * com.morpheus.util.ComputeUtility.ONE_GIGABYTE
-			} else if(maxMemory <= 32 * com.morpheus.util.ComputeUtility.ONE_GIGABYTE) {
-				maxStorage = 320l * com.morpheus.util.ComputeUtility.ONE_GIGABYTE
-			} else if(maxMemory <= 128 * com.morpheus.util.ComputeUtility.ONE_GIGABYTE) {
-				maxStorage = 600l * com.morpheus.util.ComputeUtility.ONE_GIGABYTE
+			if(maxMemory <= 2 * ComputeUtility.ONE_GIGABYTE) {
+				maxStorage = 20l * ComputeUtility.ONE_GIGABYTE
+			} else if(maxMemory <= 7 * ComputeUtility.ONE_GIGABYTE) {
+				maxStorage = 40l * ComputeUtility.ONE_GIGABYTE
+			} else if(maxMemory <= 8 * ComputeUtility.ONE_GIGABYTE) {
+				maxStorage = 80l * ComputeUtility.ONE_GIGABYTE
+			} else if(maxMemory <= 15 * ComputeUtility.ONE_GIGABYTE) {
+				maxStorage = 150l * ComputeUtility.ONE_GIGABYTE
+			} else if(maxMemory <= 20 * ComputeUtility.ONE_GIGABYTE) {
+				maxStorage = 160l * ComputeUtility.ONE_GIGABYTE
+			} else if(maxMemory <= 30 * ComputeUtility.ONE_GIGABYTE) {
+				maxStorage = 300l * ComputeUtility.ONE_GIGABYTE
+			} else if(maxMemory <= 32 * ComputeUtility.ONE_GIGABYTE) {
+				maxStorage = 320l * ComputeUtility.ONE_GIGABYTE
+			} else if(maxMemory <= 128 * ComputeUtility.ONE_GIGABYTE) {
+				maxStorage = 600l * ComputeUtility.ONE_GIGABYTE
 			} else {
-				maxStorage = 1200 * com.morpheus.util.ComputeUtility.ONE_GIGABYTE
+				maxStorage = 1200 * ComputeUtility.ONE_GIGABYTE
 			}
 
 			def name = buildServicePlanName(cloudItem)

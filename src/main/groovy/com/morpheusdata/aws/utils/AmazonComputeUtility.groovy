@@ -4,6 +4,7 @@ import com.amazonaws.client.builder.AwsClientBuilder
 import com.amazonaws.retry.RetryMode
 import com.amazonaws.retry.RetryPolicy
 import com.amazonaws.services.simplesystemsmanagement.model.GetParametersRequest
+import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.KeyPair
 import com.morpheusdata.core.util.KeyUtility
@@ -15,7 +16,7 @@ import groovy.util.logging.Slf4j
 
 import java.text.SimpleDateFormat
 
-import com.bertramlabs.plugins.karman.*
+import com.bertramlabs.plugins.karman.StorageProvider
 import javax.crypto.*
 import java.security.*
 import java.security.spec.*
@@ -66,7 +67,7 @@ import com.amazonaws.services.organizations.*
 import com.amazonaws.services.organizations.model.* //DetachPolicyRequest
 //orgs
 import com.amazonaws.services.pricing.*
-import com.amazonaws.services.pricing.model.* 
+import com.amazonaws.services.pricing.model.*
 //costing
 import com.amazonaws.services.costexplorer.*
 import com.amazonaws.services.costexplorer.model.*
@@ -97,14 +98,14 @@ class AmazonComputeUtility {
 		}
 	}
 
-	static testConnection(Cloud zone) {
+	static testConnection(Cloud cloud) {
 		def rtn = [success:false, invalidLogin:false]
 		try {
-			def endpoint = getAmazonEndpoint(zone)
+			def endpoint = getAmazonEndpoint(cloud)
 			def endpointConfiguration = new com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration(endpoint, getAmazonEndpointRegion(endpoint))
-			def clientConfiguration = getClientConfiguration(zone)
+			def clientConfiguration = getClientConfiguration(cloud)
 			def amazonClient = AmazonEC2Client.builder()
-				.withCredentials(getAmazonCredentials(zone, clientConfiguration).credsProvider)
+				.withCredentials(getAmazonCredentials(cloud, clientConfiguration).credsProvider)
 				.withClientConfiguration(clientConfiguration)
 				.withRequestHandlers(new InvalidCredentialsRequestHandler())
 				.withEndpointConfiguration(endpointConfiguration)
@@ -131,8 +132,7 @@ class AmazonComputeUtility {
 		// test standalone integration (ie. route53)
 		def rtn = [success:false, invalidLogin:false]
 		try {
-			// def endpoint = getAmazonEndpoint(zone)
-			def endpoint = accountIntegration.serviceUrl
+			def endpoint = getAmazonEndpoint(accountIntegration)
 			def region = getAmazonEndpointRegion(endpoint)
 			def endpointConfiguration = new com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration(endpoint, region)
 			def authConfig = [:]
@@ -200,7 +200,10 @@ class AmazonComputeUtility {
 			TagSpecification tagSpecification = new TagSpecification()
 			tagSpecification.withResourceType(ResourceType.Instance)
 			tagSpecification.setTags(tagList)
-			createServer.withTagSpecifications(tagSpecification)
+			TagSpecification volumeTagSpecification = new TagSpecification()
+			tagSpecification.withResourceType(ResourceType.Volume)
+			tagSpecification.setTags(tagList)
+			createServer.withTagSpecifications(tagSpecification,volumeTagSpecification)
 			//cloud config
 			if(opts.cloudConfig)
 				createServer.withUserData(opts.cloudConfig.bytes.encodeBase64().toString())
@@ -297,6 +300,9 @@ class AmazonComputeUtility {
 			def nameTag = new com.amazonaws.services.ec2.model.Tag('Name', opts.name ?: "morpheus node")
 			def resourceList = new LinkedList<String>()
 			resourceList.add(opts.server?.externalId ?: opts.serverId)
+			if(opts.resources) {
+				resourceList += opts.resources
+			}
 			def tagList = new LinkedList<com.amazonaws.services.ec2.model.Tag>()
 			tagList.add(nameTag)
 			opts.tagList?.each {
@@ -327,6 +333,9 @@ class AmazonComputeUtility {
 			def nameTag = new com.amazonaws.services.ec2.model.Tag('Name', opts.name ?:"morpheus node")
 			def resourceList = new LinkedList<String>()
 			resourceList.add(opts.server?.externalId ?: opts.serverId)
+			if(opts.resources) {
+				resourceList += opts.resources
+			}
 			def tagList = new LinkedList<com.amazonaws.services.ec2.model.Tag>()
 			tagList.add(nameTag)
 			opts.tagList?.each {
@@ -601,7 +610,7 @@ class AmazonComputeUtility {
 	}
 
 	static listAvailabilityZones(opts) {
-	def rtn = [success:false, zoneList:[]]
+		def rtn = [success:false, zoneList:[]]
 		try {
 			AmazonEC2Client amazonClient = opts.amazonClient as AmazonEC2Client
 			def zoneRequest = new DescribeAvailabilityZonesRequest()
@@ -614,7 +623,7 @@ class AmazonComputeUtility {
 	}
 
 	static listSecurityGroups(opts) {
-	def rtn = [success:false, securityList:[]]
+		def rtn = [success:false, securityList:[]]
 		try {
 			def amazonClient = opts.amazonClient
 			def vpcId = opts.zone.getConfigProperty('vpc')
@@ -1027,7 +1036,7 @@ class AmazonComputeUtility {
 		def rtn = [success:false, elasticIPs:[]]
 		try {
 			def amazonClient = opts.amazonClient
-			def domainType = opts.zone.getConfigProperty('vpc') ? 'vpc' : 'standard'
+			def domainType = opts.cloud.getConfigProperty('vpc') ? 'vpc' : 'standard'
 			DescribeAddressesRequest describeAddressesRequest = new DescribeAddressesRequest().withFilters(new LinkedList<Filter>())
 			describeAddressesRequest.getFilters().add(new Filter().withName("domain").withValues(domainType))
 			rtn.elasticIPs = amazonClient.describeAddresses().getAddresses()
@@ -2059,7 +2068,7 @@ class AmazonComputeUtility {
 				results.success = rtn.instanceList?.size() > 0
 			}
 			if(results.success == true) {
-				def volumeId = opts.server.volumeId
+				def volumeId = opts.server.rootVolumeId
 				if(volumeId) {
 					sleep(180000)
 					opts.volumeId = volumeId
@@ -2483,20 +2492,21 @@ class AmazonComputeUtility {
 		return rtn
 	}
 
-	static validateServerConfig(Map opts=[:]) {
+	static validateServerConfig(MorpheusContext morpheusContext, Map opts =[:]) {
 		def rtn = [success:false, errors: []]
 		try {
-			def zone = Cloud.read(opts.zoneId)
+			def cloud = morpheusContext.cloud.getCloudById(opts.zoneId?.toLong()).blockingGet()
+			AmazonEC2 amazonClient = getAmazonClient(cloud,false, null)
 			// Validate enough Elastic IPs left
 			if(opts.publicIpType == 'elasticIp') {
-				def elasticIPsResult = listElasticIPs([amazonClient: opts.amazonClient, zone: zone])
+				def elasticIPsResult = listElasticIPs([amazonClient: amazonClient, cloud: cloud])
 				def currentCount = elasticIPsResult.elasticIPs?.size() ?: 0
 				log.debug "currentCount: ${currentCount}"
-				def accountAttributesResult = listAccountAttributes([amazonClient: opts.amazonClient])
+				def accountAttributesResult = listAccountAttributes([amazonClient: amazonClient])
 				// Setting for # of allowed elastic IPs is defined on VPC and classic.. determine which one to use
 				def maxElasticIPs = 0
 				def attributeValue
-				if(zone.getConfigProperty('vpc') || zone.getConfigProperty('isVpc') ) {
+				if(cloud.getConfigProperty('vpc') || cloud.getConfigProperty('isVpc') ) {
 					attributeValue = accountAttributesResult.results?.accountAttributes?.find { it.attributeName == 'vpc-max-elastic-ips' }?.attributeValues?.attributeValue
 				} else {
 					attributeValue = accountAttributesResult.results?.accountAttributes?.find { it.attributeName == 'max-elastic-ips' }?.attributeValues?.attributeValue
@@ -2509,14 +2519,14 @@ class AmazonComputeUtility {
 					rtn.errors += [field: 'publicIpType', msg: 'Not enough Elastic IPs available']
 				}
 			}
-			if(zone?.configMap?.vpc || zone.configMap?.isVpc) {
+			if(cloud?.configMap?.vpc || cloud.configMap?.isVpc) {
 				if(!opts.subnetId) {
 					if(opts.networkInterfaces?.size() > 0) {
 						def hasNetwork = true
 						def sameNetwork = true
 						def matchNetwork
 						opts.networkInterfaces?.each {
-							log.debug("availability zone: ${it.network.availabilityZone}")
+							log.debug("availability cloud: ${it.network.availabilityZone}")
 							if(it.network.group != null) {
 								hasNetwork = true
 							} else if(it.network.id == null || it.network.id == '') {
@@ -2524,11 +2534,11 @@ class AmazonComputeUtility {
 							} else {
 								def networkId
 								def networkObj
+								networkId = it.network.id.toLong()
 								try {
-									networkId = it.network.id.toLong()
-									networkObj = Network.get(networkId)
-								}catch(e){
-									networkObj = Network.findByName(it.network.idName)
+									networkObj = morpheusContext.network.listById([networkId]).firstOrError().blockingGet()
+								} catch(e) {
+									log.error("Error finding network ${it.network.name}")
 								}
 
 								if(matchNetwork == null) {
@@ -2539,13 +2549,13 @@ class AmazonComputeUtility {
 								}
 							}
 						}
-						if(!opts.vpcId) {
+						if(!opts.resourcePool) {
 							rtn.errors += [field:'resourcePoolId', msg: 'You must choose a VPC']
 						}
 						if(hasNetwork != true)
 							rtn.errors += [field:'networkInterface', msg:'You must choose a subnet for each network']
 						if(sameNetwork != true)
-							rtn.errors += [field:'networkInterface', msg:'You must choose subnets in the same availability zone']
+							rtn.errors += [field:'networkInterface', msg:'You must choose subnets in the same availability cloud']
 					} else {
 						rtn.errors += [field:'subnetId', msg:'You must choose a subnet']
 					}
@@ -2560,7 +2570,7 @@ class AmazonComputeUtility {
 				}
 			}
 			else if(!opts.availabilityId) {
-				rtn.errors += [field: 'availabilityId', msg: 'You must choose a zone']
+				rtn.errors += [field: 'availabilityId', msg: 'You must choose a cloud']
 			}
 			if(opts.imageType && !opts.isMigration) {
 				if(opts.imageType == 'private' && !opts.imageId) {
@@ -4332,8 +4342,8 @@ class AmazonComputeUtility {
 	}
 
 
-	static getAmazonStsExternalId(zone) {
-		def config = zone.getConfigMap()
+	static getAmazonStsExternalId(Cloud cloud) {
+		def config = cloud.getConfigMap()
 		if(config?.stsExternalId) {
 			return config.stsExternalId
 		} else {
@@ -4341,8 +4351,8 @@ class AmazonComputeUtility {
 		}
 	}
 
-	static getAmazonUseHostCredentials(zone) {
-		def config = zone?.getConfigMap()
+	static getAmazonUseHostCredentials(Cloud cloud) {
+		def config = cloud?.getConfigMap()
 		if(config?.useHostCredentials) {
 			return config.useHostCredentials in [true, 'true', 'on']
 		} else {
@@ -4350,11 +4360,23 @@ class AmazonComputeUtility {
 		}
 	}
 
-	static String getAmazonEndpoint(zone) {
-		def config = zone.getConfigMap()
-		if(config?.endpoint)
+	static String defaultEndpoint = "ec2.us-east-1.amazonaws.com"
+
+	static String getAmazonEndpoint(Cloud cloud) {
+		def config = cloud.getConfigMap()
+		if(config?.endpoint) {
 			return config.endpoint
-		throw new Exception('no amazon endpoint specified')
+		} else {
+			return defaultEndpoint //default to us-east
+		}
+	}
+
+	static String getAmazonEndpoint(AccountIntegration accountIntegration) {
+		if(accountIntegration.serviceUrl) {
+			return accountIntegration.serviceUrl
+		} else {
+			return defaultEndpoint //default to us-east
+		}
 	}
 
 	static String getAmazonEndpointRegion(String endpoint) {
@@ -4480,7 +4502,7 @@ class AmazonComputeUtility {
 		def clientExpires
 
 		if(!creds) {
-			def credsInfo = getAmazonCredentials(zone,clientConfiguration,false,region)
+			def credsInfo = getAmazonCredentials(zone, clientConfiguration,false,region)
 			creds = credsInfo.credentials
 			clientExpires = credsInfo.clientExpires
 			credsProvider = credsInfo.credsProvider as AWSCredentialsProvider
@@ -4505,8 +4527,6 @@ class AmazonComputeUtility {
 	}
 
 	static getAmazonClient(AccountIntegration accountIntegration, Cloud cloud, Boolean fresh=false, String region=null) {
-		region = region ?: accountIntegration.serviceUrl
-		region = getAmazonEndpointRegion(region)
 		def creds
 		def credsProvider
 		def clientCacheKey = "accountIntegration:${accountIntegration.id ?: java.util.UUID.randomUUID().toString()}:${region}"
@@ -4520,7 +4540,8 @@ class AmazonComputeUtility {
 		def builder = AmazonEC2ClientBuilder.standard()
 		ClientConfiguration clientConfiguration = new ClientConfiguration()
 		def clientExpires
-		
+		region = region ?: getAmazonEndpoint(cloud ?: accountIntegration)
+		region = getAmazonEndpointRegion(region)
 		def authConfig = [:]
 		if(cloud) {
 			clientConfiguration = getClientConfiguration(cloud)
@@ -4528,12 +4549,12 @@ class AmazonComputeUtility {
 			authConfig.secretKey = accountIntegration.credentialData?.password ?: accountIntegration.servicePassword ?: getAmazonSecretKey(cloud)
 			authConfig.useHostCredentials = getAmazonUseHostCredentials(cloud)
 			authConfig.stsAssumeRole = cloud.getConfigProperty('stsAssumeRole')
-			authConfig.endpoint =  getAmazonCostingEndpoint(cloud)
-			authConfig.region = getAmazonEndpointRegion(authConfig.endpoint)
+			// authConfig.endpoint =  getAmazonCostingEndpoint(cloud)
+			// authConfig.region = getAmazonEndpointRegion(authConfig.endpoint)
 		} else {
 			authConfig.accessKey = accountIntegration.credentialData?.username ?: accountIntegration.serviceUsername
 			authConfig.secretKey = accountIntegration.credentialData?.password ?: accountIntegration.servicePassword
-			authConfig.region = region
+			// authConfig.region = region
 			// if(proxySettings) {
 			// 	authConfig.apiProxy = proxySettings
 			// }
@@ -4915,8 +4936,6 @@ class AmazonComputeUtility {
 	}
 
 	static getAmazonRoute53Client(AccountIntegration accountIntegration, Cloud cloud, Boolean fresh = false, Map proxySettings=null, Map opts=[:], String region=null) {
-		region = region ?: accountIntegration.serviceUrl
-		region = getAmazonEndpointRegion(region)
 		def creds
 		def credsProvider
 		def clientCacheKey = "accountIntegration:${accountIntegration.id ?: java.util.UUID.randomUUID().toString()}:${region}"
@@ -4931,18 +4950,20 @@ class AmazonComputeUtility {
 		ClientConfiguration clientConfiguration = new ClientConfiguration()
 		def clientExpires
 		def authConfig = [:]
+		region = region ?: getAmazonEndpoint(cloud ?: accountIntegration)
+		region = getAmazonEndpointRegion(region)
 		if(cloud) {
 			clientConfiguration = getClientConfiguration(cloud)
 			authConfig.accessKey = accountIntegration.credentialData?.username ?: accountIntegration.serviceUsername ?: getAmazonAccessKey(cloud)
 			authConfig.secretKey = accountIntegration.credentialData?.password ?: accountIntegration.servicePassword ?: getAmazonSecretKey(cloud)
 			authConfig.useHostCredentials = getAmazonUseHostCredentials(cloud)
 			authConfig.stsAssumeRole = cloud.getConfigProperty('stsAssumeRole')
-			authConfig.endpoint =  getAmazonCostingEndpoint(cloud)
-			authConfig.region = getAmazonEndpointRegion(authConfig.endpoint)
+			// authConfig.endpoint =  getAmazonCostingEndpoint(cloud)
+			// authConfig.region = getAmazonEndpointRegion(authConfig.endpoint)
 		} else {
 			authConfig.accessKey = accountIntegration.credentialData?.username ?: accountIntegration.serviceUsername
 			authConfig.secretKey = accountIntegration.credentialData?.password ?: accountIntegration.servicePassword
-			authConfig.region = region
+			// authConfig.region = region
 			if(proxySettings) {
 				authConfig.apiProxy = proxySettings
 			}

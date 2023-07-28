@@ -1,21 +1,22 @@
 package com.morpheusdata.aws.sync
 
 import com.amazonaws.services.ec2.model.Instance
-import com.bertramlabs.plugins.karman.network.SecurityGroupInterface
 import com.morpheusdata.aws.AWSPlugin
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
-import com.bertramlabs.plugins.karman.network.NetworkProvider
+import com.amazonaws.services.ec2.model.SecurityGroup as AWSSecurityGroup
 import com.morpheusdata.model.ComputeServer
 import com.morpheusdata.model.ComputeZonePool
 import com.morpheusdata.model.SecurityGroupLocation
 import com.morpheusdata.model.SecurityGroupRuleLocation
 import com.morpheusdata.model.projection.ComputeZonePoolIdentityProjection
 import com.morpheusdata.model.projection.SecurityGroupLocationIdentityProjection
+import groovy.util.logging.Slf4j
 import io.reactivex.Observable
 
+@Slf4j
 class SecurityGroupSync {
 	private Cloud cloud
 	private MorpheusContext morpheusContext
@@ -29,31 +30,37 @@ class SecurityGroupSync {
 	}
 
 	def execute() {
-		def vpcId = cloud.getConfigProperty('vpcId')
-		def zonePool = vpcId ? allZonePools[vpcId] : null
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
-			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud, false, region.externalId)
-			Collection<SecurityGroupInterface> cloudItems = NetworkProvider.create(provider: 'amazon', client: amazonClient).getSecurityGroups().findAll {
-				(!vpcId || it.vpcId == vpcId) && (!it.vpcId || allZonePools[it.vpcId]) //this vpc isnt synced in scope so dont add this security group
+		try {
+			log.debug("SecurityGroupSync: starting sync")
+			def vpcId = cloud.getConfigProperty('vpcId')
+			def zonePool = vpcId ? allZonePools[vpcId] : null
+			morpheusContext.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+				def amazonClient = AmazonComputeUtility.getAmazonClient(cloud, false, region.externalId)
+				Collection<AWSSecurityGroup> cloudItems = AmazonComputeUtility.listSecurityGroups([amazonClient: amazonClient]).securityList.findAll {
+					(!vpcId || it.vpcId == vpcId) && (!it.vpcId || allZonePools[it.vpcId]) //this vpc isnt synced in scope so dont add this security group
+				} as Collection<AWSSecurityGroup>
+				Observable<SecurityGroupLocationIdentityProjection> existingRecords = morpheusContext.securityGroup.location.listIdentityProjections(cloud.id, zonePool?.id, null)
+				SyncTask<SecurityGroupLocationIdentityProjection, AWSSecurityGroup, SecurityGroupLocation> syncTask = new SyncTask<>(existingRecords, cloudItems)
+				syncTask.addMatchFunction { SecurityGroupLocationIdentityProjection existingItem, AWSSecurityGroup cloudItem ->
+					existingItem.externalId == cloudItem.id
+				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<SecurityGroupLocationIdentityProjection, AWSSecurityGroup>> updateItems ->
+					morpheusContext.securityGroup.location.listByIds(updateItems.collect { it.existingItem.id } as List<Long>)
+				}.onAdd { itemsToAdd ->
+					addMissingSecurityGroups(itemsToAdd, region.externalId, zonePool?.id)
+				}.onUpdate { List<SyncTask.UpdateItem<ComputeServer, Instance>> updateItems ->
+					updateMatchedSecurityGroups(updateItems, region.externalId, zonePool?.id)
+				}.onDelete { removeItems ->
+					removeMissingSecurityGroups(removeItems)
+				}.start()
 			}
-			Observable<SecurityGroupLocationIdentityProjection> existingRecords = morpheusContext.securityGroup.location.listIdentityProjections(cloud.id, zonePool?.id, null)
-			SyncTask<SecurityGroupLocationIdentityProjection, SecurityGroupInterface, SecurityGroupLocation> syncTask = new SyncTask<>(existingRecords, cloudItems)
-			syncTask.addMatchFunction { SecurityGroupLocationIdentityProjection existingItem, SecurityGroupInterface cloudItem ->
-				existingItem.externalId == cloudItem.id
-			}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<SecurityGroupLocationIdentityProjection, SecurityGroupInterface>> updateItems ->
-				morpheusContext.securityGroup.location.listByIds(updateItems.collect { it.existingItem.id } as List<Long>)
-			}.onAdd { itemsToAdd ->
-				addMissingSecurityGroups(itemsToAdd, region.externalId, zonePool?.id)
-			}.onUpdate { List<SyncTask.UpdateItem<ComputeServer, Instance>> updateItems ->
-				updateMatchedSecurityGroups(updateItems, region.externalId, zonePool?.id)
-			}.onDelete { removeItems ->
-				removeMissingSecurityGroups(removeItems)
-			}.start()
+		} catch (Exception ex) {
+			log.error("SecurityGroupSync error: {}", ex, ex)
 		}
+
 	}
 
-	private addMissingSecurityGroups(Collection<SecurityGroupInterface> addList, String regionCode, Long zonePoolId) {
-		for(SecurityGroupInterface cloudItem in addList) {
+	private addMissingSecurityGroups(Collection<AWSSecurityGroup> addList, String regionCode, Long zonePoolId) {
+		for(AWSSecurityGroup cloudItem in addList) {
 			SecurityGroupLocation add = new SecurityGroupLocation(
 				refType: 'ComputeZone', refId: cloud.id, externalId: cloudItem.id, name: cloudItem.name,
 				description: cloudItem.description, regionCode: regionCode, groupName: cloudItem.name,
@@ -65,7 +72,7 @@ class SecurityGroupSync {
 		syncRules(addList, zonePoolId)
 	}
 
-	private updateMatchedSecurityGroups(List<SyncTask.UpdateItem<SecurityGroupLocation, SecurityGroupInterface>> updateList, String regionCode, Long zonePoolId) {
+	private updateMatchedSecurityGroups(List<SyncTask.UpdateItem<SecurityGroupLocation, AWSSecurityGroup>> updateList, String regionCode, Long zonePoolId) {
 		def saveList = []
 		for(def updateItem in updateList) {
 			def existingItem = updateItem.existingItem
@@ -98,13 +105,13 @@ class SecurityGroupSync {
 	}
 
 	private removeMissingSecurityGroups(Collection<SecurityGroupLocationIdentityProjection> removeList) {
-		morpheusContext.securityGroup.location.removeSecurityGroupLocations(removeList)
+		morpheusContext.securityGroup.location.removeSecurityGroupLocations(removeList as List<SecurityGroupLocationIdentityProjection>)
 	}
 
-	private syncRules(Collection<SecurityGroupInterface> cloudList, Long zonePoolId) {
+	private syncRules(Collection<AWSSecurityGroup> cloudList, Long zonePoolId) {
 		def securityGroupLocations = getSecurityGroupLocations(zonePoolId)
 
-		for(SecurityGroupInterface cloudItem in cloudList) {
+		for(AWSSecurityGroup cloudItem in cloudList) {
 			def securityGroupLocation = morpheusContext.securityGroup.location.listByIds([securityGroupLocations[cloudItem.id].id]).blockingFirst()
 			def rules = cloudItem.rules?.collect { cloudRule ->
 				SecurityGroupRuleLocation rule = new SecurityGroupRuleLocation(
@@ -146,7 +153,7 @@ class SecurityGroupSync {
 	}
 
 	private Map<String, ComputeZonePoolIdentityProjection> getAllZonePools() {
-		zonePools ?: (zonePools = morpheusContext.cloud.pool.listSyncProjections(cloud.id, '').toMap {it.externalId}.blockingGet())
+		zonePools ?: (zonePools = morpheusContext.cloud.pool.listIdentityProjections(cloud.id, '').toMap {it.externalId}.blockingGet())
 	}
 
 	private Map<String, SecurityGroupLocationIdentityProjection> getSecurityGroupLocations(Long zonePoolId) {

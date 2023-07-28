@@ -15,8 +15,9 @@ import io.reactivex.Observable
 import io.reactivex.Single
 
 @Slf4j
-class VpnGatewaysSync extends InternalResourceSync {
-	VpnGatewaysSync(AWSPlugin plugin, Cloud cloud) {
+class VpnGatewaySync extends InternalResourceSync {
+
+	VpnGatewaySync(AWSPlugin plugin, Cloud cloud) {
 		this.plugin = plugin
 		this.cloud = cloud
 		this.morpheusContext = plugin.morpheusContext
@@ -27,9 +28,7 @@ class VpnGatewaysSync extends InternalResourceSync {
 			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, region.externalId)
 			def apiList = AmazonComputeUtility.listVpnGateways([amazonClient: amazonClient],[:])
 			if(apiList.success) {
-				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.cloud.resource.listIdentityProjections(cloud.id,null, region.externalId).filter {
-					it.typeCode == 'aws.cloudFormation.ec2.vpnGateway'
-				}
+				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.cloud.resource.listIdentityProjections(cloud.id,"aws.cloudFormation.ec2.vpnGateway", region.externalId)
 				SyncTask<AccountResourceIdentityProjection, VpnGateway, AccountResource> syncTask = new SyncTask<>(domainRecords, apiList.vpnGateways as Collection<VpnGateway>)
 				syncTask.addMatchFunction { AccountResourceIdentityProjection existingItem, VpnGateway cloudItem ->
 					existingItem.externalId == cloudItem.vpnGatewayId

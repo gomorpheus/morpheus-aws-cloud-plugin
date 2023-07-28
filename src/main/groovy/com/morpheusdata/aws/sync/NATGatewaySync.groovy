@@ -61,7 +61,7 @@ class NATGatewaySync extends InternalResourceSync {
 			adds << new AccountResource(
 				owner:cloud.account, category:getCategory(), code:(getCategory() + '.' + cloudItem.natGatewayId),
 				externalId:cloudItem.natGatewayId, cloudId:cloud.id, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.natGateway'), resourceType:'NatGateway',
-				zoneName: cloud.name, name: name, displayName: name, region: new ComputeZoneRegion(id: region.id)
+				cloudName: cloud.name, name: name, displayName: name, region: new ComputeZoneRegion(id: region.id)
 			)
 		}
 		morpheusContext.cloud.resource.create(adds).blockingGet()
