@@ -67,7 +67,7 @@ class KeyPairSync {
 			)
 		}
 
-		log.debug "About to create ${adds.size()} instance scales"
+		log.debug "About to create ${adds.size()} keypairs"
 		morpheusContext.keyPair.create(adds).blockingGet()
 	}
 
