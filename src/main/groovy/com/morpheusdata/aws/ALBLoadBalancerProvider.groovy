@@ -13,8 +13,12 @@ import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingC
 import com.amazonaws.services.elasticloadbalancingv2.model.Action
 import com.amazonaws.services.elasticloadbalancingv2.model.ActionTypeEnum
 import com.amazonaws.services.elasticloadbalancingv2.model.AddTagsRequest
+import com.amazonaws.services.elasticloadbalancingv2.model.Certificate
+import com.amazonaws.services.elasticloadbalancingv2.model.CreateListenerRequest
+import com.amazonaws.services.elasticloadbalancingv2.model.CreateListenerResult
 import com.amazonaws.services.elasticloadbalancingv2.model.CreateLoadBalancerRequest
 import com.amazonaws.services.elasticloadbalancingv2.model.CreateLoadBalancerResult
+import com.amazonaws.services.elasticloadbalancingv2.model.CreateRuleRequest
 import com.amazonaws.services.elasticloadbalancingv2.model.CreateTargetGroupRequest
 import com.amazonaws.services.elasticloadbalancingv2.model.CreateTargetGroupResult
 import com.amazonaws.services.elasticloadbalancingv2.model.DeleteListenerRequest
@@ -35,6 +39,7 @@ import com.amazonaws.services.elasticloadbalancingv2.model.ModifyListenerRequest
 import com.amazonaws.services.elasticloadbalancingv2.model.ModifyTargetGroupAttributesRequest
 import com.amazonaws.services.elasticloadbalancingv2.model.RegisterTargetsRequest
 import com.amazonaws.services.elasticloadbalancingv2.model.Rule
+import com.amazonaws.services.elasticloadbalancingv2.model.RuleCondition
 import com.amazonaws.services.elasticloadbalancingv2.model.SetSecurityGroupsRequest
 import com.amazonaws.services.elasticloadbalancingv2.model.SetSubnetsRequest
 import com.amazonaws.services.elasticloadbalancingv2.model.Tag
@@ -72,7 +77,9 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
     MorpheusContext morpheusContext
     AWSPlugin plugin
 
-    private static final PROVIDER_CODE = 'plugin.amazon-alb'
+    static final PROVIDER_CODE = 'amazon-alb'
+    static final SCHEME_INTERNAL = 'internal'
+    static final SCHEME_INTERNET_FACING = 'Internet-facing'
 
     public ALBLoadBalancerProvider(Plugin plugin, MorpheusContext context) {
         super()
@@ -209,7 +216,7 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
             viewSet:'amazonALB',
             supportsHostname:true,
             certSize:2048,
-            zoneType:new CloudType([code:AWSCloudProvider.PROVIDER_CODE]),
+            cloudType:new CloudType([code:AWSCloudProvider.PROVIDER_CODE]),
             format:'external',
             hasVirtualServers:false,
             hasMonitors:false,
@@ -373,32 +380,67 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
 
     @Override
     ServiceResponse validate(NetworkLoadBalancer loadBalancer, Map opts) {
-        ServiceResponse rtn = ServiceResponse.prepare()
-        def networkService = morpheus.network
-        def account = opts.account ?: loadBalancer.owner
-        def cloud = opts.zone ?: loadBalancer.cloud
-        def configMap = loadBalancer.configMap
-        def configuredSubnetIds = configMap['subnetIds']
-        if (opts.targetSubnetIds) {
-            rtn.success = false
-            for (lbSubnetId in configuredSubnetIds) {
-                Network network
-                networkService.listByCloudAndExternalIdIn(cloud.id, [lbSubnetId]).blockingSubscribe() { n ->
-                    network = n
+        if (opts)
+            return validateLoadBalancer(loadBalancer, opts)
+        else
+            return validateLoadBalancer(loadBalancer)
+    }
+
+    @Override
+    ServiceResponse validateLoadBalancerInstance(NetworkLoadBalancerInstance loadBalancerInstance) {
+        def opts = loadBalancerInstance.getConfigProperty('options')
+        log.info "validateLoadBalancerInstance: ${loadBalancerInstance}, ${opts}"
+        ServiceResponse rtn = ServiceResponse.success()
+        try {
+            if(!(opts.newHostName ==~ /^([a-zA-Z\d-\*]+)\.([a-zA-Z\d-]+)\.([a-zA-Z\d-]+)$/)){
+                //rtn.msg = messageSource.getMessage('gomorpheus.error.alb.hostname', null, LocaleContextHolder.locale)
+                rtn.msg = 'Host Name must be fully qualified. For example, *.domain.com or www.domain.com'
+                rtn.errors = [vipHostname: rtn.msg]
+                rtn.success = false
+            }
+            if(rtn.success && opts.proxyProtocol == 'HTTPS' && !opts.sslCert) {
+                rtn.msg = "When specifying HTTPS, an SSL Cert must be selected."
+                rtn.success = false
+            }
+            if(rtn.success && opts.proxyProtocol == 'HTTPS') {
+                if(!opts.newHostName || !(opts.newHostName ==~ /^([a-zA-Z\d-\*]+)\.([a-zA-Z\d-]+)\.([a-zA-Z\d-]+)$/)) {
+                    //rtn.msg = messageSource.getMessage('gomorpheus.error.alb.hostname', null, LocaleContextHolder.locale)
+                    rtn.msg = 'Host Name must be fully qualified. For example, *.domain.com or www.domain.com'
+                    rtn.errors = [vipHostname: rtn.msg]
+                    rtn.success = false
                 }
-                def lbAvailabilityZone = network.availabilityZone
-                for (targetSubnetId in targetSubnetIds) {
-                    Network targetNetwork
-                    networkService.listByCloudAndExternalIdIn(cloud.id, [targetSubnetId]).blockingSubscribe() { n->
-                        targetNetwork = n
-                    }
-                    def targetAvailabilityZone = targetNetwork.availabilityZone
-                    if (lbAvailabilityZone && targetAvailabilityZone && lbAvailabilityZone == targetAvailabilityZone) {
-                        rtn.success = true
-                        return
+            }
+            if(rtn.success && opts.stickyMode == 'app') {
+                if(!opts.config?.stickyCookieName){
+                    //rtn.msg = messageSource.getMessage('gomorpheus.error.alb.app.cookie.empty', null, LocaleContextHolder.locale)
+                    rtn.msg = 'Cookie name is required'
+                    rtn.errors = [stickyCookieName: rtn.msg]
+                    rtn.success = false
+                } else if(opts.config?.stickyCookieName ==~ /(.*)(\(|\)|\s|<|>|@|,|;|:|"|\/|\[|]|\?|=|\{|})(.*)/) {
+                    //rtn.msg = messageSource.getMessage('gomorpheus.error.alb.app.cookie.format', null, LocaleContextHolder.locale)
+                    rtn.msg = 'Cookie name must not contain whitespaces or any of the following characters: ( ) < > @ , ; : " / [ ] ? = { }'
+                    rtn.errors = [stickyCookieName: rtn.msg]
+                    rtn.success = false
+                }
+            }
+            if(rtn.success) {
+                // Validate that the port specified is not already being utilized by a different instance
+                def port = opts.instance.customPort?.toInteger()
+                NetworkLoadBalancer loadBalancer = loadBalancerInstance.loadBalancer
+                AmazonElasticLoadBalancingClient amazonClient = getAmazonElbClient(loadBalancer.zone, false, loadBalancer.region?.regionCode)
+                // Get the target group for the instance
+                Listener listener = getListenerByPort(port, loadBalancer, amazonClient)
+                if(!listener) {
+                    // Make sure we will not exceed 10 listeners
+                    if(getListeners(loadBalancer, amazonClient)?.size() == 10) {
+                        rtn.msg = "The maximum number of listeners for this load balancer has been reached"
+                        rtn.success = false
                     }
                 }
             }
+        } catch (e) {
+            log.error("validateLoadBalancerInstance error: ${e}", e)
+            rtn.msg = "Error validating Load Balancer settings"
         }
         return rtn
     }
@@ -407,7 +449,7 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
     ServiceResponse validateLoadBalancerInstanceConfiguration(NetworkLoadBalancer loadBalancer, Instance instance) {
         def opts = loadBalancer.getConfigProperty('options')
         log.debug "validateLoadBalancerInstanceConfiguration: ${loadBalancer}, ${instance}, ${opts}"
-        ServiceResponse rtn = ServiceResponse.prepare()
+        ServiceResponse rtn = ServiceResponse.success()
 
         if(!loadBalancer) {
             rtn.success = false
@@ -449,7 +491,7 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
 
             if(rtn.success) {
                 // Application Load Balancers have a max limit of 10 listeners.. make sure we will not exceed that number
-                AmazonElasticLoadBalancingClient amazonClient = getAmazonElbClient(loadBalancer.cloud, loadBalancer.region?.regionCode)
+                AmazonElasticLoadBalancingClient amazonClient = getAmazonElbClient(loadBalancer.cloud, false, loadBalancer.region?.regionCode)
                 def listeners = getListeners(loadBalancer, amazonClient)
                 def listenerExists = getListenerByPort(port, loadBalancer, amazonClient) != null
                 if(listeners?.size() == 10 && !listenerExists) {
@@ -537,7 +579,7 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
 
         try {
             def cloud = loadBalancer.cloud
-            AmazonElasticLoadBalancingClient amazonClient = getAmazonElbClient(cloud, loadBalancer.region?.regionCode)
+            AmazonElasticLoadBalancingClient amazonClient = getAmazonElbClient(cloud, false, loadBalancer.region?.regionCode)
 
             DeleteLoadBalancerRequest deleteLoadBalancerRequest = new DeleteLoadBalancerRequest()
             deleteLoadBalancerRequest.setLoadBalancerArn(loadBalancer.getConfigProperty('arn'))
@@ -556,11 +598,6 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
 
     @Override
     ServiceResponse initializeLoadBalancer(NetworkLoadBalancer loadBalancer, Map opts) {
-        return null
-    }
-
-    @Override
-    ServiceResponse refresh(NetworkLoadBalancer loadBalancer) {
         return null
     }
 
@@ -686,22 +723,19 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
 
     @Override
     ServiceResponse validateLoadBalancerVirtualServer(NetworkLoadBalancerInstance instance) {
-        ServiceResponse rtn = ServiceResponse.error()
-        def opts = instance.getConfigProperty('options')
+        ServiceResponse rtn = ServiceResponse.success()
         try {
-            def instanceConfig = opts.loadBalancerInstance
             //need a name
-            if(!instanceConfig.vipName) {
+            if(!instance.vipName) {
                 rtn.errors.vipName = 'Name is required'
             }
-            if(!instanceConfig.vipHostname) {
+            if(!instance.vipHostname) {
                 rtn.errors.vipHostname = 'Hostname is required'
             }
-
-            if(!instanceConfig.vipPort) {
+            if(!instance.vipPort) {
                 rtn.errors.vipPort = 'Vip Port is required'
             }
-            rtn.success = rtn.errors.size() == 0
+            rtn.success = rtn.errors ? rtn.errors.size() == 0 : true
         } catch(e) {
             log.error("error validating virtual server: ${e}", e)
         }
@@ -756,7 +790,7 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
 
     private updateOrCreateLoadBalancer(NetworkLoadBalancer loadBalancer) {
         log.debug "updateOrCreateLoadBalancer: ${loadBalancer.id}"
-        def rtn = [success: false]
+        def rtn = ServiceResponse.prepare()
         def networkService = morpheus.network
         def regionService = morpheus.cloud.region
         def loadBalancerService = morpheus.loadBalancer
@@ -859,13 +893,13 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
             rtn.msg = "Error updating load balancer: ${e.message}"
         }
 
-        rtn
+        return rtn
     }
 
     private getLoadBalancerName(NetworkLoadBalancer loadBalancer) {
         // Must make sure it is unique within AWS
-        def zone = loadBalancer.zone
-        AmazonElasticLoadBalancingClient amazonClient = getAmazonElbClient(zone,loadBalancer.region?.regionCode)
+        def cloud = loadBalancer.cloud
+        AmazonElasticLoadBalancingClient amazonClient = getAmazonElbClient(cloud, false, loadBalancer.region?.regionCode)
 
         // Must contain only letters, numbers, dashes and start with an alpha character
         def currentName = loadBalancer.name.replaceAll(/[^a-zA-Z0-9\-]/, '')?.take(255)
@@ -912,7 +946,7 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
             def instanceProtocol = getBackendServiceMode(loadBalancerInstance)?.toUpperCase()
             def sslRedirectMode = loadBalancerInstance.sslRedirectMode
             def cloud = loadBalancer.cloud
-            def vpcId = zone.getConfigProperty('vpc') ?: loadBalancer.getConfigProperty('amazonVpc')
+            def vpcId = cloud.getConfigProperty('vpc') ?: loadBalancer.getConfigProperty('amazonVpc')
 
             String regionCode = loadBalancer.region?.regionCode
             if(!regionCode) {
@@ -925,7 +959,7 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
                     loadBalancer.region = regionService.findByCloudAndRegionCode(cloud.id, regionCode).blockingGet().get()
                 }
             }
-            AmazonElasticLoadBalancingClient amazonClient = getAmazonElbClient(cloud, regionCode)
+            AmazonElasticLoadBalancingClient amazonClient = getAmazonElbClient(cloud, false, regionCode)
             // 1. Get/Create the target group
             def targetName = getTargetName(loadBalancerInstance)
             log.debug "Working on targetName :${targetName}"
@@ -1030,7 +1064,7 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
             removeInvalidRules(amazonClient, loadBalancerInstance, loadBalancerArn, requiredListenerPorts, targetGroup)
 
             instance.setConfigProperty('loadBalancerId', loadBalancer.id)
-            instance.save(flush: true)
+            morpheus.instance.save([instance]).blockingGet()
             rtn.success = true
         } catch (ThrottlingException e) {
             log.error "${e} : stack: ${e.printStackTrace()}"
@@ -1054,10 +1088,50 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
         }
     }
 
+    private getVipServiceMode(NetworkLoadBalancerInstance loadBalancerInstance) {
+        def rtn = 'http'
+        def vipProtocol = loadBalancerInstance.vipProtocol
+        if(vipProtocol == 'http') {
+            rtn = 'http'
+        } else if(vipProtocol == 'tcp') {
+            rtn = 'tcp'
+        } else if(vipProtocol == 'udp') {
+            rtn = 'udp'
+        } else if(vipProtocol == 'https') {
+            def vipMode = loadBalancerInstance.vipMode
+            //if we are terminating ssl on the lb - mode is https
+            if(vipMode == 'passthrough')
+                rtn = 'http'
+            else if(vipMode == 'terminated' || vipMode == 'endtoend')
+                rtn = 'https'
+        }
+        return rtn
+    }
+
+    private getBackendServiceMode(NetworkLoadBalancerInstance loadBalancerInstance) {
+        def rtn = 'http'
+        def vipProtocol = loadBalancerInstance.vipProtocol
+        if(vipProtocol == 'http') {
+            rtn = 'http'
+        } else if(vipProtocol == 'tcp') {
+            rtn = 'tcp'
+        } else if(vipProtocol == 'udp') {
+            rtn = 'udp'
+        } else if(vipProtocol == 'https') {
+            def vipMode = loadBalancerInstance.vipMode
+            //if we are terminating ssl on the lb - mode is https
+            if(vipMode == 'passthrough' || vipMode == 'endtoend')
+                rtn = 'https'
+            else if(vipMode == 'terminated')
+                rtn = 'http'
+        }
+        return rtn
+    }
+
     private removeTargetGroup(NetworkLoadBalancerInstance loadBalancerInstance, targetName) {
         NetworkLoadBalancer loadBalancer = loadBalancerInstance.loadBalancer
         def cloud = loadBalancer.cloud
-        AmazonElasticLoadBalancingClient amazonClient = getAmazonElbClient(cloud, loadBalancer.region?.regionCode)
+        AmazonElasticLoadBalancingClient amazonClient = getAmazonElbClient(cloud, false, loadBalancer.region?.regionCode)
 
         TargetGroup targetGroup = getTargetGroup(targetName, amazonClient)
         if(targetGroup) {
@@ -1088,6 +1162,93 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
             // eat it... exceptions if not found
         }
         return targetGroup
+    }
+
+    private attachTargetGroupToLoadBalancer(amazonClient, NetworkLoadBalancerInstance loadBalancerInstance, loadBalancerArn, albPort, albProtocol, targetGroupArn, certificateArn=null) {
+        log.debug("attachTargetGroupToLoadBalancer loadBalancerArn:${loadBalancerArn}, albPort:${albPort}, albProtocol:${albProtocol}, targetGroupArn:${targetGroupArn}, certificateArn:${certificateArn}")
+
+        NetworkLoadBalancer loadBalancer = loadBalancerInstance.loadBalancer
+
+        Action action = new Action()
+        action.targetGroupArn = targetGroupArn
+        action.type = ActionTypeEnum.Forward
+
+        // 1. Find a listener on the ALB with that port
+        Listener listener = getListenerByPort(albPort, loadBalancer, amazonClient)
+
+        // 2a. Create the listener (if needed)
+        def routingRuleNeeded = true
+        def newRulePriority = 1
+        def listenerArn
+        if(!listener) {
+            CreateListenerRequest listenerRequest = new CreateListenerRequest()
+            listenerRequest.port = albPort
+            listenerRequest.loadBalancerArn = loadBalancerArn
+            listenerRequest.protocol = albProtocol
+            listenerRequest.defaultActions = new LinkedList<Action>()
+            if (certificateArn && listenerRequest.protocol == 'HTTPS') {
+                listenerRequest.certificates = new LinkedList<Certificate>()
+                listenerRequest.certificates.add(new Certificate().withCertificateArn(certificateArn))
+            }
+            listenerRequest.defaultActions.add(action)
+            log.debug "Creating listener ${listenerRequest}"
+            CreateListenerResult createListenerResult = amazonClient.createListener(listenerRequest)
+            listenerArn = createListenerResult.listeners.first().listenerArn
+        } else {
+            // 2b. Make sure the listener has a rule routing to the target.. if not, indicate we need one
+            listenerArn = listener.listenerArn
+            DescribeRulesResult describeRulesResult = amazonClient.describeRules(new DescribeRulesRequest().withListenerArn(listenerArn))
+            def usedPriorities = []
+            describeRulesResult.rules?.each { Rule rule ->
+                usedPriorities << rule.priority
+                if(rule.actions.size() > 0 && rule.actions[0].targetGroupArn == targetGroupArn) {
+                    // Found an action that routes to the target.. now check the condition
+                    rule.conditions?.each { RuleCondition ruleCondition ->
+                        if(ruleCondition.field == 'host-header' && ruleCondition.values.contains(loadBalancerInstance.vipHostname)) {
+                            routingRuleNeeded = false
+                        }
+                    }
+                }
+            }
+
+            // 2c.  Issue an update to the listener if the protocol is not valid or the certificate changed
+            def currentCertArn = listener.certificates?.size() > 0 ? listener.certificates.first().certificateArn : null
+            if(listener.protocol != albProtocol || certificateArn != currentCertArn) {
+                ModifyListenerRequest modifyListenerRequest = new ModifyListenerRequest().withListenerArn(listenerArn).withCertificates(new LinkedList<Certificate>())
+                modifyListenerRequest.protocol = albProtocol
+                if(certificateArn) {
+                    if(certificateArn && certificateArn != currentCertArn) {
+                        modifyListenerRequest.certificates.add(new Certificate().withCertificateArn(certificateArn))
+                    }
+                }
+                amazonClient.modifyListener(modifyListenerRequest)
+            }
+
+            // The docs say we can reuse priorities but AWS exceptions if we do... find an available priority
+            def index = 1
+            while(newRulePriority == 1) {
+                if(!usedPriorities.contains(index.toString())) {
+                    newRulePriority = index
+                }
+                index++
+            }
+
+        }
+
+        // 3. Create a routing rule if needed
+        if(routingRuleNeeded) {
+            // Now.. add a rule to route based on the the VIP hostname
+            CreateRuleRequest createRuleRequest = new CreateRuleRequest().withConditions(new LinkedList<RuleCondition>()).withActions(new LinkedList<Action>())
+            createRuleRequest.priority = newRulePriority
+            createRuleRequest.listenerArn = listenerArn
+            RuleCondition ruleCondition = new RuleCondition().withValues(new LinkedList<String>())
+            ruleCondition.field = 'host-header'
+            ruleCondition.values.add(loadBalancerInstance.vipHostname)
+            createRuleRequest.conditions.add(ruleCondition)
+            createRuleRequest.actions.add(action)
+            log.debug "Creating rule ${createRuleRequest}"
+            amazonClient.createRule(createRuleRequest)
+        }
     }
 
     private removeInvalidRules(AmazonElasticLoadBalancingClient amazonClient, NetworkLoadBalancerInstance loadBalancerInstance, loadBalancerArn, requiredListenerPorts, TargetGroup targetGroup) {
@@ -1229,6 +1390,72 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
         }
 
         return amazonCertArn
+    }
+
+    protected ServiceResponse validateLoadBalancer(NetworkLoadBalancer loadBalancer) {
+        log.debug "ALB Plugin validateLoadBalancer: ${loadBalancer}"
+        ServiceResponse rtn = ServiceResponse.success()
+
+        try {
+            log.info("validateLoadBalancer: ${loadBalancer}")
+
+            if(!loadBalancer.name) {
+                rtn.errors.name = "A name must be provided"
+                rtn.success = false
+            }
+            if(!loadBalancer.getConfigProperty('amazonVpc')) {
+                rtn.errors.vpcs = "A VPC must be selected"
+                rtn.success = false
+            }
+            if(!loadBalancer.getConfigProperty('scheme')) {
+                rtn.errors.scheme = "A scheme must be selected"
+                rtn.success = false
+            }
+            if(loadBalancer .getConfigProperty('subnetIds')?.size() < 2) {
+                rtn.errors.subnets = "At least 2 subnets must be selected"
+                rtn.success = false
+            }
+            if(loadBalancer.getConfigProperty('securityGroupIds')?.size() < 1) {
+                rtn.errors.securityGroups = "At least 1 security group must be selected"
+                rtn.success = false
+            }
+        } catch (e) {
+            log.error("validateLoadBalancer error: ${e}", e)
+        }
+
+        return rtn
+    }
+
+    protected ServiceResponse validateLoadBalancer(NetworkLoadBalancer loadBalancer, Map opts) {
+        ServiceResponse rtn = ServiceResponse.prepare()
+        def networkService = morpheus.network
+        def account = opts.account ?: loadBalancer.owner
+        def cloud = opts.zone ?: loadBalancer.cloud
+        def configMap = loadBalancer.configMap
+        def configuredSubnetIds = configMap['subnetIds']
+        if (opts.targetSubnetIds) {
+            rtn.success = false
+            for (lbSubnetId in configuredSubnetIds) {
+                def subnetId = lbSubnetId instanceof Double ? lbSubnetId.toLong() : lbSubnetId.toString().toLong()
+                Network network
+                networkService.listById([subnetId]).blockingSubscribe() { n ->
+                    network = n
+                }
+                def lbAvailabilityZone = network.availabilityZone
+                for (targetSubnetId in opts.targetSubnetIds) {
+                    subnetId = targetSubnetId instanceof Double ? targetSubnetId.toLong() : targetSubnetId.toString().toLong()
+                    Network targetNetwork
+                    networkService.listById([subnetId]).blockingSubscribe() { n->
+                        targetNetwork = n
+                    }
+                    def targetAvailabilityZone = targetNetwork.availabilityZone
+                    if (lbAvailabilityZone && targetAvailabilityZone && lbAvailabilityZone == targetAvailabilityZone) {
+                        rtn.success = true
+                    }
+                }
+            }
+        }
+        return rtn
     }
 
     static getAmazonEndpoint(zone) {

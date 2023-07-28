@@ -3,8 +3,17 @@ package com.morpheusdata.aws.utils
 import com.amazonaws.client.builder.AwsClientBuilder
 import com.amazonaws.retry.RetryMode
 import com.amazonaws.retry.RetryPolicy
+import com.amazonaws.services.certificatemanager.model.AddTagsToCertificateRequest
+import com.amazonaws.services.certificatemanager.model.CertificateSummary
+import com.amazonaws.services.certificatemanager.model.ImportCertificateRequest
+import com.amazonaws.services.certificatemanager.model.ImportCertificateResult
+import com.amazonaws.services.certificatemanager.model.ListCertificatesRequest
+import com.amazonaws.services.certificatemanager.model.ListCertificatesResult
+import com.amazonaws.services.certificatemanager.model.ListTagsForCertificateRequest
+import com.amazonaws.services.certificatemanager.model.ListTagsForCertificateResult
 import com.amazonaws.services.simplesystemsmanagement.model.GetParametersRequest
 import com.morpheusdata.core.MorpheusContext
+import com.morpheusdata.model.AccountCertificate
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.KeyPair
 import com.morpheusdata.core.util.KeyUtility
@@ -14,6 +23,7 @@ import com.morpheusdata.model.AccountIntegration
 import groovy.json.JsonOutput
 import groovy.util.logging.Slf4j
 
+import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
 
 import com.bertramlabs.plugins.karman.StorageProvider
@@ -4314,6 +4324,56 @@ class AmazonComputeUtility {
 
 	static isVPC(zone) {
 		return zone?.getConfigProperty('vpc') != null
+	}
+
+	static uploadOrGetCert(AccountCertificate accountCert, Cloud zone) {
+		log.debug "uploadOrGetCert: ${accountCert}"
+
+		def amazonCertArn
+
+		// Search through all the certs.. looking for one tagged with our cert id
+		AWSCertificateManagerClient certClient = getAmazonCertificateClient(zone)
+		ListCertificatesRequest certRequest = new ListCertificatesRequest()
+		ListCertificatesResult listCertsResult = certClient.listCertificates(certRequest)
+		listCertsResult.certificateSummaryList.each { CertificateSummary summary ->
+			log.debug "Current cert arn: ${summary.certificateArn}"
+			ListTagsForCertificateRequest listTagsRequest = new ListTagsForCertificateRequest()
+			listTagsRequest.certificateArn = summary.certificateArn
+			ListTagsForCertificateResult listTagsResult = certClient.listTagsForCertificate(listTagsRequest)
+			listTagsResult.tags?.each { com.amazonaws.services.certificatemanager.model.Tag tag ->
+				if (tag.key == 'morpheus-cert-id' && tag.value?.toString() == accountCert.id.toString()) {
+					amazonCertArn = summary.certificateArn
+					log.debug "found amazon cert arn ${amazonCertArn} for cert: ${accountCert.id}"
+				}
+			}
+		}
+
+		if (!amazonCertArn) {
+			log.debug "No cert found tagged with cert id ${accountCert.id}.. creating new one"
+			def certContent = this.morpheus.loadBalancer.certificate.getCertificateContent(accountCert).blockingGet()
+			if(certContent.success != true) {
+				log.error("Error fetching certificate... Perhaps a remote Cert Servie error? {}", certContent)
+				return amazonCertArn
+			}
+
+			ImportCertificateRequest importCert = new ImportCertificateRequest()
+			importCert.setCertificate(certContent.certFile?.bytes ? ByteBuffer.wrap(certContent.certFile?.bytes) : null)
+			importCert.setCertificateChain(certContent.chainFile?.bytes ? ByteBuffer.wrap(certContent.chainFile?.bytes) : null)
+			importCert.setPrivateKey(certContent.keyFile?.bytes ? ByteBuffer.wrap(certContent.keyFile?.bytes) : null)
+
+			ImportCertificateResult importCertResult = certClient.importCertificate(importCert)
+			amazonCertArn = importCertResult.certificateArn
+
+			AddTagsToCertificateRequest addTagToCertRequest = new AddTagsToCertificateRequest().withTags(new LinkedList<com.amazonaws.services.certificatemanager.model.Tag>())
+			addTagToCertRequest.certificateArn = amazonCertArn
+			com.amazonaws.services.certificatemanager.model.Tag tag = new com.amazonaws.services.certificatemanager.model.Tag()
+			tag.key = 'morpheus-cert-id'
+			tag.value = accountCert.id
+			addTagToCertRequest.tags.add(0, tag)
+			certClient.addTagsToCertificate(addTagToCertRequest)
+		}
+
+		return amazonCertArn
 	}
 
 	static getAmazonAccessKey(zone) {
