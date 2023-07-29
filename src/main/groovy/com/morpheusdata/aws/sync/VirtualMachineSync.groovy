@@ -76,7 +76,7 @@ class VirtualMachineSync {
 						addMissingVirtualMachines(itemsToAdd, region, vmList.volumeList, usageLists)
 					}
 				}.onUpdate { List<SyncTask.UpdateItem<ComputeServer, Instance>> updateItems ->
-					updateMatchedVirtualMachines(updateItems, region, vmList.volumeList, usageLists)
+					updateMatchedVirtualMachines(updateItems, region, vmList.volumeList, usageLists, inventoryLevel)
 				}.onDelete { removeItems ->
 					removeMissingVirtualMachines(removeItems)
 				}.observe().blockingSubscribe { completed ->
@@ -157,7 +157,7 @@ class VirtualMachineSync {
 		}
 	}
 
-	def updateMatchedVirtualMachines(List<SyncTask.UpdateItem<ComputeServer, Instance>> updateList, ComputeZoneRegionIdentityProjection region, Map<String, Volume> volumeMap, Map usageLists) {
+	def updateMatchedVirtualMachines(List<SyncTask.UpdateItem<ComputeServer, Instance>> updateList, ComputeZoneRegionIdentityProjection region, Map<String, Volume> volumeMap, Map usageLists, String inventoryLevel) {
 		def statsData = []
 		def managedServerIds = updateList.findAll { it.existingItem.computeServerType?.managed }.collect{it.existingItem.id}
 		def workloads = managedServerIds ? morpheusContext.cloud.listCloudWorkloadProjections(cloud.id).filter { workload ->
