@@ -2,13 +2,13 @@ package com.morpheusdata.aws.sync
 
 import com.amazonaws.services.autoscaling.model.Instance as AutoScaleInstance
 import com.amazonaws.services.ec2.AmazonEC2
-import com.morpheusdata.model.AppInstance
 import com.morpheusdata.aws.AWSPlugin
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.util.SyncList
 import com.morpheusdata.model.App
+import com.morpheusdata.model.AppInstance
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.ComputeCapacityInfo
 import com.morpheusdata.model.ComputeServer
