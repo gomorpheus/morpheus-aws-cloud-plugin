@@ -53,6 +53,8 @@ import groovy.util.logging.Slf4j
 @Slf4j
 class AWSCloudProvider implements CloudProvider {
 
+	public static final String PROVIDER_CODE = 'amazon'
+
 	AWSPlugin plugin
 	MorpheusContext morpheusContext
 
@@ -557,7 +559,7 @@ class AWSCloudProvider implements CloudProvider {
 
 	@Override
 	String getCode() {
-		return 'amazon'
+		return PROVIDER_CODE
 	}
 
 	@Override
