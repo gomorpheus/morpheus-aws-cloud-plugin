@@ -33,12 +33,12 @@ class InternetGatewaySync {
 	}
 
 	def execute() {
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
 			final String regionCode = region.externalId
 			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, regionCode)
 			def routerResults = AmazonComputeUtility.listInternetGateways([amazonClient: amazonClient])
 			if(routerResults.success) {
-				Observable<NetworkRouterIdentityProjection> domainRecords = morpheusContext.network.router.listIdentityProjections(cloud.id,'amazonInternetGateway')
+				Observable<NetworkRouterIdentityProjection> domainRecords = morpheusContext.async.network.router.listIdentityProjections(cloud.id,'amazonInternetGateway')
  				SyncTask<NetworkRouterIdentityProjection, InternetGateway, NetworkRouter> syncTask = new SyncTask<>(domainRecords, routerResults.internetGateways as Collection<InternetGateway>)
 				return syncTask.addMatchFunction { NetworkRouterIdentityProjection domainObject, InternetGateway data ->
 					domainObject.externalId == data.getInternetGatewayId()
@@ -49,7 +49,7 @@ class InternetGatewaySync {
 				}.onAdd { itemsToAdd ->
 					addMissingInternetGateways(itemsToAdd, regionCode)
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<NetworkRouterIdentityProjection, InternetGateway>> updateItems ->
-					return morpheusContext.network.router.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					return morpheusContext.async.network.router.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.observe()
 			} else {
 				log.error("Error Caching InternetGateways for Region: {} - {}",regionCode,routerResults.msg)
@@ -80,7 +80,7 @@ class InternetGatewaySync {
 			adds << router
 		}
 		if(adds) {
-			morpheusContext.network.router.create(adds).blockingGet()
+			morpheusContext.async.network.router.create(adds).blockingGet()
 		}
 	}
 
@@ -125,15 +125,15 @@ class InternetGatewaySync {
 			}
 		}
 		if(updates) {
-			morpheusContext.network.router.save(updates).blockingGet()
+			morpheusContext.async.network.router.save(updates).blockingGet()
 		}
 	}
 
 	protected removeMissingRouters(List<NetworkRouterIdentityProjection> removeList) {
-		morpheusContext.network.router.remove(removeList).blockingGet()
+		morpheusContext.async.network.router.remove(removeList).blockingGet()
 	}
 
 	private Map<String, ComputeZonePoolIdentityProjection> getAllZonePools() {
-		zonePools ?: (zonePools = morpheusContext.cloud.pool.listIdentityProjections(cloud.id, '', null).toMap {it.externalId}.blockingGet())
+		zonePools ?: (zonePools = morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id, '', null).toMap {it.externalId}.blockingGet())
 	}
 }

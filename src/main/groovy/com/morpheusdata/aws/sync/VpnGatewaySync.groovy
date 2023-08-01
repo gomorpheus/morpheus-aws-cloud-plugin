@@ -24,16 +24,16 @@ class VpnGatewaySync extends InternalResourceSync {
 	}
 
 	def execute() {
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
 			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, region.externalId)
 			def apiList = AmazonComputeUtility.listVpnGateways([amazonClient: amazonClient],[:])
 			if(apiList.success) {
-				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.cloud.resource.listIdentityProjections(cloud.id,"aws.cloudFormation.ec2.vpnGateway", region.externalId)
+				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.async.cloud.resource.listIdentityProjections(cloud.id,"aws.cloudFormation.ec2.vpnGateway", region.externalId)
 				SyncTask<AccountResourceIdentityProjection, VpnGateway, AccountResource> syncTask = new SyncTask<>(domainRecords, apiList.vpnGateways as Collection<VpnGateway>)
 				syncTask.addMatchFunction { AccountResourceIdentityProjection existingItem, VpnGateway cloudItem ->
 					existingItem.externalId == cloudItem.vpnGatewayId
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItem<AccountResourceIdentityProjection, VpnGateway>> updateItems ->
-					morpheusContext.cloud.resource.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					morpheusContext.async.cloud.resource.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.onAdd { itemsToAdd ->
 					addMissingVpnGateways(itemsToAdd, region)
 				}.onUpdate { List<SyncTask.UpdateItem<AccountResource, VpnGateway>> updateItems ->
@@ -64,7 +64,7 @@ class VpnGatewaySync extends InternalResourceSync {
 			add.configMap = [amazonSideAsn: cloudItem.amazonSideAsn, availabilityZone: cloudItem.availabilityZone]
 			adds << add
 		}
-		morpheusContext.cloud.resource.create(adds).blockingGet()
+		morpheusContext.async.cloud.resource.create(adds).blockingGet()
 	}
 
 	protected void updateMatchedVpnGateways(List<SyncTask.UpdateItem<AccountResource, VpnGateway>> updateList, ComputeZoneRegionIdentityProjection region) {
@@ -88,7 +88,7 @@ class VpnGatewaySync extends InternalResourceSync {
 			}
 		}
 		if(updates) {
-			morpheusContext.cloud.resource.save(updates).blockingGet()
+			morpheusContext.async.cloud.resource.save(updates).blockingGet()
 		}
 	}
 

@@ -32,15 +32,15 @@ class ImageSync {
 	}
 
 	def execute() {
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
 			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud, false, region.externalId)
 			def cloudItems = AmazonComputeUtility.listImages([amazonClient: amazonClient, zone: cloud]).imageList
-			Observable<VirtualImageIdentityProjection> existingRecords = morpheusContext.virtualImage.location.listIdentityProjections(cloud.id, region.externalId)
+			Observable<VirtualImageIdentityProjection> existingRecords = morpheusContext.async.virtualImage.location.listIdentityProjections(cloud.id, region.externalId)
 			SyncTask<VirtualImageIdentityProjection, Image, VirtualImageLocation> syncTask = new SyncTask<>(existingRecords, cloudItems)
 			syncTask.addMatchFunction { VirtualImageLocationIdentityProjection existingItem, Image cloudItem ->
 				existingItem.externalId == cloudItem.imageId
 			}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<VirtualImageLocationIdentityProjection, VirtualImageLocation>> updateItems ->
-				morpheusContext.virtualImage.location.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+				morpheusContext.async.virtualImage.location.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 			}.onAdd { itemsToAdd ->
 				addMissingVirtualImages(itemsToAdd, region.externalId)
 			}.onUpdate { List<SyncTask.UpdateItem<VirtualImageLocation, Image>> updateItems ->
@@ -106,11 +106,11 @@ class ImageSync {
 
 		// Create em all!
 		log.debug "About to create ${adds.size()} virtualImages"
-		morpheusContext.virtualImage.create(adds, cloud).blockingGet()
+		morpheusContext.async.virtualImage.create(adds, cloud).blockingGet()
 
 		// Fetch the images that we just created
 		def addExternalIds = adds.collect { it.externalId }
-		morpheusContext.virtualImage.listIdentityProjections(cloud.account.id, [ImageType.ami] as ImageType[]).blockingSubscribe {
+		morpheusContext.async.virtualImage.listIdentityProjections(cloud.account.id, [ImageType.ami] as ImageType[]).blockingSubscribe {
 			if(addExternalIds.contains(it.externalId)) {
 				imageMap[it.externalId] = it
 			}
@@ -132,7 +132,7 @@ class ImageSync {
 
 		if(locationAdds) {
 			log.debug "About to create ${locationAdds.size()} locations"
-			morpheusContext.virtualImage.location.create(locationAdds, cloud).blockingGet()
+			morpheusContext.async.virtualImage.location.create(locationAdds, cloud).blockingGet()
 		}
 	}
 
@@ -140,7 +140,7 @@ class ImageSync {
 		log.debug "updateMatchedVirtualImages: ${cloud} ${regionCode} ${updateList.size()}"
 		def saveLocationList = []
 		def saveImageList = []
-		def virtualImagesById = morpheusContext.virtualImage.listById(updateList.collect { it.existingItem.virtualImage.id }).toMap {it.id}.blockingGet()
+		def virtualImagesById = morpheusContext.async.virtualImage.listById(updateList.collect { it.existingItem.virtualImage.id }).toMap {it.id}.blockingGet()
 
 		for(def updateItem in updateList) {
 			def existingItem = updateItem.existingItem
@@ -195,16 +195,16 @@ class ImageSync {
 		}
 
 		if(saveLocationList) {
-			morpheusContext.virtualImage.location.save(saveLocationList, cloud).blockingGet()
+			morpheusContext.async.virtualImage.location.save(saveLocationList, cloud).blockingGet()
 		}
 		if(saveImageList) {
-			morpheusContext.virtualImage.save(saveImageList.unique(), cloud).blockingGet()
+			morpheusContext.async.virtualImage.save(saveImageList.unique(), cloud).blockingGet()
 		}
 	}
 
 	private removeMissingVirtualImages(Collection<VirtualImageLocationIdentityProjection> removeList) {
 		log.debug "removeMissingVirtualImages: ${cloud} ${removeList.size()}"
-		morpheusContext.virtualImage.location.remove(removeList).blockingGet()
+		morpheusContext.async.virtualImage.location.remove(removeList).blockingGet()
 	}
 
 	private buildLocationConfig(VirtualImageIdentityProjection virtualImage) {
@@ -219,10 +219,10 @@ class ImageSync {
 	}
 
 	private Map<String, VirtualImageIdentityProjection> getAllVirtualImages() {
-		virtualImages ?: (virtualImages = morpheusContext.virtualImage.listIdentityProjections(cloud.account.id, [ImageType.ami] as ImageType[]).toMap { it.name }.blockingGet())
+		virtualImages ?: (virtualImages = morpheusContext.async.virtualImage.listIdentityProjections(cloud.account.id, [ImageType.ami] as ImageType[]).toMap { it.name }.blockingGet())
 	}
 
 	private Map<String, OsType> getAllOsTypes() {
-		osTypes ?: (osTypes = morpheusContext.osType.listAll().toMap {it.code}.blockingGet())
+		osTypes ?: (osTypes = morpheusContext.async.osType.listAll().toMap {it.code}.blockingGet())
 	}
 }

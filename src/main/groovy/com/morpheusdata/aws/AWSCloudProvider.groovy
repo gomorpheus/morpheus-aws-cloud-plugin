@@ -15,7 +15,7 @@ import com.morpheusdata.aws.sync.NetworkInterfaceSync
 import com.morpheusdata.aws.sync.RegionSync
 import com.morpheusdata.aws.sync.RouteTableSync
 import com.morpheusdata.aws.sync.ScaleGroupSync
-//import com.morpheusdata.aws.sync.ScaleGroupVirtualMachinesSync
+import com.morpheusdata.aws.sync.ScaleGroupVirtualMachinesSync
 import com.morpheusdata.aws.sync.SecurityGroupSync
 import com.morpheusdata.aws.sync.ServicePlanSync
 import com.morpheusdata.aws.sync.SnapshotSync
@@ -496,7 +496,7 @@ class AWSCloudProvider implements CloudProvider {
 					new VolumeSync(this.plugin,cloudInfo).execute()
 					new SnapshotSync(this.plugin,cloudInfo).execute()
 					new ScaleGroupSync(this.plugin,cloudInfo).execute()
-					//new ScaleGroupVirtualMachinesSync(this.plugin,cloudInfo).execute()
+					new ScaleGroupVirtualMachinesSync(this.plugin,cloudInfo).execute()
 					rtn = ServiceResponse.success()
 				} else {
 					rtn = ServiceResponse.error(testResults.invalidLogin == true ? 'invalid credentials' : 'error connecting')

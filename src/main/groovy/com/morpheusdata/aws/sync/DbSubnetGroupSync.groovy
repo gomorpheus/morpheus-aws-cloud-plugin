@@ -31,12 +31,12 @@ class DbSubnetGroupSync {
 
 
 	def execute() {
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap {
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap {
 			final String regionCode = it.externalId
 			AmazonRDS amazonClient = AmazonComputeUtility.getAmazonRdsClient(cloud,false,it.externalId)
 			def dbSubnetResults = AmazonComputeUtility.listDbSubnetGroups([amazonClient: amazonClient, zone: cloud])
 			if(dbSubnetResults.success) {
-				Observable<ReferenceDataSyncProjection> domainRecords = morpheusContext.cloud.listReferenceDataByCategory(cloud,"amazon.ec2.db.subnetgroup.${cloud.id}.${regionCode}".toString()).mergeWith(morpheusContext.cloud.listReferenceDataByCategory(cloud,"amazon.ec2.db.subnetgroup.${cloud.id}".toString()))
+				Observable<ReferenceDataSyncProjection> domainRecords = morpheusContext.async.cloud.listReferenceDataByCategory(cloud,"amazon.ec2.db.subnetgroup.${cloud.id}.${regionCode}".toString()).mergeWith(morpheusContext.async.cloud.listReferenceDataByCategory(cloud,"amazon.ec2.db.subnetgroup.${cloud.id}".toString()))
 				SyncTask<ReferenceDataSyncProjection, DBSubnetGroup, ReferenceData> syncTask = new SyncTask<>(domainRecords, dbSubnetResults.subnetGroupList as Collection<DBSubnetGroup>)
 				return syncTask.addMatchFunction { ReferenceDataSyncProjection domainObject, DBSubnetGroup data ->
 					domainObject.name == data.getDBSubnetGroupName()
@@ -47,7 +47,7 @@ class DbSubnetGroupSync {
 				}.onAdd { itemsToAdd ->
 					addMissingDbSubnetGroups(itemsToAdd, regionCode)
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<ReferenceDataSyncProjection, DBSubnetGroup>> updateItems ->
-					morpheusContext.cloud.listReferenceDataById(updateItems.collect { it.existingItem.id } as List<Long>)
+					morpheusContext.async.cloud.listReferenceDataById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.observe()
 			} else {
 				log.error("Error Caching DB Subnet Groups for Region: {} - {}",regionCode,dbSubnetResults.msg)
@@ -73,12 +73,12 @@ class DbSubnetGroupSync {
 		}
 
 		if(adds) {
-			morpheusContext.cloud.create(adds, cloud, getCategory(regionCode)).blockingGet()
+			morpheusContext.async.cloud.create(adds, cloud, getCategory(regionCode)).blockingGet()
 		}
 	}
 
 	private removeMissingDbSubnetGroups(List<ReferenceDataSyncProjection> removeList) {
-		morpheusContext.cloud.remove(removeList).blockingGet()
+		morpheusContext.async.cloud.remove(removeList).blockingGet()
 	}
 
 }

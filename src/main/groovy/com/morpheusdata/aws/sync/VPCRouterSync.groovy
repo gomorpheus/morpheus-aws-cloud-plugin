@@ -36,8 +36,8 @@ class VPCRouterSync {
 	}
 
 	def execute() {
-		List<ComputeZonePoolIdentityProjection> resourcePools = morpheusContext.cloud.pool.listSyncProjections(cloud.id,null).toList().blockingGet()
-		Observable<NetworkRouterIdentityProjection> vpcRouters = morpheusContext.network.router.listIdentityProjections(cloud.id,'amazonVpcRouter')
+		List<ComputeZonePoolIdentityProjection> resourcePools = morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id,null,null).toList().blockingGet()
+		Observable<NetworkRouterIdentityProjection> vpcRouters = morpheusContext.async.network.router.listIdentityProjections(cloud.id,'amazonVpcRouter')
 		SyncTask<NetworkRouterIdentityProjection, ComputeZonePoolIdentityProjection, NetworkRouter> syncTask = new SyncTask<>(vpcRouters, resourcePools)
 		syncTask.addMatchFunction { NetworkRouterIdentityProjection domainObject, ComputeZonePoolIdentityProjection data ->
 			domainObject.refType == 'ComputeZonePool' && domainObject.refId == data.id
@@ -48,14 +48,14 @@ class VPCRouterSync {
 		}.onAdd { itemsToAdd ->
 			addMissingVPCRouters(itemsToAdd)
 		}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<NetworkRouterIdentityProjection, NetworkRouter>> updateItems ->
-			morpheusContext.network.router.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+			morpheusContext.async.network.router.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 		}.start()
 	}
 
 
 	protected void addMissingVPCRouters(Collection<ComputeZonePoolIdentityProjection> addList) {
 		def adds = []
-		Collection<ComputeZonePool> pools = morpheusContext.cloud.pool.listById(addList.collect{it.id}).toList().blockingGet()
+		Collection<ComputeZonePool> pools = morpheusContext.async.cloud.pool.listById(addList.collect{it.id}).toList().blockingGet()
 		for(ComputeZonePool resourcePool in pools) {
 			def routerConfig = [
 					owner        : cloud.owner,
@@ -73,7 +73,7 @@ class VPCRouterSync {
 
 		}
 		if(adds) {
-			morpheusContext.network.router.create(adds).blockingGet()
+			morpheusContext.async.network.router.create(adds).blockingGet()
 		}
 	}
 
@@ -93,11 +93,11 @@ class VPCRouterSync {
 			}
 		}
 		if(updates) {
-			morpheusContext.network.router.save(updates).blockingGet()
+			morpheusContext.async.network.router.save(updates).blockingGet()
 		}
 	}
 
 	protected removeMissingRouters(List<NetworkRouterIdentityProjection> removeList) {
-		morpheusContext.network.router.remove(removeList).blockingGet()
+		morpheusContext.async.network.router.remove(removeList).blockingGet()
 	}
 }

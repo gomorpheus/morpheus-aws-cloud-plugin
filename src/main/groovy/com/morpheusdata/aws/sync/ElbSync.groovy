@@ -29,12 +29,12 @@ class ElbSync {
 	}
 
 	def execute() {
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap {
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap {
 			final String regionCode = it.externalId
 			def amazonClient = AmazonComputeUtility.getAmazonElbClassicClient(cloud,false,it.externalId)
 			def elbList = AmazonComputeUtility.listElbs([amazonClient: amazonClient])
 			if(elbList.success) {
-				Observable<NetworkLoadBalancerIdentityProjection> domainRecords = morpheusContext.loadBalancer.listIdentityProjections(cloud.id,regionCode,'amazon')
+				Observable<NetworkLoadBalancerIdentityProjection> domainRecords = morpheusContext.async.loadBalancer.listIdentityProjections(cloud.id,regionCode,'amazon')
 				SyncTask<NetworkLoadBalancerIdentityProjection, LoadBalancerDescription, NetworkLoadBalancer> syncTask = new SyncTask<>(domainRecords, elbList.elbList as Collection<LoadBalancerDescription>)
 				return syncTask.addMatchFunction { NetworkLoadBalancerIdentityProjection domainObject, LoadBalancerDescription data ->
 					domainObject.externalId == ':loadbalancer/' + data.getLoadBalancerName()
@@ -45,7 +45,7 @@ class ElbSync {
 				}.onAdd { itemsToAdd ->
 					addMissingLoadBalancers(itemsToAdd, regionCode)
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<NetworkLoadBalancerIdentityProjection, LoadBalancerDescription>> updateItems ->
-					return morpheusContext.loadBalancer.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					return morpheusContext.async.loadBalancer.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.observe()
 			} else {
 				log.error("Error Caching ELB LoadBalancers for Region: {} - {}",regionCode,elbList.msg)
@@ -63,7 +63,7 @@ class ElbSync {
 			adds << newLoadBalancer
 		}
 		if(adds) {
-			morpheusContext.loadBalancer.create(adds).blockingGet()
+			morpheusContext.async.loadBalancer.create(adds).blockingGet()
 		}
 	}
 
@@ -88,11 +88,11 @@ class ElbSync {
 			}
 		}
 		if(updates) {
-			morpheusContext.loadBalancer.save(updates).blockingGet()
+			morpheusContext.async.loadBalancer.save(updates).blockingGet()
 		}
 	}
 
 	protected removeMissingLoadBalancers(List<NetworkLoadBalancerIdentityProjection> removeList) {
-		morpheusContext.loadBalancer.remove(removeList).blockingGet()
+		morpheusContext.async.loadBalancer.remove(removeList).blockingGet()
 	}
 }

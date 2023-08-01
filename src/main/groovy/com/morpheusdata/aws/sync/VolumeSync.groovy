@@ -26,15 +26,15 @@ class VolumeSync {
 	}
 
 	def execute() {
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
 			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud, false, region.externalId)
 			def cloudItems = AmazonComputeUtility.listVolumes([amazonClient: amazonClient, zone: cloud]).volumeList
-			Observable<StorageVolumeIdentityProjection> existingRecords =  morpheusContext.storageVolume.listIdentityProjections(cloud.id, region.externalId)
+			Observable<StorageVolumeIdentityProjection> existingRecords =  morpheusContext.async.storageVolume.listIdentityProjections(cloud.id, region.externalId)
 			SyncTask<StorageVolumeIdentityProjection, Volume, StorageVolume> syncTask = new SyncTask<>(existingRecords, cloudItems)
 			syncTask.addMatchFunction { StorageVolumeIdentityProjection existingItem, Volume cloudItem ->
 				existingItem.externalId == cloudItem.volumeId
 			}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<StorageVolumeIdentityProjection, StorageVolume>> updateItems ->
-				morpheusContext.storageVolume.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+				morpheusContext.async.storageVolume.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 			}.onAdd { itemsToAdd ->
 				addMissingStorageVolumes(itemsToAdd, region.externalId)
 			}.onUpdate { List<SyncTask.UpdateItem<ComputeServer, Instance>> updateItems ->
@@ -68,7 +68,7 @@ class VolumeSync {
 		}
 
 		if(adds) {
-			morpheusContext.storageVolume.create(adds).blockingGet()
+			morpheusContext.async.storageVolume.create(adds).blockingGet()
 		}
 	}
 
@@ -120,16 +120,16 @@ class VolumeSync {
 		}
 
 		if(saveList) {
-			morpheusContext.storageVolume.save(saveList).blockingGet()
+			morpheusContext.async.storageVolume.save(saveList).blockingGet()
 		}
 	}
 
 	private removeMissingStorageVolumes(Collection<StorageVolume> removeList) {
 		log.debug "removeMissingStorageVolumes: ${cloud} ${removeList.size()}"
-		morpheusContext.storageVolume.remove(removeList).blockingGet()
+		morpheusContext.async.storageVolume.remove(removeList).blockingGet()
 	}
 
 	private Map<String, StorageVolumeType> getAllStorageVolumeTypes() {
-		storageVolumeTypes ?: (storageVolumeTypes = morpheusContext.storageVolume.storageVolumeType.listAll().toMap {it.code}.blockingGet())
+		storageVolumeTypes ?: (storageVolumeTypes = morpheusContext.async.storageVolume.storageVolumeType.listAll().toMap {it.code}.blockingGet())
 	}
 }

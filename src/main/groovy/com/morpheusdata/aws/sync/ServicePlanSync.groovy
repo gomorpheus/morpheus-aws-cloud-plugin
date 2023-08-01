@@ -28,7 +28,7 @@ class ServicePlanSync {
 	def execute() {
 		// Get map of instance types to regions
 		def instanceTypeRegions = [:]
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
 			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud, false, region.externalId)
 
 			for(InstanceTypeInfo instanceType in AmazonComputeUtility.listInstanceTypes([amazonClient: amazonClient]).instanceTypes) {
@@ -40,12 +40,12 @@ class ServicePlanSync {
 		}
 
 		def cloudItems = instanceTypeRegions.values().collect { it.instanceType }
-		Observable<ServicePlanIdentityProjection> existingRecords = morpheusContext.servicePlan.listIdentityProjections(new ProvisionType(code: 'amazon'))
+		Observable<ServicePlanIdentityProjection> existingRecords = morpheusContext.async.servicePlan.listIdentityProjections(new ProvisionType(code: 'amazon'))
 		SyncTask<ServicePlanIdentityProjection, InstanceTypeInfo, ServicePlan> syncTask = new SyncTask<>(existingRecords, cloudItems)
 		syncTask.addMatchFunction { ServicePlanIdentityProjection existingItem, InstanceTypeInfo cloudItem ->
 			existingItem.externalId == cloudItem.instanceType
 		}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<ServicePlanIdentityProjection, ServicePlan>> updateItems ->
-			morpheusContext.servicePlan.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+			morpheusContext.async.servicePlan.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 		}.onAdd { itemsToAdd ->
 			addMissingServicePlans(itemsToAdd, instanceTypeRegions)
 		}.onUpdate { List<SyncTask.UpdateItem<ServicePlan, InstanceTypeInfo>> updateItems ->
@@ -110,7 +110,7 @@ class ServicePlanSync {
 
 		// Create em all!
 		log.debug "About to create ${adds.size()} snapshots"
-		morpheusContext.servicePlan.create(adds).blockingGet()
+		morpheusContext.async.servicePlan.create(adds).blockingGet()
 	}
 
 	private updateMatchedServicePlans(List<SyncTask.UpdateItem<ServicePlan, InstanceTypeInfo>> updateList, Map instanceTypesToRegion) {
@@ -156,7 +156,7 @@ class ServicePlanSync {
 
 		if(saveList) {
 			log.debug "About to update ${saveList.size()} service plans"
-			morpheusContext.servicePlan.save(saveList)
+			morpheusContext.async.servicePlan.save(saveList)
 		}
 	}
 
@@ -165,7 +165,7 @@ class ServicePlanSync {
 
 		if(removeList) {
 			log.debug "removeMissingServicePlans: ${cloud} ${removeList.size()}"
-			morpheusContext.servicePlan.remove(removeList).blockingGet()
+			morpheusContext.async.servicePlan.remove(removeList).blockingGet()
 		}
 	}
 

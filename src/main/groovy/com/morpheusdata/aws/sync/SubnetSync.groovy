@@ -26,12 +26,12 @@ class SubnetSync {
 	}
 
 	def execute() {
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
 			final String regionCode = region.externalId
 			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, regionCode)
 			def subnetResults = AmazonComputeUtility.listSubnets([amazonClient: amazonClient, zone: cloud])
 			if(subnetResults.success) {
-				Observable<NetworkIdentityProjection> domainRecords = morpheusContext.network.listIdentityProjections(cloud)
+				Observable<NetworkIdentityProjection> domainRecords = morpheusContext.async.network.listIdentityProjections(cloud)
 				SyncTask<NetworkIdentityProjection, Subnet, Network> syncTask = new SyncTask<>(domainRecords, subnetResults.subnetList as Collection<Subnet>)
 				return syncTask.addMatchFunction { NetworkIdentityProjection domainObject, Subnet data ->
 					domainObject.externalId == data.getSubnetId()
@@ -42,7 +42,7 @@ class SubnetSync {
 				}.onAdd { itemsToAdd ->
 					addMissingSubnets(itemsToAdd, regionCode)
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<NetworkIdentityProjection, Subnet>> updateItems ->
-					morpheusContext.cloud.network.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					morpheusContext.async.cloud.network.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.observe()
 			} else {
 				log.error("Error Caching Subnets for Region: {} - {}",regionCode,subnetResults.msg)
@@ -55,7 +55,7 @@ class SubnetSync {
 	protected void addMissingSubnets(Collection<Subnet> addList, String region) {
 		def adds = []
 		def networkType = plugin.networkProvider.networkTypes?.find { it.code == 'amazonSubnet' }
-		def vpcRecords = morpheusContext.cloud.pool.listByCloudAndExternalIdIn(cloud.id,addList.collect{it.getVpcId()}).toList().blockingGet()?.collectEntries { [(it.externalId):it]}
+		def vpcRecords = morpheusContext.async.cloud.pool.listByCloudAndExternalIdIn(cloud.id,addList.collect{it.getVpcId()}).toList().blockingGet()?.collectEntries { [(it.externalId):it]}
 		for(Subnet cloudItem in addList) {
 			def nameTag = cloudItem.getTags()?.find{it.key == 'Name'}
 			def vpcRecord = vpcRecords[cloudItem.getVpcId()]
@@ -67,7 +67,7 @@ class SubnetSync {
 			adds << add
 		}
 		if(adds) {
-			morpheusContext.network.create(adds).blockingGet()
+			morpheusContext.async.network.create(adds).blockingGet()
 		}
 	}
 
@@ -127,12 +127,12 @@ class SubnetSync {
 			}
 		}
 		if(updates) {
-			morpheusContext.network.save(updates).blockingGet()
+			morpheusContext.async.network.save(updates).blockingGet()
 		}
 	}
 
 	protected removeMissingSubnets(List<NetworkIdentityProjection> removeList) {
 		log.debug "removeMissingSubnets: ${removeList?.size()}"
-		morpheusContext.network.remove(removeList)
+		morpheusContext.async.network.remove(removeList)
 	}
 }

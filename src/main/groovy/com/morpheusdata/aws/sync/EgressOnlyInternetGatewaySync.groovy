@@ -23,12 +23,12 @@ class EgressOnlyInternetGatewaySync extends InternalResourceSync {
 	}
 
 	def execute() {
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
 			final String regionCode = region.externalId
 			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, region.externalId)
 			def apiList = AmazonComputeUtility.listEgressOnlyInternetGateways([amazonClient: amazonClient],[:])
 			if(apiList.success) {
-				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.cloud.resource.listIdentityProjections(cloud.id,'aws.cloudFormation.ec2.egressOnlyInternetGateway',regionCode)
+				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.async.cloud.resource.listIdentityProjections(cloud.id,'aws.cloudFormation.ec2.egressOnlyInternetGateway',regionCode)
 				SyncTask<AccountResourceIdentityProjection, EgressOnlyInternetGateway, AccountResource> syncTask = new SyncTask<>(domainRecords, apiList.egressOnlyInternetGateways as Collection<EgressOnlyInternetGateway>)
 				return syncTask.addMatchFunction { AccountResourceIdentityProjection domainObject, EgressOnlyInternetGateway data ->
 					domainObject.externalId == data.egressOnlyInternetGatewayId
@@ -40,7 +40,7 @@ class EgressOnlyInternetGatewaySync extends InternalResourceSync {
 					addMissingEgressOnlyInternetGateways(itemsToAdd, region)
 
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<AccountResourceIdentityProjection, EgressOnlyInternetGateway>> updateItems ->
-					return morpheusContext.cloud.pool.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					return morpheusContext.async.cloud.pool.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.observe()
 			} else {
 				log.error("Error Caching Egress Only Internet Gateways for Region: {} - {}", regionCode,apiList.msg)
@@ -64,7 +64,7 @@ class EgressOnlyInternetGatewaySync extends InternalResourceSync {
 				region: new ComputeZoneRegion(id: region.id)
 			)
 		}
-		morpheusContext.cloud.resource.create(adds).blockingGet()
+		morpheusContext.async.cloud.resource.create(adds).blockingGet()
 	}
 
 	protected void updateMatchedEgressOnlyInternetGateways(List<SyncTask.UpdateItem<AccountResource, EgressOnlyInternetGateway>> updateList, ComputeZoneRegionIdentityProjection region) {
@@ -84,7 +84,7 @@ class EgressOnlyInternetGatewaySync extends InternalResourceSync {
 			}
 		}
 		if(updates) {
-			morpheusContext.cloud.resource.save(updates).blockingGet()
+			morpheusContext.async.cloud.resource.save(updates).blockingGet()
 		}
 	}
 

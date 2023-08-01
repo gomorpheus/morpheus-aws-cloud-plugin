@@ -30,12 +30,12 @@ class AlbSync {
 	}
 
 	def execute() {
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
 			final String regionCode = region.externalId
 			def amazonClient = AmazonComputeUtility.getAmazonElbClient(cloud,false,regionCode)
 			def albList = AmazonComputeUtility.listAlbs([amazonClient: amazonClient])
 			if(albList.success) {
-				Observable<NetworkLoadBalancerIdentityProjection> domainRecords = morpheusContext.loadBalancer.listIdentityProjections(cloud.id,regionCode,'amazon-alb')
+				Observable<NetworkLoadBalancerIdentityProjection> domainRecords = morpheusContext.async.loadBalancer.listIdentityProjections(cloud.id,regionCode,'amazon-alb')
 				SyncTask<NetworkLoadBalancerIdentityProjection, LoadBalancer, NetworkLoadBalancer> syncTask = new SyncTask<>(domainRecords, albList.albList as Collection<LoadBalancer>)
 				return syncTask.addMatchFunction { NetworkLoadBalancerIdentityProjection domainObject, LoadBalancer data ->
 					domainObject.externalId == (':' + data.getLoadBalancerArn().split(':')[5..-1].join(':'))
@@ -46,7 +46,7 @@ class AlbSync {
 				}.onAdd { itemsToAdd ->
 					addMissingLoadBalancers(itemsToAdd, region)
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<NetworkLoadBalancerIdentityProjection, LoadBalancer>> updateItems ->
-					return morpheusContext.loadBalancer.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					return morpheusContext.async.loadBalancer.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.observe()
 			} else {
 				log.error("Error Caching LoadBalancers for Region: {} - {}",regionCode,albList.msg)
@@ -59,7 +59,7 @@ class AlbSync {
 	protected void addMissingLoadBalancers(Collection<LoadBalancer> addList, ComputeZoneRegionIdentityProjection region) {
 		def adds = []
 		List<String> subnetIds = addList.collect{ it.getAvailabilityZones().collect{it.getSubnetId()}}.flatten() as List<String>
-		def subnets = morpheusContext.network.listByCloudAndExternalIdIn(cloud.id,subnetIds).toList().blockingGet().collectEntries{ [(it.externalId): it]}
+		def subnets = morpheusContext.async.network.listByCloudAndExternalIdIn(cloud.id,subnetIds).toList().blockingGet().collectEntries{ [(it.externalId): it]}
 		for(LoadBalancer cloudItem in addList) {
 			def loadBalancerConfig = [owner: cloud.owner, account: cloud.owner, region: new ComputeZoneRegion(id: region.id), visibility: 'private', externalId: ':' + cloudItem.getLoadBalancerArn().split(':')[5..-1].join(':'), name: cloudItem.getLoadBalancerName(), sshHost: cloudItem.getDNSName(), type: new NetworkLoadBalancerType(code:'amazon-alb'), cloud: cloud]
 			NetworkLoadBalancer newLoadBalancer = new NetworkLoadBalancer(loadBalancerConfig)
@@ -77,14 +77,14 @@ class AlbSync {
 			adds << newLoadBalancer
 		}
 		if(adds) {
-			morpheusContext.loadBalancer.create(adds).blockingGet()
+			morpheusContext.async.loadBalancer.create(adds).blockingGet()
 		}
 	}
 
 	protected void updateMatchedLoadBalancers(List<SyncTask.UpdateItem<ComputeZonePool, LoadBalancer>> updateList, ComputeZoneRegionIdentityProjection region) {
 		def updates = []
 		List<String> subnetIdsForUpdates = updateList.collect{ it.masterItem.getAvailabilityZones().collect{it.getSubnetId()}}.flatten() as List<String>
-		def subnets = morpheusContext.network.listByCloudAndExternalIdIn(cloud.id,subnetIdsForUpdates).toList().blockingGet().collectEntries{ [(it.externalId): it]}
+		def subnets = morpheusContext.async.network.listByCloudAndExternalIdIn(cloud.id,subnetIdsForUpdates).toList().blockingGet().collectEntries{ [(it.externalId): it]}
 		for(update in updateList) {
 			def masterItem = update.masterItem
 			def existingItem = update.existingItem
@@ -120,11 +120,11 @@ class AlbSync {
 			}
 		}
 		if(updates) {
-			morpheusContext.loadBalancer.save(updates).blockingGet()
+			morpheusContext.async.loadBalancer.save(updates).blockingGet()
 		}
 	}
 
 	protected removeMissingLoadBalancers(List<NetworkLoadBalancerIdentityProjection> removeList) {
-		morpheusContext.loadBalancer.remove(removeList).blockingGet()
+		morpheusContext.async.loadBalancer.remove(removeList).blockingGet()
 	}
 }

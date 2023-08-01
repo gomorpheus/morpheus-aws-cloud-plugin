@@ -23,12 +23,12 @@ class TransitGatewaySync extends InternalResourceSync{
 	}
 
 	def execute() {
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap {
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap {
 			final String regionCode = it.externalId
 			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false,it.externalId)
 			def apiList = AmazonComputeUtility.listTransitGateways([amazonClient: amazonClient],[:])
 			if(apiList.success) {
-				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.cloud.resource.listIdentityProjections(cloud.id,'aws.cloudFormation.ec2.transitGateway',regionCode)
+				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.async.cloud.resource.listIdentityProjections(cloud.id,'aws.cloudFormation.ec2.transitGateway',regionCode)
 				SyncTask<AccountResourceIdentityProjection, TransitGateway, AccountResource> syncTask = new SyncTask<>(domainRecords, apiList.transitGateways as Collection<TransitGateway>)
 				return syncTask.addMatchFunction { AccountResourceIdentityProjection domainObject, TransitGateway data ->
 					domainObject.externalId == data.transitGatewayId
@@ -40,7 +40,7 @@ class TransitGatewaySync extends InternalResourceSync{
 					addMissingTransitGateway(itemsToAdd, regionCode)
 
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<AccountResourceIdentityProjection, TransitGateway>> updateItems ->
-					return morpheusContext.cloud.resource.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					return morpheusContext.async.cloud.resource.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.observe()
 			} else {
 				log.error("Error Caching Transit Gateways for Region: {} - {}",regionCode,apiList.msg)
@@ -65,7 +65,7 @@ class TransitGatewaySync extends InternalResourceSync{
 			)
 		}
 		if(adds) {
-			morpheusContext.cloud.resource.create(adds).blockingGet()
+			morpheusContext.async.cloud.resource.create(adds).blockingGet()
 		}
 	}
 
@@ -93,7 +93,7 @@ class TransitGatewaySync extends InternalResourceSync{
 			}
 		}
 		if(updates) {
-			morpheusContext.cloud.resource.save(updates).blockingGet()
+			morpheusContext.async.cloud.resource.save(updates).blockingGet()
 		}
 	}
 }

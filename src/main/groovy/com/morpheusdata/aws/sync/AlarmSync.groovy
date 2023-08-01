@@ -31,15 +31,14 @@ class AlarmSync {
 	}
 
 	def execute() {
-
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap {
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap {
 			final String regionCode = it.externalId
 			String regionScopedCategory = "amazon.alarm.${cloud.id}.${regionCode}"
 			String cloudCategory = "amazon.alarm.${cloud.id}"
 			def amazonClient = AmazonComputeUtility.getAmazonCloudWatchClient(cloud,false,it.externalId)
 			def alarmResults = AmazonComputeUtility.listCloudWatchAlarms([amazonClient: amazonClient])
 			if(alarmResults.success) {
-				Observable<OperationNotificationIdentityProjection> domainRecords = morpheusContext.operationNotification.listIdentityProjections(regionScopedCategory).mergeWith(morpheusContext.operationNotification.listIdentityProjections(cloudCategory))
+				Observable<OperationNotificationIdentityProjection> domainRecords = morpheusContext.async.operationNotification.listIdentityProjections(regionScopedCategory).mergeWith(morpheusContext.async.operationNotification.listIdentityProjections(cloudCategory))
 				SyncTask<OperationNotificationIdentityProjection, MetricAlarm, OperationNotification> syncTask = new SyncTask<>(domainRecords, alarmResults.alarms as Collection<MetricAlarm>)
 				return syncTask.addMatchFunction { OperationNotificationIdentityProjection domainObject, MetricAlarm data ->
 					domainObject.externalId == data.getAlarmArn()
@@ -50,7 +49,7 @@ class AlarmSync {
 				}.onAdd { itemsToAdd ->
 					addMissingAlarms(itemsToAdd, regionCode)
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<OperationNotificationIdentityProjection, MetricAlarm>> updateItems ->
-					return morpheusContext.operationNotification.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					return morpheusContext.async.operationNotification.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.observe()
 			} else {
 				log.error("Error Caching VPCs for Region: {} - {}",regionCode,alarmResults.msg)
@@ -65,7 +64,7 @@ class AlarmSync {
 		def instanceIds = addList.findAll{it.dimensions?.find{it.name == 'InstanceId'}}.collect{it.dimensions?.findAll{d -> d.name == 'InstanceId'}.collect{d -> d.value}}.flatten()
 		Map<String, ComputeServer> associatedResources = [:]
 		if(instanceIds) {
-			associatedResources = morpheusContext.computeServer.listByCloudAndExternalIdIn(cloud.id,instanceIds).toList().blockingGet().collectEntries{[(it.externalId):it]}
+			associatedResources = morpheusContext.async.computeServer.listByCloudAndExternalIdIn(cloud.id,instanceIds).toList().blockingGet().collectEntries{[(it.externalId):it]}
 		}
 
 		for(MetricAlarm cloudItem in addList) {
@@ -84,7 +83,7 @@ class AlarmSync {
 			adds << add
 		}
 		if(adds) {
-			morpheusContext.operationNotification.create(adds).blockingGet()
+			morpheusContext.async.operationNotification.create(adds).blockingGet()
 		}
 	}
 
@@ -93,7 +92,7 @@ class AlarmSync {
 		def instanceIds = updateList.findAll{it.masterItem.dimensions?.find{it.name == 'InstanceId'}}.collect{it.masterItem.dimensions?.findAll{d -> d.name == 'InstanceId'}.collect{d -> d.value}}.flatten()
 		Map<String, ComputeServer> associatedResources = [:]
 		if(instanceIds) {
-			associatedResources = morpheusContext.computeServer.listByCloudAndExternalIdIn(cloud.id,instanceIds).toList().blockingGet().collectEntries{[(it.externalId):it]}
+			associatedResources = morpheusContext.async.computeServer.listByCloudAndExternalIdIn(cloud.id,instanceIds).toList().blockingGet().collectEntries{[(it.externalId):it]}
 		}
 		for(update in updateList) {
 			def masterItem = update.masterItem
@@ -129,12 +128,12 @@ class AlarmSync {
 			}
 		}
 		if(updates) {
-			morpheusContext.operationNotification.save(updates).blockingGet()
+			morpheusContext.async.operationNotification.save(updates).blockingGet()
 		}
 	}
 
 	protected removeMissingAlarms(List<OperationNotificationIdentityProjection> removeList) {
-		morpheusContext.operationNotification.remove(removeList).blockingGet()
+		morpheusContext.async.operationNotification.remove(removeList).blockingGet()
 	}
 
 	static String translateAlarmStatus(String state) {

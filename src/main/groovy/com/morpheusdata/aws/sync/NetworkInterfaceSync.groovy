@@ -24,12 +24,12 @@ class NetworkInterfaceSync extends InternalResourceSync {
 	}
 
 	def execute() {
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
 			final String regionCode = region.externalId
 			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, region.externalId)
 			def apiList = AmazonComputeUtility.listNetworkInterfaces([amazonClient: amazonClient],[:])
 			if(apiList.success) {
-				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.cloud.resource.listIdentityProjections(cloud.id,'aws.cloudFormation.ec2.networkInterface', regionCode)
+				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.async.cloud.resource.listIdentityProjections(cloud.id,'aws.cloudFormation.ec2.networkInterface', regionCode)
 				SyncTask<AccountResourceIdentityProjection, NetworkInterface, AccountResource> syncTask = new SyncTask<>(domainRecords, apiList.networkInterfaces as Collection<NetworkInterface>)
 				return syncTask.addMatchFunction { AccountResourceIdentityProjection domainObject, NetworkInterface data ->
 					domainObject.externalId == data.networkInterfaceId
@@ -40,7 +40,7 @@ class NetworkInterfaceSync extends InternalResourceSync {
 				}.onAdd { itemsToAdd ->
 					addMissingNetworkInterface(itemsToAdd, region)
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<AccountResourceIdentityProjection, NetworkInterface>> updateItems ->
-					return morpheusContext.cloud.resource.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					return morpheusContext.async.cloud.resource.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.observe()
 			} else {
 				log.error("Error Caching Network Interfaces for Region: {} - {}", regionCode, apiList.msg)
@@ -64,7 +64,7 @@ class NetworkInterfaceSync extends InternalResourceSync {
 				region: new ComputeZoneRegion(id: region.id)
 			)
 		}
-		morpheusContext.cloud.resource.create(adds).blockingGet()
+		morpheusContext.async.cloud.resource.create(adds).blockingGet()
 	}
 
 	protected void updateMatchedNetworkInterfaces(List<SyncTask.UpdateItem<AccountResource, NetworkInterface>> updateList, ComputeZoneRegionIdentityProjection region) {
@@ -83,7 +83,7 @@ class NetworkInterfaceSync extends InternalResourceSync {
 			}
 		}
 		if(updates) {
-			morpheusContext.cloud.resource.save(updates).blockingGet()
+			morpheusContext.async.cloud.resource.save(updates).blockingGet()
 		}
 	}
 }

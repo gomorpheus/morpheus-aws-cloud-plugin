@@ -27,22 +27,22 @@ class ScaleGroupSync {
 	}
 
 	def execute() {
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
 			def subnetExternalIds
 			if(!cloud.getConfigProperty('vpc') && !cloud.getConfigProperty('isVpc')) {
 				subnetExternalIds = []
-				morpheusContext.network.listIdentityProjections(cloud.id, region.externalId).blockingSubscribe {
+				morpheusContext.async.network.listIdentityProjections(cloud.id, region.externalId).blockingSubscribe {
 					subnetExternalIds << it.externalId
 				}
 			}
 			def amazonClient = AmazonComputeUtility.getAmazonAutoScalingClient(cloud, false, region.externalId)
 			def cloudItems = AmazonComputeUtility.listScaleGroups(amazonClient, subnetExternalIds).groups
-			Observable<InstanceScaleIdentityProjection> existingRecords = morpheusContext.instance.scale.listIdentityProjections(cloud.id, region.externalId)
+			Observable<InstanceScaleIdentityProjection> existingRecords = morpheusContext.async.instance.scale.listIdentityProjections(cloud.id, region.externalId)
 			SyncTask<InstanceScaleIdentityProjection, AutoScalingGroup, InstanceScale> syncTask = new SyncTask<>(existingRecords, cloudItems)
 			syncTask.addMatchFunction { InstanceScaleIdentityProjection existingItem, AutoScalingGroup cloudItem ->
 				existingItem.externalId == cloudItem.autoScalingGroupName
 			}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<InstanceScaleIdentityProjection, InstanceScale>> updateItems ->
-				morpheusContext.instance.scale.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+				morpheusContext.async.instance.scale.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 			}.onAdd { itemsToAdd ->
 				addMissingInstanceScales(itemsToAdd, region)
 			}.onUpdate { List<SyncTask.UpdateItem<InstanceScale, AutoScalingGroup>> updateItems ->
@@ -80,7 +80,7 @@ class ScaleGroupSync {
 		// Create em all!
 		if(adds) {
 			log.debug "About to create ${adds.size()} instance scales"
-			morpheusContext.instance.scale.create(adds).blockingGet()
+			morpheusContext.async.instance.scale.create(adds).blockingGet()
 		}
 	}
 
@@ -111,16 +111,16 @@ class ScaleGroupSync {
 
 		if(saveList) {
 			log.debug "About to update ${saveList.size()} instance scales"
-			morpheusContext.instance.scale.save(saveList)
+			morpheusContext.async.instance.scale.save(saveList)
 		}
 	}
 
 	private removeMissingInstanceScales(Collection<InstanceScaleIdentityProjection> removeList) {
 		log.debug "removeMissingInstanceScales: ${cloud} ${removeList.size()}"
-		morpheusContext.instance.scale.remove(removeList).blockingGet()
+		morpheusContext.async.instance.scale.remove(removeList).blockingGet()
 	}
 
 	private getAllScaleTypes() {
-		scaleTypes ?: (scaleTypes = morpheusContext.instance.scale.scaleType.listAll().toMap { it.code }.blockingGet())
+		scaleTypes ?: (scaleTypes = morpheusContext.async.instance.scale.scaleType.listAll().toMap { it.code }.blockingGet())
 	}
 }

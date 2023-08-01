@@ -28,17 +28,17 @@ class KeyPairSync {
 	}
 
 	def execute() {
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
 			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud, false, region.externalId)
 			List<KeyPairInfo> cloudItems = AmazonComputeUtility.listKeypairs([amazonClient: amazonClient]).keyPairs
-			Observable<KeyPairIdentityProjection> existingRecords = morpheusContext.keyPair.listIdentityProjections(cloud.id, region.externalId)
+			Observable<KeyPairIdentityProjection> existingRecords = morpheusContext.async.keyPair.listIdentityProjections(cloud.id, region.externalId)
 			SyncTask<KeyPairIdentityProjection, KeyPairInfo, KeyPair> syncTask = new SyncTask<>(existingRecords, cloudItems)
 			syncTask.addMatchFunction { KeyPairIdentityProjection existingItem, KeyPairInfo cloudItem ->
 				existingItem.externalId == cloudItem.keyPairId
 			}.addMatchFunction { KeyPairIdentityProjection existingItem, KeyPairInfo cloudItem ->
 				existingItem.externalId == cloudItem.keyName
 			}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<KeyPairIdentityProjection, KeyPair>> updateItems ->
-				morpheusContext.keyPair.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+				morpheusContext.async.keyPair.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 			}.onAdd { itemsToAdd ->
 				addMissingKeyPairs(itemsToAdd, region)
 			}.onUpdate { List<SyncTask.UpdateItem<KeyPair, KeyPairInfo>> updateItems ->
@@ -68,7 +68,7 @@ class KeyPairSync {
 		}
 
 		log.debug "About to create ${adds.size()} keypairs"
-		morpheusContext.keyPair.create(adds).blockingGet()
+		morpheusContext.async.keyPair.create(adds).blockingGet()
 	}
 
 	private updateMatchedKeyPairs(List<SyncTask.UpdateItem<KeyPair, KeyPairInfo>> updateList, ComputeZoneRegionIdentityProjection region) {
@@ -98,12 +98,12 @@ class KeyPairSync {
 
 		if(saveList) {
 			log.debug "About to update ${saveList.size()} keypairs"
-			morpheusContext.keyPair.save(saveList)
+			morpheusContext.async.keyPair.save(saveList)
 		}
 	}
 
 	private removeMissingKeyPairs(Collection<KeyPairIdentityProjection> removeList) {
 		log.debug "removeMissingKeyPairs: ${cloud} ${removeList.size()}"
-		morpheusContext.keyPair.remove(removeList).blockingGet()
+		morpheusContext.async.keyPair.remove(removeList).blockingGet()
 	}
 }

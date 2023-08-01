@@ -5,6 +5,8 @@ import com.amazonaws.services.ec2.AmazonEC2
 import com.morpheusdata.aws.AWSPlugin
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
+import com.morpheusdata.core.data.DataFilter
+import com.morpheusdata.core.data.DataOrFilter
 import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.util.SyncList
 import com.morpheusdata.model.App
@@ -37,31 +39,25 @@ class ScaleGroupVirtualMachinesSync {
 	}
 
 	def execute() {
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
-			morpheusContext.instance.scale.listIdentityProjections(cloud.id, region.externalId).blockingSubscribe { scale ->
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+			morpheusContext.async.instance.scale.listIdentityProjections(cloud.id, region.externalId).blockingSubscribe { scale ->
 				if (scale.externalId) {
-					scale = morpheusContext.instance.scale.get(scale.id).blockingGet()
+					scale = morpheusContext.async.instance.scale.get(scale.id).blockingGet()
 					def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, region.externalId)
 					def autoScaleAmazonClient = AmazonComputeUtility.getAmazonAutoScalingClient(cloud, false, region.externalId)
 					def scaleGroupResult = AmazonComputeUtility.getAutoScaleGroup(autoScaleAmazonClient, scale.externalId)
 
 					if(scaleGroupResult.success) {
 						// existing records includes vms associated to scale group or by externalId
-						def existingRecordsMap = morpheusContext.computeServer.list(
-							new DataQuery(
-								account: cloud.account, filter: ['zone.id': cloud.id, externalId: ['i-c7245375']/*scaleGroup.instances?.collect { it.instanceId }*/]
-							)
-						).toMap {it.id }.blockingGet()
-
-						morpheusContext.computeServer.list(
-							new DataQuery(
-								account: cloud.account,
-								filter: ['scale.id': scale.id],
-								joinList: [[source: 'scale', join: true]]
-							)
-						).blockingSubscribe { existingRecordsMap[it.id] == it }
-
-						def existingRecords = existingRecordsMap.values()
+						def existingRecords = morpheusContext.async.computeServer.list(
+							new DataQuery().withFilters([
+								new DataFilter('zone.id', cloud.id),
+								new DataOrFilter([
+									new DataFilter('externalId', 'in', scaleGroupResult.group.instances?.collect { it.instanceId }),
+									new DataFilter('scale.id', scale.id)
+								])
+							])
+						).toList().blockingGet()
 
 						// If the scale group is part of a cloud formation deployment (has iacId) then:
 						// 1.  The Server is associated to the scale group (set scale on computeserver)
@@ -71,7 +67,7 @@ class ScaleGroupVirtualMachinesSync {
 						SyncList.MatchFunction matchMasterToValidFunc = { ComputeServer server, AutoScaleInstance cloudItem ->
 							server.externalId == cloudItem.instanceId
 						}
-						def syncLists = new SyncList(matchMasterToValidFunc).buildSyncLists(existingRecords.values(), scaleGroupResult.group.instances)
+						def syncLists = new SyncList(matchMasterToValidFunc).buildSyncLists(existingRecords, scaleGroupResult.group.instances)
 
 						while(syncLists.addList) {
 							for(AutoScaleInstance cloudItem in syncLists.addList.take(50)) {
@@ -110,11 +106,13 @@ class ScaleGroupVirtualMachinesSync {
 			return
 		}
 
-		// Must have inventory turned off and we are dealing with a managed scale set
-		def serverResults = AmazonComputeUtility.listVpcServers([zone: cloud, amazonClient: amazonClient, filterInstanceId: cloudItem.instanceId, includeAllVPCs: true])
-		if (serverResults.success == true && serverResults.serverList?.size() == 1) {
-			vmSync.addMissingVirtualMachines(serverResults.serverList, region, serverResults.volumeList, null, 'amazonVm')
-			existingItem = morpheusContext.computeServer.listByCloudAndExternalIdIn(cloud.id, cloudItem.instanceId).blockingFirst()
+		if(!existingItem) {
+			// Must have inventory turned off and we are dealing with a managed scale set
+			def serverResults = AmazonComputeUtility.listVpcServers([zone: cloud, amazonClient: amazonClient, filterInstanceId: cloudItem.instanceId, includeAllVPCs: true])
+			if (serverResults.success == true && serverResults.serverList?.size() == 1) {
+				vmSync.addMissingVirtualMachines(serverResults.serverList, region, serverResults.volumeList, null, 'amazonVm')
+				existingItem = morpheusContext.async.computeServer.find(new DataQuery().withFilters('cloud.id': cloud.id, 'externalId': cloudItem.instanceId)).blockingGet()
+			}
 		}
 
 		if(existingItem) {
@@ -137,33 +135,20 @@ class ScaleGroupVirtualMachinesSync {
 			Workload siblingWorkload
 
 			if (managedSibling) {
-				siblingWorkload = morpheusContext.workload.find(
-					new DataQuery(
-						account: cloud.account,
-						filter: ['zone.id': cloud.id, 'server.id': managedSibling.id]
-					)
-				).blockingGet()
+				siblingWorkload = morpheusContext.async.workload.find(new DataQuery().withFilters(['zone.id': cloud.id, 'server.id': managedSibling.id])).blockingGet()
 			}
 
-			Instance instance = siblingWorkload.instance
+			Instance instance = siblingWorkload?.instance
 
 			if (!instance) {
-				instance = morpheusContext.instance.find(
-					new DataQuery(
-						account: cloud.account,
-						filter: ['scale.id': scale.id]
-					)
-				).blockingGet()
+				instance = morpheusContext.async.instance.find(new DataQuery().withFilter('scale.id', scale.id)).blockingGet()
 			}
 
 			// Copy over the existing instance metadata
 			if (!instance) {
 				// Determine if this instance needs to be added to an App (in the case of cloudformation deploy for scale group)
-				App app = morpheusContext.app.list(
-					new DataQuery(
-						account: cloud.account,
-						filter: ['templateType.code': ['cloudFormation', 'terraform']]
-					)
+				App app = morpheusContext.async.app.list(
+					new DataQuery().withFilter(new DataFilter('templateType.code', 'in', ['cloudFormation', 'terraform']))
 				).toList().blockingGet().find {
 					new groovy.json.JsonSlurper().parseText(it.getConfigProperty('resourceMapping') ?: '[]')?.find {
 						(it.type == 'aws_autoscaling_group' || it.resourceConfig?.type == 'aws::autoscaling::autoscalinggroup') && (it.data.id?.toString() == scale.id.toString())
@@ -173,7 +158,7 @@ class ScaleGroupVirtualMachinesSync {
 				ComputeSite site = app?.site
 
 				if (!site) {
-					def sites = morpheusContext.computeSite.list(new DataQuery(account: cloud.account)).toList().blockingGet()
+					def sites = morpheusContext.async.computeSite.list(new DataQuery()).toList().blockingGet()
 					site = sites.find { it.account.id == cloud.account.id } ?: sites.sort { it.id }.first()
 				}
 
@@ -192,11 +177,11 @@ class ScaleGroupVirtualMachinesSync {
 				)
 				buildInstanceCapacity(instance)
 
-				instance = morpheusContext.instance.create(instance)
+				instance = morpheusContext.async.instance.create(instance)
 
 				if (app) {
 					app.instances << new AppInstance(app: app, instance: instance)
-					morpheusContext.app.save(app).blockingGet()
+					morpheusContext.async.app.save(app).blockingGet()
 				}
 			}
 
@@ -225,10 +210,10 @@ class ScaleGroupVirtualMachinesSync {
 				existingItem.sshUsername = managedSibling.sshUsername
 				existingItem.internalSshUsername = managedSibling.internalSshUsername
 			}
-			morpheusContext.computeServer.save([existingItem]).blockingGet()
+			morpheusContext.async.computeServer.save([existingItem]).blockingGet()
 
 			// Need to add a Container
-			WorkloadTypeSet typeSet = siblingWorkload?.workloadTypeSet ?: morpheusContext.workload.typeSet.find(new DataQuery(filter: [code:'amazon-1.0-set']))
+			WorkloadTypeSet typeSet = siblingWorkload?.workloadTypeSet ?: morpheusContext.async.workload.typeSet.find(new DataQuery().withFilter(code:'amazon-1.0-set'))
 			Workload workload = new Workload(
 				account: instance.account,
 				userStatus: Workload.Status.stopped,
@@ -239,7 +224,7 @@ class ScaleGroupVirtualMachinesSync {
 				plan: existingItem.plan,
 				instance: instance
 			)
-			existingItem = morpheusContext.workload.create(workload).blockingGet()
+			existingItem = morpheusContext.async.workload.create(workload).blockingGet()
 
 			// insert process job
 			/*
@@ -267,7 +252,7 @@ class ScaleGroupVirtualMachinesSync {
 
 	private removeVmFromScaleGroup(ComputeServer removeItem) {
 		removeItem.status = 'deprovisioning'
-		morpheusContext.computeServer.save(removeItem)
+		morpheusContext.async.computeServer.save(removeItem)
 /*
 		if(currentServer.containers.size() > 0) {
 			currentServer.containers.each { container ->
@@ -286,7 +271,7 @@ class ScaleGroupVirtualMachinesSync {
 	}
 
 	private Map<String, ComputeServerType> getAllComputeServerTypes() {
-		computeServerTypes ?: (computeServerTypes = morpheusContext.cloud.getComputeServerTypes(cloud.id).blockingGet().collectEntries {[it.code, it]})
+		computeServerTypes ?: (computeServerTypes = morpheusContext.async.cloud.getComputeServerTypes(cloud.id).blockingGet().collectEntries {[it.code, it]})
 	}
 
 	private buildInstanceCapacity(Instance instance) {

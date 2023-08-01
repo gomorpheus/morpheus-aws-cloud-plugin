@@ -23,12 +23,12 @@ class NATGatewaySync extends InternalResourceSync {
 	}
 
 	def execute() {
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
 			final String regionCode = region.externalId
 			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, region.externalId)
 			def apiList = AmazonComputeUtility.listNatGateways([amazonClient: amazonClient],[:])
 			if(apiList.success) {
-				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.cloud.resource.listIdentityProjections(cloud.id,'aws.cloudFormation.ec2.natGateway',regionCode)
+				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.async.cloud.resource.listIdentityProjections(cloud.id,'aws.cloudFormation.ec2.natGateway',regionCode)
 				SyncTask<AccountResourceIdentityProjection, NatGateway, AccountResource> syncTask = new SyncTask<>(domainRecords, apiList.natGateways as Collection<NatGateway>)
 				return syncTask.addMatchFunction { AccountResourceIdentityProjection domainObject, NatGateway data ->
 					domainObject.externalId == data.natGatewayId
@@ -40,7 +40,7 @@ class NATGatewaySync extends InternalResourceSync {
 					addMissingNATGateway(itemsToAdd, region)
 
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<AccountResourceIdentityProjection, NatGateway>> updateItems ->
-					return morpheusContext.cloud.resource.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					return morpheusContext.async.cloud.resource.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.observe()
 			} else {
 				log.error("Error Caching NAT Gateways for Region: {} - {}", regionCode,apiList.msg)
@@ -64,7 +64,7 @@ class NATGatewaySync extends InternalResourceSync {
 				cloudName: cloud.name, name: name, displayName: name, region: new ComputeZoneRegion(id: region.id)
 			)
 		}
-		morpheusContext.cloud.resource.create(adds).blockingGet()
+		morpheusContext.async.cloud.resource.create(adds).blockingGet()
 	}
 
 	protected void updateMatchedNATGateways(List<SyncTask.UpdateItem<AccountResource, NatGateway>> updateList, ComputeZoneRegionIdentityProjection region) {
@@ -89,7 +89,7 @@ class NATGatewaySync extends InternalResourceSync {
 			}
 		}
 		if(updates) {
-			morpheusContext.cloud.resource.save(updates).blockingGet()
+			morpheusContext.async.cloud.resource.save(updates).blockingGet()
 		}
 	}
 }

@@ -33,7 +33,7 @@ class RegionSync {
 				String region = AmazonComputeUtility.getAmazonEndpointRegion(cloud.regionCode)
 				regionResults.regionList = regionResults.regionList.findAll{it.getRegionName() == region}
 			}
-			Observable<ComputeZoneRegionIdentityProjection> domainRecords = morpheusContext.cloud.region.listIdentityProjections(cloud.id)
+			Observable<ComputeZoneRegionIdentityProjection> domainRecords = morpheusContext.async.cloud.region.listIdentityProjections(cloud.id)
 			SyncTask<ComputeZoneRegionIdentityProjection, Region, ComputeZoneRegion> syncTask = new SyncTask<>(domainRecords, regionResults.regionList as Collection<Region>)
 			syncTask.addMatchFunction { ComputeZoneRegionIdentityProjection domainObject, Region data ->
 				domainObject.externalId == data.getRegionName()
@@ -44,7 +44,7 @@ class RegionSync {
 			}.onAdd { itemsToAdd ->
 				addMissingRegions(itemsToAdd)
 			}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<ComputeZoneRegionIdentityProjection, Region>> updateItems ->
-				morpheusContext.cloud.region.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+				morpheusContext.async.cloud.region.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 			}.start()
 
 			//upload missing key pairs
@@ -60,19 +60,19 @@ class RegionSync {
 			adds << add
 		}
 		if(adds) {
-			morpheusContext.cloud.region.create(adds).blockingGet()
+			morpheusContext.async.cloud.region.create(adds).blockingGet()
 		}
 	}
 
 	protected removeMissingRegions(List removeList) {
-		morpheusContext.cloud.region.remove(removeList).blockingGet()
+		morpheusContext.async.cloud.region.remove(removeList).blockingGet()
 	}
 
 	protected ensureKeyPairs() {
 		def save
-		def keyPair = morpheusContext.cloud.findOrGenerateKeyPair(cloud.account).blockingGet()
+		def keyPair = morpheusContext.async.cloud.findOrGenerateKeyPair(cloud.account).blockingGet()
 
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
 			def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
 			def keyLocationId = "amazon-${cloud.id}-${region.externalId}".toString()
 			def keyResults = AmazonComputeUtility.uploadKeypair(
@@ -89,7 +89,7 @@ class RegionSync {
 		}
 
 		if(save) {
-			morpheusContext.keyPair.save([keyPair]).blockingGet()
+			morpheusContext.async.keyPair.save([keyPair]).blockingGet()
 		}
 	}
 }

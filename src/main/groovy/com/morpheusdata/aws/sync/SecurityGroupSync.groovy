@@ -34,17 +34,17 @@ class SecurityGroupSync {
 			log.debug("SecurityGroupSync: starting sync")
 			def vpcId = cloud.getConfigProperty('vpcId')
 			def zonePool = vpcId ? allZonePools[vpcId] : null
-			morpheusContext.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
 				def amazonClient = AmazonComputeUtility.getAmazonClient(cloud, false, region.externalId)
 				Collection<AWSSecurityGroup> cloudItems = AmazonComputeUtility.listSecurityGroups([amazonClient: amazonClient]).securityList.findAll {
 					(!vpcId || it.vpcId == vpcId) && (!it.vpcId || allZonePools[it.vpcId]) //this vpc isnt synced in scope so dont add this security group
 				} as Collection<AWSSecurityGroup>
-				Observable<SecurityGroupLocationIdentityProjection> existingRecords = morpheusContext.securityGroup.location.listIdentityProjections(cloud.id, zonePool?.id, null)
+				Observable<SecurityGroupLocationIdentityProjection> existingRecords = morpheusContext.async.securityGroup.location.listIdentityProjections(cloud.id, zonePool?.id, null)
 				SyncTask<SecurityGroupLocationIdentityProjection, AWSSecurityGroup, SecurityGroupLocation> syncTask = new SyncTask<>(existingRecords, cloudItems)
 				syncTask.addMatchFunction { SecurityGroupLocationIdentityProjection existingItem, AWSSecurityGroup cloudItem ->
 					existingItem.externalId == cloudItem.id
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<SecurityGroupLocationIdentityProjection, AWSSecurityGroup>> updateItems ->
-					morpheusContext.securityGroup.location.listByIds(updateItems.collect { it.existingItem.id } as List<Long>)
+					morpheusContext.async.securityGroup.location.listByIds(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.onAdd { itemsToAdd ->
 					addMissingSecurityGroups(itemsToAdd, region.externalId, zonePool?.id)
 				}.onUpdate { List<SyncTask.UpdateItem<ComputeServer, Instance>> updateItems ->
@@ -67,7 +67,7 @@ class SecurityGroupSync {
 				ruleHash: cloudItem.md5Hash, securityServer: cloud.securityServer,
 				zonePool: cloudItem.vpcId ? new ComputeZonePool(id: allZonePools[cloudItem.vpcId].id) : null
 			)
-			morpheusContext.securityGroup.location.create(add).blockingGet()
+			morpheusContext.async.securityGroup.location.create(add).blockingGet()
 		}
 		syncRules(addList, zonePoolId)
 	}
@@ -99,20 +99,20 @@ class SecurityGroupSync {
 			}
 		}
 		if(saveList) {
-			morpheusContext.securityGroup.location.save(saveList)
+			morpheusContext.async.securityGroup.location.save(saveList)
 		}
 		syncRules(updateList.collect {it.masterItem}, zonePoolId)
 	}
 
 	private removeMissingSecurityGroups(Collection<SecurityGroupLocationIdentityProjection> removeList) {
-		morpheusContext.securityGroup.location.removeSecurityGroupLocations(removeList as List<SecurityGroupLocationIdentityProjection>)
+		morpheusContext.async.securityGroup.location.removeSecurityGroupLocations(removeList as List<SecurityGroupLocationIdentityProjection>)
 	}
 
 	private syncRules(Collection<AWSSecurityGroup> cloudList, Long zonePoolId) {
 		def securityGroupLocations = getSecurityGroupLocations(zonePoolId)
 
 		for(AWSSecurityGroup cloudItem in cloudList) {
-			def securityGroupLocation = morpheusContext.securityGroup.location.listByIds([securityGroupLocations[cloudItem.id].id]).blockingFirst()
+			def securityGroupLocation = morpheusContext.async.securityGroup.location.listByIds([securityGroupLocations[cloudItem.id].id]).blockingFirst()
 			def rules = cloudItem.rules?.collect { cloudRule ->
 				SecurityGroupRuleLocation rule = new SecurityGroupRuleLocation(
 					externalId: cloudRule.id?.toString(), name: cloudRule.description, ruleType: 'custom',
@@ -148,15 +148,15 @@ class SecurityGroupSync {
 				}
 				rule
 			}
-			morpheusContext.securityGroup.location.syncRules(securityGroupLocation, rules).blockingGet()
+			morpheusContext.async.securityGroup.location.syncRules(securityGroupLocation, rules).blockingGet()
 		}
 	}
 
 	private Map<String, ComputeZonePoolIdentityProjection> getAllZonePools() {
-		zonePools ?: (zonePools = morpheusContext.cloud.pool.listIdentityProjections(cloud.id, '').toMap {it.externalId}.blockingGet())
+		zonePools ?: (zonePools = morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id, '').toMap {it.externalId}.blockingGet())
 	}
 
 	private Map<String, SecurityGroupLocationIdentityProjection> getSecurityGroupLocations(Long zonePoolId) {
-		morpheusContext.securityGroup.location.listIdentityProjections(cloud.id, zonePoolId, null).toMap{ it.externalId}.blockingGet()
+		morpheusContext.async.securityGroup.location.listIdentityProjections(cloud.id, zonePoolId, null).toMap{ it.externalId}.blockingGet()
 	}
 }

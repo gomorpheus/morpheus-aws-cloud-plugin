@@ -34,17 +34,17 @@ class RouteTableSync {
 	}
 
 	def execute() {
-		routers = morpheusContext.network.router.listIdentityProjections(cloud.id).toList().blockingGet()
-		morpheusContext.cloud.pool.listIdentityProjections(cloud.id, null, null).blockingSubscribe { ComputeZonePoolIdentityProjection zonePool ->
-			def router = morpheusContext.network.router.listById([routers.find { it.refType == 'ComputeZonePool' && it.refId == zonePool.id }?.id ?: 0L]).blockingFirst()
+		routers = morpheusContext.async.network.router.listIdentityProjections(cloud.id).toList().blockingGet()
+		morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id, null, null).blockingSubscribe { ComputeZonePoolIdentityProjection zonePool ->
+			def router = morpheusContext.async.network.router.listById([routers.find { it.refType == 'ComputeZonePool' && it.refId == zonePool.id }?.id ?: 0L]).blockingFirst()
 			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud, false, zonePool.regionCode)
 			def cloudItems = AmazonComputeUtility.listRouteTables(amazonClient: amazonClient, filterVpcId: zonePool.externalId).routeTableList
-			Observable<NetworkRouteTableIdentityProjection> existingRecords = morpheusContext.network.routeTable.listIdentityProjections(zonePool.id)
+			Observable<NetworkRouteTableIdentityProjection> existingRecords = morpheusContext.async.network.routeTable.listIdentityProjections(zonePool.id)
 			SyncTask<NetworkRouteTableIdentityProjection, RouteTable, NetworkRouteTable> syncTask = new SyncTask<>(existingRecords, cloudItems)
 			syncTask.addMatchFunction { NetworkRouteTableIdentityProjection existingItem, RouteTable cloudItem ->
 				existingItem.externalId == cloudItem.routeTableId
 			}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<NetworkRouteTableIdentityProjection, NetworkRouteTable>> updateItems ->
-				morpheusContext.network.routeTable.listById(updateItems.collect { it.existingItem.id } as Collection<Long>)
+				morpheusContext.async.network.routeTable.listById(updateItems.collect { it.existingItem.id } as Collection<Long>)
 			}.onAdd { itemsToAdd ->
 				addMissingNetworkRouteTables(itemsToAdd, zonePool, router)
 			}.onUpdate { List<SyncTask.UpdateItem<NetworkRouteTable, RouteTable>> updateItems ->
@@ -71,7 +71,7 @@ class RouteTableSync {
 
 		// Create em all!
 		log.debug "About to create ${adds.size()} instance scales"
-		morpheusContext.network.routeTable.create(adds).blockingGet()
+		morpheusContext.async.network.routeTable.create(adds).blockingGet()
 
 		// Sync newly added routes
 		syncRouteTableRoutes(addList, zonePool, router)
@@ -94,35 +94,35 @@ class RouteTableSync {
 
 		if(saveList) {
 			log.debug "About to update ${saveList.size()} instance scales"
-			morpheusContext.instance.scale.save(saveList.collect { it.existingItem })
+			morpheusContext.async.instance.scale.save(saveList.collect { it.existingItem })
 		}
 		syncRouteTableRoutes(updateList.collect { it.masterItem }, zonePool, router)
 	}
 
 	private removeMissingNetworkRouteTables(Collection<NetworkRouteTableIdentityProjection> removeList) {
 		log.debug "removeMissingInstanceScales: ${cloud} ${removeList.size()}"
-		morpheusContext.network.routeTable.remove(removeList).blockingGet()
+		morpheusContext.async.network.routeTable.remove(removeList).blockingGet()
 	}
 
 	private syncRouteTableRoutes(List<RouteTable> amazonRouteTables, ComputeZonePoolIdentityProjection zonePool, NetworkRouter router) {
 		Map<String, RouteTable> routeTableMap = amazonRouteTables.collectEntries { [it.routeTableId, it] }
 		Collection<Long> routeTableIds = []
-		morpheusContext.network.routeTable.listIdentityProjections(zonePool.id).blockingSubscribe { NetworkRouteTableIdentityProjection routeTable ->
+		morpheusContext.async.network.routeTable.listIdentityProjections(zonePool.id).blockingSubscribe { NetworkRouteTableIdentityProjection routeTable ->
 			if (routeTableMap.containsKey(routeTable.externalId)) {
 				routeTableIds << routeTable.id
 			}
 		}
 
-		List<NetworkRouteTable> routeTables = morpheusContext.network.routeTable.listById(routeTableIds).toList().blockingGet()
+		List<NetworkRouteTable> routeTables = morpheusContext.async.network.routeTable.listById(routeTableIds).toList().blockingGet()
 
 		for(NetworkRouteTableIdentityProjection routeTable in routeTables) {
 			List<Route> cloudItems = routeTableMap[routeTable.externalId]?.routes
-			Observable<NetworkRouteIdentityProjection> existingRecords = morpheusContext.network.router.route.listIdentityProjections(routeTable)
+			Observable<NetworkRouteIdentityProjection> existingRecords = morpheusContext.async.network.router.route.listIdentityProjections(routeTable)
 			SyncTask<NetworkRouteIdentityProjection, Route, NetworkRoute> syncTask = new SyncTask<>(existingRecords, cloudItems)
 			syncTask.addMatchFunction { NetworkRouteIdentityProjection existingItem, Route cloudItem ->
 				existingItem.externalId == buildRouteExternalId(cloudItem)
 			}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<NetworkRouteIdentityProjection, NetworkRoute>> updateItems ->
-				morpheusContext.network.router.route.listById(updateItems.collect { it.existingItem.id } as Collection<Long>)
+				morpheusContext.async.network.router.route.listById(updateItems.collect { it.existingItem.id } as Collection<Long>)
 			}.onAdd { itemsToAdd ->
 				addMissingNetworkRoutes(itemsToAdd, routeTable, router)
 			}.onUpdate { List<SyncTask.UpdateItem<NetworkRoute, Route>> updateItems ->
@@ -140,7 +140,7 @@ class RouteTableSync {
 			configureRoute(routeTable, route, cloudItem)
 			adds << route
 		}
-		morpheusContext.network.router.route.create(router, adds).blockingGet()
+		morpheusContext.async.network.router.route.create(router, adds).blockingGet()
 	}
 
 	private updateMatchedNetworkRoutes(List<SyncTask.UpdateItem<NetworkRoute, Route>> updateList, NetworkRouteTable routeTable, NetworkRouter router) {
@@ -163,13 +163,13 @@ class RouteTableSync {
 
 		if(saveList) {
 			log.debug "About to update ${saveList.size()} network routes"
-			morpheusContext.network.router.route.save(router, saveList.collect { it.existingItem }).blockingGet()
+			morpheusContext.async.network.router.route.save(router, saveList.collect { it.existingItem }).blockingGet()
 		}
 	}
 
 	private removeMissingNetworkRoutes(List<NetworkRouteIdentityProjection> removeList, NetworkRouter router) {
 		log.debug "About to remove ${removeList.size()} network routes"
-		morpheusContext.network.router.route.remove(router?.id, removeList).blockingGet()
+		morpheusContext.async.network.router.route.remove(router?.id, removeList).blockingGet()
 	}
 
 	def buildRouteExternalId(amazonRoute) {

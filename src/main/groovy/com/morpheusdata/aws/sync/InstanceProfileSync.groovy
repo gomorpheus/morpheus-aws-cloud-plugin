@@ -28,12 +28,12 @@ class InstanceProfileSync {
 
 
 	def execute() {
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap {
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap {
 			final String regionCode = it.externalId
 			AmazonIdentityManagement amazonClient = AmazonComputeUtility.getAmazonIamClient(cloud,false,it.externalId)
 			def instanceProfileResults = AmazonComputeUtility.listInstanceProfiles([amazonClient: amazonClient])
 			if(instanceProfileResults.success) {
-				Observable<ReferenceDataSyncProjection> domainRecords = morpheusContext.cloud.listReferenceDataByCategory(cloud,"amazon.ec2.profiles.${cloud.id}.${regionCode}".toString()).mergeWith(morpheusContext.cloud.listReferenceDataByCategory(cloud,"amazon.ec2.profiles.${cloud.id}".toString()))
+				Observable<ReferenceDataSyncProjection> domainRecords = morpheusContext.async.cloud.listReferenceDataByCategory(cloud,"amazon.ec2.profiles.${cloud.id}.${regionCode}".toString()).mergeWith(morpheusContext.async.cloud.listReferenceDataByCategory(cloud,"amazon.ec2.profiles.${cloud.id}".toString()))
 				SyncTask<ReferenceDataSyncProjection, InstanceProfile, ReferenceData> syncTask = new SyncTask<>(domainRecords, instanceProfileResults.results as Collection<InstanceProfile>)
 				return syncTask.addMatchFunction { ReferenceDataSyncProjection domainObject, InstanceProfile data ->
 					domainObject.externalId == data.getInstanceProfileId()
@@ -46,7 +46,7 @@ class InstanceProfileSync {
 				}.onAdd { itemsToAdd ->
 					addMissingInstanceProfiles(itemsToAdd, regionCode)
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<ReferenceDataSyncProjection, InstanceProfile>> updateItems ->
-					morpheusContext.cloud.listReferenceDataById(updateItems.collect { it.existingItem.id } as List<Long>)
+					morpheusContext.async.cloud.listReferenceDataById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.observe()
 			} else {
 				log.error("Error Caching Instance Profiles for Region: {} - {}",regionCode,instanceProfileResults.msg)
@@ -73,11 +73,11 @@ class InstanceProfileSync {
 		}
 
 		if(adds) {
-			morpheusContext.cloud.create(adds, cloud, getCategory(regionCode)).blockingGet()
+			morpheusContext.async.cloud.create(adds, cloud, getCategory(regionCode)).blockingGet()
 		}
 	}
 
 	private removeMissingInstanceProfiles(List<ReferenceDataSyncProjection> removeList) {
-		morpheusContext.cloud.remove(removeList).blockingGet()
+		morpheusContext.async.cloud.remove(removeList).blockingGet()
 	}
 }

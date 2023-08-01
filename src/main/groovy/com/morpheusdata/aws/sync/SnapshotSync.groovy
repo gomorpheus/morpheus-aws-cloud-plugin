@@ -32,16 +32,16 @@ class SnapshotSync {
 
 	def execute() {
 		def updatedSnapshotExternalIds = []
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
-			def volumes = morpheusContext.storageVolume.listIdentityProjections(cloud.id, region.externalId).toMap { it.externalId }.blockingGet()
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+			def volumes = morpheusContext.async.storageVolume.listIdentityProjections(cloud.id, region.externalId).toMap { it.externalId }.blockingGet()
 			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud, false, region.externalId)
 			def cloudItems = AmazonComputeUtility.listSnapshots([amazonClient: amazonClient, zone: cloud]).snapshotList
-			Observable<SnapshotIdentityProjection> existingRecords = morpheusContext.snapshot.listIdentityProjections(cloud.id, region.externalId)
+			Observable<SnapshotIdentityProjection> existingRecords = morpheusContext.async.snapshot.listIdentityProjections(cloud.id, region.externalId)
 			SyncTask<SnapshotIdentityProjection, Snapshot, SnapshotModel> syncTask = new SyncTask<>(existingRecords, cloudItems)
 			syncTask.addMatchFunction { SnapshotIdentityProjection existingItem, Snapshot cloudItem ->
 				existingItem.externalId == cloudItem.snapshotId
 			}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<SnapshotIdentityProjection, SnapshotModel>> updateItems ->
-				morpheusContext.snapshot.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+				morpheusContext.async.snapshot.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 			}.onAdd { itemsToAdd ->
 				updatedSnapshotExternalIds += addMissingSnapshots(itemsToAdd, region, volumes)
 			}.onUpdate { List<SyncTask.UpdateItem<SnapshotModel, Snapshot>> updateItems ->
@@ -51,12 +51,12 @@ class SnapshotSync {
 			}.observe().blockingSubscribe { completed ->
 				log.debug "sending snapshot update price plan: ${updatedSnapshotExternalIds}"
 				def updatedSnapshotIds = []
-				morpheusContext.snapshot.listIdentityProjections(cloud.id, region.externalId).blockingSubscribe {
+				morpheusContext.async.snapshot.listIdentityProjections(cloud.id, region.externalId).blockingSubscribe {
 					if(updatedSnapshotExternalIds.contains(it.externalId)) {
 						updatedSnapshotIds << it.id
 					}
 				}
-				morpheusContext.usage.restartSnapshotUsage(updatedSnapshotIds).blockingGet()
+				morpheusContext.async.usage.restartSnapshotUsage(updatedSnapshotIds).blockingGet()
 			}
 		}
 	}
@@ -85,7 +85,7 @@ class SnapshotSync {
 		// Create em all!
 		if(adds) {
 			log.debug "About to create ${adds.size()} snapshots"
-			morpheusContext.snapshot.create(adds).blockingGet()
+			morpheusContext.async.snapshot.create(adds).blockingGet()
 		}
 		adds.collect { it.externalId }
 	}
@@ -115,17 +115,17 @@ class SnapshotSync {
 
 		if(saveList) {
 			log.debug "About to update ${saveList.size()} snapshots"
-			morpheusContext.snapshot.save(saveList)
+			morpheusContext.async.snapshot.save(saveList)
 		}
 		saveList.collect{ it.externalId }
 	}
 
 	private removeMissingSnapshots(Collection<SnapshotIdentityProjection> removeList) {
 		log.debug "removeMissingSnapshots: ${cloud} ${removeList.size()}"
-		morpheusContext.snapshot.remove(removeList).blockingGet()
+		morpheusContext.async.snapshot.remove(removeList).blockingGet()
 	}
 
 	private getAllVolumeTypes() {
-		volumeTypes ?: (volumeTypes = morpheusContext.storageVolume.storageVolumeType.listAll().toMap { it.code }.blockingGet())
+		volumeTypes ?: (volumeTypes = morpheusContext.async.storageVolume.storageVolumeType.listAll().toMap { it.code }.blockingGet())
 	}
 }

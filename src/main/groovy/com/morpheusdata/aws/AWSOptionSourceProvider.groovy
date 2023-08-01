@@ -64,12 +64,12 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 	def awsPluginVpc(args) {
 		args = args instanceof Object[] ? args.getAt(0) : args
 
-		Cloud cloud = args.zoneId ? morpheusContext.cloud.getCloudById(args.zoneId.toLong()).blockingGet() : null
+		Cloud cloud = args.zoneId ? morpheusContext.async.cloud.getCloudById(args.zoneId.toLong()).blockingGet() : null
 		if(!cloud) {
 			cloud = new Cloud()
 		}
 		if(args.credential) {
-			def credentialDataResponse = morpheusContext.accountCredential.loadCredentialConfig(args.credential, args.config).blockingGet()
+			def credentialDataResponse = morpheusContext.async.accountCredential.loadCredentialConfig(args.credential, args.config).blockingGet()
 			if(credentialDataResponse.success) {
 				cloud.accountCredentialData = credentialDataResponse.data
 				cloud.accountCredentialLoaded = true
@@ -88,7 +88,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		}
 		cloud.setConfigMap(cloud.getConfigMap() + config)
 
-		def proxy = args.apiProxy ? morpheusContext.network.networkProxy.getById(args.long('apiProxy')).blockingGet() : null
+		def proxy = args.apiProxy ? morpheusContext.async.network.networkProxy.getById(args.long('apiProxy')).blockingGet() : null
 		cloud.apiProxy = proxy
 
 		def rtn
@@ -229,7 +229,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		//AC - TODO - Overhaul security group location fetch to allow multiple zone pools and filter based on id rather than category?
 		def cloudId = getCloudId(args)
 		if(cloudId) {
-			Cloud tmpCloud = morpheusContext.cloud.getCloudById(cloudId).blockingGet()
+			Cloud tmpCloud = morpheusContext.async.cloud.getCloudById(cloudId).blockingGet()
 			List zonePools
 			if(args.config?.resourcePoolId) {
 				def poolId = args.config.resourcePoolId
@@ -239,11 +239,11 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 				if(poolId instanceof String && poolId.startsWith('pool-')) {
 					poolId = poolId.substring(5).toLong()
 				}
-				zonePools = morpheusContext.cloud.pool.listById([poolId]).toList().blockingGet()
+				zonePools = morpheusContext.async.cloud.pool.listById([poolId]).toList().blockingGet()
 			}
 			def poolIds = zonePools?.collect { it.id }
-			List options = morpheusContext.securityGroup.location.listIdentityProjections(tmpCloud.id, null, null).toList().blockingGet()
-			List allLocs = morpheusContext.securityGroup.location.listByIds(options.collect {it?.id}).filter {poolIds.contains(it?.zonePool?.id)}.toList().blockingGet()
+			List options = morpheusContext.async.securityGroup.location.listIdentityProjections(tmpCloud.id, null, null).toList().blockingGet()
+			List allLocs = morpheusContext.async.securityGroup.location.listByIds(options.collect {it?.id}).filter {poolIds.contains(it?.zonePool?.id)}.toList().blockingGet()
 			def x =  allLocs.collect {[name: it.name, value: it.externalId]}.sort {it.name.toLowerCase()}
 			return x
 		} else {

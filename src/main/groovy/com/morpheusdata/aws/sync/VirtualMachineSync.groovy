@@ -53,11 +53,11 @@ class VirtualMachineSync {
 	def execute() {
 		def usageLists = [restartUsageIds: [], stopUsageIds: [], startUsageIds: [], updatedSnapshotIds: []]
 		def inventoryLevel = cloud.inventoryLevel ?: (cloud.getConfigProperty('importExisting') in [true, 'true', 'on'] ? 'basic' : 'off')
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
 			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, region.externalId)
 			def vmList = AmazonComputeUtility.listVpcServers([amazonClient: amazonClient, zone: cloud])
 			if(vmList.success) {
-				Observable<ComputeServerIdentityProjection> vmRecords = morpheusContext.computeServer.listIdentityProjections(cloud.id, region.externalId)
+				Observable<ComputeServerIdentityProjection> vmRecords = morpheusContext.async.computeServer.listIdentityProjections(cloud.id, region.externalId)
 				SyncTask<ComputeServerIdentityProjection, Instance, ComputeServer> syncTask = new SyncTask<>(vmRecords, vmList.serverList.findAll{ instance -> instance.state?.code != 48 } as Collection<Instance>)
 				syncTask.addMatchFunction { ComputeServerIdentityProjection domainObject, Instance cloudItem ->
 					def match = domainObject.externalId == cloudItem.instanceId.toString()
@@ -70,7 +70,7 @@ class VirtualMachineSync {
 					}
 					match
 				}.withLoadObjectDetailsFromFinder { List<UpdateItemDto<ComputeServerIdentityProjection, Instance>> updateItems ->
-					morpheusContext.computeServer.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					morpheusContext.async.computeServer.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.onAdd { itemsToAdd ->
 					if(inventoryLevel in ['basic', 'full']) {
 						addMissingVirtualMachines(itemsToAdd, region, vmList.volumeList, usageLists)
@@ -81,10 +81,10 @@ class VirtualMachineSync {
 					removeMissingVirtualMachines(removeItems)
 				}.observe().blockingSubscribe { completed ->
 					log.debug "sending usage start/stop/restarts: ${usageLists}"
-					morpheusContext.usage.startServerUsage(usageLists.startUsageIds).blockingGet()
-					morpheusContext.usage.stopServerUsage(usageLists.stopUsageIds).blockingGet()
-					morpheusContext.usage.restartServerUsage(usageLists.restartUsageIds).blockingGet()
-					morpheusContext.usage.restartSnapshotUsage(usageLists.updatedSnapshotIds).blockingGet()
+					morpheusContext.async.usage.startServerUsage(usageLists.startUsageIds).blockingGet()
+					morpheusContext.async.usage.stopServerUsage(usageLists.stopUsageIds).blockingGet()
+					morpheusContext.async.usage.restartServerUsage(usageLists.restartUsageIds).blockingGet()
+					morpheusContext.async.usage.restartSnapshotUsage(usageLists.updatedSnapshotIds).blockingGet()
 				}
 			} else {
 				log.error("Error Caching VMs for Region: {}", region.externalId)
@@ -132,13 +132,13 @@ class VirtualMachineSync {
 					if (servicePlan) {
 						applyServicePlan(add, servicePlan)
 					}
-					ComputeServer savedServer = morpheusContext.computeServer.create(add).blockingGet()
+					ComputeServer savedServer = morpheusContext.async.computeServer.create(add).blockingGet()
 					if (!savedServer) {
 						log.error "Error in creating server ${add}"
 					} else {
 						def postSaveResults = performPostSaveSync(cloudItem, savedServer, volumeMap)
 						if (postSaveResults.saveRequired) {
-							morpheusContext.computeServer.save([savedServer]).blockingGet()
+							morpheusContext.async.computeServer.save([savedServer]).blockingGet()
 						}
 					}
 
@@ -160,7 +160,7 @@ class VirtualMachineSync {
 	def updateMatchedVirtualMachines(List<SyncTask.UpdateItem<ComputeServer, Instance>> updateList, ComputeZoneRegionIdentityProjection region, Map<String, Volume> volumeMap, Map usageLists, String inventoryLevel) {
 		def statsData = []
 		def managedServerIds = updateList.findAll { it.existingItem.computeServerType?.managed }.collect{it.existingItem.id}
-		def workloads = managedServerIds ? morpheusContext.cloud.listCloudWorkloadProjections(cloud.id).filter { workload ->
+		def workloads = managedServerIds ? morpheusContext.async.cloud.listCloudWorkloadProjections(cloud.id).filter { workload ->
 			workload.serverId in managedServerIds
 		}.toMap {it.serverId}.blockingGet() : [:]
 
@@ -216,7 +216,7 @@ class VirtualMachineSync {
 					if(powerState != currentServer.powerState) {
 						currentServer.powerState = powerState
 						if (currentServer.computeServerType?.guestVm) {
-							morpheusContext.computeServer.updatePowerState(currentServer.id, currentServer.powerState).blockingGet()
+							morpheusContext.async.computeServer.updatePowerState(currentServer.id, currentServer.powerState).blockingGet()
 						}
 					}
 
@@ -248,7 +248,7 @@ class VirtualMachineSync {
 					}
 
 					if (save) {
-						morpheusContext.computeServer.save([currentServer]).blockingGet()
+						morpheusContext.async.computeServer.save([currentServer]).blockingGet()
 					}
 				} catch(e) {
 					log.warn("Error Updating Virtual Machine ${currentServer?.name} - ${currentServer.externalId} - ${e}", e)
@@ -257,14 +257,14 @@ class VirtualMachineSync {
 		}
 		if(statsData) {
 			for(statData in statsData) {
-				morpheusContext.stats.updateWorkloadStats(new WorkloadIdentityProjection(id: statData.workload.id), statData.maxMemory, statData.maxUsedMemory, statData.maxStorage, statData.maxUsedStorage, statData.cpuPercent, statData.running)
+				morpheusContext.async.stats.updateWorkloadStats(new WorkloadIdentityProjection(id: statData.workload.id), statData.maxMemory, statData.maxUsedMemory, statData.maxStorage, statData.maxUsedStorage, statData.cpuPercent, statData.running)
 			}
 		}
 	}
 
 	def removeMissingVirtualMachines(List<ComputeServerIdentityProjection> removeList) {
 		log.debug "removeMissingVirtualMachines: ${cloud} ${removeList.size()}"
-		morpheusContext.computeServer.remove(removeList).blockingGet()
+		morpheusContext.async.computeServer.remove(removeList).blockingGet()
 	}
 
 	private applyServicePlan(ComputeServer server, ServicePlan servicePlan) {
@@ -372,7 +372,7 @@ class VirtualMachineSync {
 					}
 				}
 				if(createList) {
-					morpheusContext.storageVolume.create(createList, server).blockingGet()
+					morpheusContext.async.storageVolume.create(createList, server).blockingGet()
 				}
 
 				// Process updates
@@ -418,12 +418,12 @@ class VirtualMachineSync {
 					rtn.maxStorage += maxStorage
 				}
 				if(saveList) {
-					morpheusContext.storageVolume.save(saveList).blockingGet()
+					morpheusContext.async.storageVolume.save(saveList).blockingGet()
 				}
 
 				// Process removes
 				if(syncLists.removeList) {
-					morpheusContext.storageVolume.remove(syncLists.removeList, server, false).blockingGet()
+					morpheusContext.async.storageVolume.remove(syncLists.removeList, server, false).blockingGet()
 					rtn.saveRequired = true
 				}
 			}
@@ -442,12 +442,12 @@ class VirtualMachineSync {
 		log.debug "syncSecurityGroups: ${server}, ${cloudSecGroupExternalIds}"
 		try {
 			List<SecurityGroupLocationIdentityProjection> securityGroupLocations = []
-			morpheusContext.securityGroup.location.listSyncProjections(cloud.id, server.resourcePool.id, null).blockingSubscribe {
+			morpheusContext.async.securityGroup.location.listSyncProjections(cloud.id, server.resourcePool.id, null).blockingSubscribe {
 				if(cloudSecGroupExternalIds.contains(it.externalId)) {
 					securityGroupLocations << it
 				}
 			}
-			morpheusContext.securityGroup.location.syncAssociations(server, securityGroupLocations)
+			morpheusContext.async.securityGroup.location.syncAssociations(server, securityGroupLocations)
 		} catch(e) {
 			log.error "error in sync security groups: ${e}", e
 		}
@@ -460,7 +460,7 @@ class VirtualMachineSync {
 			Network subnet
 
 			if(subnetId) {
-				morpheusContext.network.listByCloudAndExternalIdIn(cloud.id, [subnetId]).blockingSubscribe {
+				morpheusContext.async.network.listByCloudAndExternalIdIn(cloud.id, [subnetId]).blockingSubscribe {
 					if(it.typeCode == 'amazonSubnet') {
 						subnet = it
 					}
@@ -485,7 +485,7 @@ class VirtualMachineSync {
 					subnet:subnet,
 					displayOrder:(server.interfaces?.size() ?: 0) + 1
 				)
-				morpheusContext.computeServer.computeServerInterface.create([nic], server)
+				morpheusContext.async.computeServer.computeServerInterface.create([nic], server)
 			}
 			else {
 				def doSave = false
@@ -498,7 +498,7 @@ class VirtualMachineSync {
 					doSave = true
 				}
 				if(doSave) {
-					morpheusContext.computeServer.computeServerInterface.save([nic])
+					morpheusContext.async.computeServer.computeServerInterface.save([nic])
 				}
 			}
 		}
@@ -528,7 +528,7 @@ class VirtualMachineSync {
 			createList << new MetadataTag(name: tagMap.key, value: tagMap.value)
 		}
 		if(createList) {
-			morpheusContext.metadataTag.create(createList, server)
+			morpheusContext.async.metadataTag.create(createList, server)
 			changes = true
 		}
 
@@ -552,23 +552,23 @@ class VirtualMachineSync {
 			}
 		}
 		if(saveList) {
-			morpheusContext.metadataTag.save(saveList)
+			morpheusContext.async.metadataTag.save(saveList)
 			changes = true
 		}
 
 		// Process removes
 		if(syncLists.removeList) {
-			morpheusContext.metadataTag.remove(syncLists.removeList)
+			morpheusContext.async.metadataTag.remove(syncLists.removeList)
 			changes = true
 		}
 
 		if(changes) {
 			//lets see if we have any instance metadata that needs updated
 			if(server.computeServerType?.containerHypervisor != true && server.computeServerType?.vmHypervisor != true) {
-				def instanceIds = morpheusContext.cloud.getStoppedContainerInstanceIds(server.id).blockingSubscribe { it.id }
+				def instanceIds = morpheusContext.async.cloud.getStoppedContainerInstanceIds(server.id).blockingSubscribe { it.id }
 
 				if(instanceIds) {
-					morpheusContext.instance.listById(instanceIds).blockingSubscribe { instance ->
+					morpheusContext.async.instance.listById(instanceIds).blockingSubscribe { instance ->
 						syncTags(instance, server.metadata, opts)
 					}
 				}
@@ -598,7 +598,7 @@ class VirtualMachineSync {
 			createList << new MetadataTag(name: tagMap.key, value: tagMap.value)
 		}
 		if(createList) {
-			morpheusContext.metadataTag.create(createList, instance)
+			morpheusContext.async.metadataTag.create(createList, instance)
 			saveRequired = true
 		}
 
@@ -621,18 +621,18 @@ class VirtualMachineSync {
 			}
 		}
 		if(saveList) {
-			morpheusContext.metadataTag.save(saveList)
+			morpheusContext.async.metadataTag.save(saveList)
 			saveRequired = true
 		}
 
 		// Process removes
 		if(syncLists.removeList) {
-			morpheusContext.metadataTag.remove(syncLists.removeList)
+			morpheusContext.async.metadataTag.remove(syncLists.removeList)
 			saveRequired = true
 		}
 
 		if(saveRequired) {
-			morpheusContext.instance.save([instance])
+			morpheusContext.async.instance.save([instance])
 		}
 		return saveRequired
 	}
@@ -650,7 +650,7 @@ class VirtualMachineSync {
 				workload.coresPerSocket = currentServer.coresPerSocket
 				workload.maxStorage = currentServer.maxStorage
 				def instanceId = workload.instance?.id
-				morpheusContext.cloud.saveWorkload(workload).blockingGet()
+				morpheusContext.async.cloud.saveWorkload(workload).blockingGet()
 
 				if(instanceId) {
 					instanceIds << instanceId
@@ -659,7 +659,7 @@ class VirtualMachineSync {
 
 			if(instanceIds) {
 				def instancesToSave = []
-				def instances = morpheusContext.instance.listById(instanceIds).toList().blockingGet()
+				def instances = morpheusContext.async.instance.listById(instanceIds).toList().blockingGet()
 				instances.each { Instance instance ->
 					if(plan) {
 						if (instance.containers.every { cnt -> (cnt.plan.id == currentServer.plan.id && cnt.maxMemory == currentServer.maxMemory && cnt.maxCores == currentServer.maxCores && cnt.coresPerSocket == currentServer.coresPerSocket) || cnt.server.id == currentServer.id }) {
@@ -674,7 +674,7 @@ class VirtualMachineSync {
 					}
 				}
 				if(instancesToSave.size() > 0) {
-					morpheusContext.instance.save(instancesToSave).blockingGet()
+					morpheusContext.async.instance.save(instancesToSave).blockingGet()
 				}
 			}
 		} catch(e) {
@@ -710,47 +710,47 @@ class VirtualMachineSync {
 
 	private getWorkloadsForServer(ComputeServer currentServer) {
 		def workloads = []
-		def projections = morpheusContext.cloud.listCloudWorkloadProjections(cloud.id).filter { it.serverId == currentServer.id }.toList().blockingGet()
+		def projections = morpheusContext.async.cloud.listCloudWorkloadProjections(cloud.id).filter { it.serverId == currentServer.id }.toList().blockingGet()
 		for(proj in projections) {
-			workloads << morpheusContext.cloud.getWorkloadById(proj.id).blockingGet()
+			workloads << morpheusContext.async.cloud.getWorkloadById(proj.id).blockingGet()
 		}
 		workloads
 	}
 
 	private ComputeServer saveAndGet(ComputeServer server) {
-		def saveSuccessful = morpheusContext.computeServer.save([server]).blockingGet()
+		def saveSuccessful = morpheusContext.async.computeServer.save([server]).blockingGet()
 		if(!saveSuccessful) {
 			log.warn("Error saving server: ${server?.id}" )
 		}
-		return morpheusContext.computeServer.get(server.id).blockingGet()
+		return morpheusContext.async.computeServer.get(server.id).blockingGet()
 	}
 
 	private Map<String, ComputeServerType> getAllComputeServerTypes() {
-		computeServerTypes ?: (computeServerTypes = morpheusContext.cloud.getComputeServerTypes(cloud.id).blockingGet().collectEntries {[it.code, it]})
+		computeServerTypes ?: (computeServerTypes = morpheusContext.async.cloud.getComputeServerTypes(cloud.id).blockingGet().collectEntries {[it.code, it]})
 	}
 
 	private Map<String, OsType> getAllOsTypes() {
-		osTypes ?: (osTypes = morpheusContext.osType.listAll().toMap {it.code}.blockingGet())
+		osTypes ?: (osTypes = morpheusContext.async.osType.listAll().toMap {it.code}.blockingGet())
 	}
 
 	private Map<String, ComputeZonePoolIdentityProjection> getAllZonePools() {
-		zonePools ?: (zonePools = morpheusContext.cloud.pool.listIdentityProjections(cloud.id, '', null).toMap {it.externalId}.blockingGet())
+		zonePools ?: (zonePools = morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id, '', null).toMap {it.externalId}.blockingGet())
 	}
 
 	private Map<String, ServicePlanIdentityProjection> getAllServicePlans() {
-		servicePlans ?: (servicePlans = morpheusContext.servicePlan.listSyncProjections(new ProvisionType(code:'amazon')).toMap { it.code }.blockingGet())
+		servicePlans ?: (servicePlans = morpheusContext.async.servicePlan.listSyncProjections(new ProvisionType(code:'amazon')).toMap { it.code }.blockingGet())
 	}
 
 	private ServicePlan getServicePlan(String code) {
 		def servicePlan = allServicePlans[code]
 		if(servicePlan && !(servicePlan instanceof ServicePlan)) {
-			servicePlan = morpheusContext.servicePlan.listById([servicePlan.id]).blockingFirst()
+			servicePlan = morpheusContext.async.servicePlan.listById([servicePlan.id]).blockingFirst()
 			allServicePlans[code] = servicePlan
 		}
 		servicePlan
 	}
 
 	private Map<String, StorageVolumeType> getAllStorageVolumeTypes() {
-		storageVolumeTypes ?: (storageVolumeTypes = morpheusContext.storageVolume.storageVolumeType.listAll().toMap {it.code }.blockingGet())
+		storageVolumeTypes ?: (storageVolumeTypes = morpheusContext.async.storageVolume.storageVolumeType.listAll().toMap {it.code }.blockingGet())
 	}
 }

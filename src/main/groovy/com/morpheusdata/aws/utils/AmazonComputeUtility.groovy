@@ -2495,7 +2495,7 @@ class AmazonComputeUtility {
 	static validateServerConfig(MorpheusContext morpheusContext, Map opts =[:]) {
 		def rtn = [success:false, errors: []]
 		try {
-			def cloud = morpheusContext.cloud.getCloudById(opts.zoneId?.toLong()).blockingGet()
+			def cloud = morpheusContext.async.cloud.getCloudById(opts.zoneId?.toLong()).blockingGet()
 			AmazonEC2 amazonClient = getAmazonClient(cloud,false, null)
 			// Validate enough Elastic IPs left
 			if(opts.publicIpType == 'elasticIp') {
@@ -2536,7 +2536,7 @@ class AmazonComputeUtility {
 								def networkObj
 								networkId = it.network.id.toLong()
 								try {
-									networkObj = morpheusContext.network.listById([networkId]).firstOrError().blockingGet()
+									networkObj = morpheusContext.async.network.listById([networkId]).firstOrError().blockingGet()
 								} catch(e) {
 									log.error("Error finding network ${it.network.name}")
 								}

@@ -27,12 +27,12 @@ class IAMRoleSync {
 
 
 	def execute() {
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap {
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap {
 			final String regionCode = it.externalId
 			AmazonIdentityManagement amazonClient = AmazonComputeUtility.getAmazonIamClient(cloud,false,it.externalId)
 			def RoleResults = AmazonComputeUtility.listRoles([amazonClient: amazonClient])
 			if(RoleResults.success) {
-				Observable<ReferenceDataSyncProjection> domainRecords = morpheusContext.cloud.listReferenceDataByCategory(cloud,"amazon.ec2.roles.${cloud.id}.${regionCode}".toString()).mergeWith(morpheusContext.cloud.listReferenceDataByCategory(cloud,"amazon.ec2.roles.${cloud.id}".toString()))
+				Observable<ReferenceDataSyncProjection> domainRecords = morpheusContext.async.cloud.listReferenceDataByCategory(cloud,"amazon.ec2.roles.${cloud.id}.${regionCode}".toString()).mergeWith(morpheusContext.async.cloud.listReferenceDataByCategory(cloud,"amazon.ec2.roles.${cloud.id}".toString()))
 				SyncTask<ReferenceDataSyncProjection, Role, ReferenceData> syncTask = new SyncTask<>(domainRecords, RoleResults.results as Collection<Role>)
 				return syncTask.addMatchFunction { ReferenceDataSyncProjection domainObject, Role data ->
 					domainObject.externalId == data.getRoleId()
@@ -45,7 +45,7 @@ class IAMRoleSync {
 				}.onAdd { itemsToAdd ->
 					addMissingRoles(itemsToAdd, regionCode)
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<ReferenceDataSyncProjection, Role>> updateItems ->
-					morpheusContext.cloud.listReferenceDataById(updateItems.collect { it.existingItem.id } as List<Long>)
+					morpheusContext.async.cloud.listReferenceDataById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.observe()
 			} else {
 				log.error("Error Caching IAM Roles for Region: {} - {}",regionCode,RoleResults.msg)
@@ -71,11 +71,11 @@ class IAMRoleSync {
 		}
 
 		if(adds) {
-			morpheusContext.cloud.create(adds, cloud, getCategory(regionCode)).blockingGet()
+			morpheusContext.async.cloud.create(adds, cloud, getCategory(regionCode)).blockingGet()
 		}
 	}
 
 	private removeMissingRoles(List<ReferenceDataSyncProjection> removeList) {
-		morpheusContext.cloud.remove(removeList).blockingGet()
+		morpheusContext.async.cloud.remove(removeList).blockingGet()
 	}
 }

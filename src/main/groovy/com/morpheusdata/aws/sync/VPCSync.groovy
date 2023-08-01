@@ -31,12 +31,12 @@ class VPCSync {
 	}
 
 	def execute() {
-		morpheusContext.cloud.region.listIdentityProjections(cloud.id).flatMap {
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap {
 			final String regionCode = it.externalId
 			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false,it.externalId)
 			def vpcResults = AmazonComputeUtility.listVpcs([amazonClient: amazonClient])
 			if(vpcResults.success) {
-				Observable<ComputeZonePoolIdentityProjection> domainRecords = morpheusContext.cloud.pool.listIdentityProjections(cloud.id, null, regionCode)
+				Observable<ComputeZonePoolIdentityProjection> domainRecords = morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id, null, regionCode)
 				SyncTask<ComputeZonePoolIdentityProjection, Vpc, ComputeZonePool> syncTask = new SyncTask<>(domainRecords, vpcResults.vpcList as Collection<Vpc>)
 				return syncTask.addMatchFunction { ComputeZonePoolIdentityProjection domainObject, Vpc data ->
 					domainObject.externalId == data.getVpcId()
@@ -47,7 +47,7 @@ class VPCSync {
 				}.onAdd { itemsToAdd ->
 					addMissingVpcs(itemsToAdd, regionCode)
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<ComputeZonePoolIdentityProjection, Vpc>> updateItems ->
-					return morpheusContext.cloud.pool.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					return morpheusContext.async.cloud.pool.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.observe()
 			} else {
 				log.error("Error Caching VPCs for Region: {} - {}",regionCode,vpcResults.msg)
@@ -72,7 +72,7 @@ class VPCSync {
 
 		}
 		if(adds) {
-			morpheusContext.cloud.pool.create(adds).blockingGet()
+			morpheusContext.async.cloud.pool.create(adds).blockingGet()
 		}
 	}
 
@@ -120,12 +120,12 @@ class VPCSync {
 			}
 		}
 		if(updates) {
-			morpheusContext.cloud.pool.save(updates).blockingGet()
+			morpheusContext.async.cloud.pool.save(updates).blockingGet()
 		}
 	}
 
 	protected removeMissingResourcePools(List<ComputeZonePoolIdentityProjection> removeList) {
 		log.debug "removeMissingResourcePools: ${removeList?.size()}"
-		morpheusContext.cloud.pool.remove(removeList).blockingGet()
+		morpheusContext.async.cloud.pool.remove(removeList).blockingGet()
 	}
 }

@@ -473,7 +473,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 					if (server.internalIp != privateIp) {
 						server.internalIp = privateIp
 						server.externalIp = publicIp
-						morpheusContext.computeServer.save([server]).blockingGet()
+						morpheusContext.async.computeServer.save([server]).blockingGet()
 					}
 				}
 			}
@@ -611,7 +611,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 		def rootSnapshot
 		def snapshots
 		if(config.cloneContainerId) {
-			def cloneContainer = morpheusContext.workload.get(opts.cloneContainerId).blockingGet()
+			def cloneContainer = morpheusContext.async.workload.get(opts.cloneContainerId).blockingGet()
 			if(cloneContainer) {
 				def cloneContainerConfig = cloneContainer.getConfigProperties()
 				runConfig.containerConfig = [availabilityZone:  cloneContainerConfig.availabilityZone]
@@ -821,7 +821,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 
 	def finalizeVm(Map runConfig, WorkloadResponse workloadResponse, Map runResults) {
 		log.debug("runTask onComplete: workloadResponse: ${workloadResponse}")
-		ComputeServer server = morpheusContext.computeServer.get(runConfig.serverId).blockingGet()
+		ComputeServer server = morpheusContext.async.computeServer.get(runConfig.serverId).blockingGet()
 		try {
 			if(workloadResponse.success == true) {
 				server.sshHost = runResults.sshHost
@@ -1004,7 +1004,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	 */
 	@Override
 	ServiceResponse resizeWorkload(Instance instance, Workload workload, ResizeRequest resizeRequest, Map opts) {
-		def server = morpheusContext.computeServer.get(workload.server.id).blockingGet()
+		def server = morpheusContext.async.computeServer.get(workload.server.id).blockingGet()
 		if(server) {
 			return internalResizeServer(server, resizeRequest, opts)
 		} else {
@@ -1068,7 +1068,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 				if (resizeRequest.volumesUpdate) {
 					def serverDetails = AmazonComputeUtility.getServerDetail(amazonOpts)
 					availabilityZone = serverDetails.server.getPlacement().getAvailabilityZone()
-					allStorageVolumeTypes = morpheusContext.storageVolume.storageVolumeType.listAll().toMap { it.id }.blockingGet()
+					allStorageVolumeTypes = morpheusContext.async.storageVolume.storageVolumeType.listAll().toMap { it.id }.blockingGet()
 				}
 
 				resizeRequest.volumesUpdate?.each { volumeUpdate ->
@@ -1086,7 +1086,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 								existing.maxIOPS = iops
 								existing.externalId = resizeResults.newVolumeId
 								existing.maxStorage = updateProps.maxStorage.toLong()
-								morpheusContext.storageVolume.save([existing]).blockingGet()
+								morpheusContext.async.storageVolume.save([existing]).blockingGet()
 							} else {
 								rtn.setError("Failed to expand Disk: ${existing.name}")
 							}
@@ -1132,8 +1132,8 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 								status: 'provisioned',
 								rootVolume: ['/dev/sda1','/dev/xvda','xvda','sda1','sda'].contains(deviceName)
 						)
-						morpheusContext.storageVolume.create([newVolume], server).blockingGet()
-						server = morpheusContext.computeServer.get(server.id).blockingGet()
+						morpheusContext.async.storageVolume.create([newVolume], server).blockingGet()
+						server = morpheusContext.async.computeServer.get(server.id).blockingGet()
 						newCounter++
 					}
 
@@ -1146,7 +1146,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 					def detachResults = AmazonComputeUtility.detachVolume([volumeId: volumeId, instanceId: server.externalId, amazonClient: amazonOpts.amazonClient])
 					if (detachResults.success == true) {
 						AmazonComputeUtility.deleteVolume([volumeId: volumeId, amazonClient: amazonOpts.amazonClient])
-						morpheusContext.storageVolume.remove([volume], server, true).blockingGet()
+						morpheusContext.async.storageVolume.remove([volume], server, true).blockingGet()
 					}
 				}
 
@@ -1157,7 +1157,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 
 					log.info("adding network: ${networkAdd}")
 					def newIndex = server.interfaces?.size()
-					Network networkObj = morpheusContext.network.listById([networkAdd.network.id.toLong()]).firstOrError().blockingGet()
+					Network networkObj = morpheusContext.async.network.listById([networkAdd.network.id.toLong()]).firstOrError().blockingGet()
 					def networkConfig = [serverId: server.externalId, amazonClient: amazonOpts.amazonClient, securityGroups: securityGroups,
 										 subnetId: networkObj.externalId]
 					def networkResults = AmazonComputeUtility.addNetworkInterface(networkConfig)
@@ -1187,9 +1187,9 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 									displayOrder    : newIndex,
 									primaryInterface: networkAdd?.network?.isPrimary ? true : false
 							])
-							morpheusContext.computeServer.computeServerInterface.create([newInterface], server).blockingGet()
+							morpheusContext.async.computeServer.computeServerInterface.create([newInterface], server).blockingGet()
 							// Need to refetch the server
-							server = morpheusContext.computeServer.get(server.id).blockingGet()
+							server = morpheusContext.async.computeServer.get(server.id).blockingGet()
 
 						}
 					}
@@ -1203,8 +1203,8 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 					if (detachResults.success == true) {
 						def deleteResults = AmazonComputeUtility.deleteNetworkInterface(deleteConfig)
 						if (deleteResults.success == true) {
-							morpheusContext.computeServer.computeServerInterface.remove([networkDelete], server).blockingGet()
-							server = morpheusContext.computeServer.get(server.id).blockingGet()
+							morpheusContext.async.computeServer.computeServerInterface.remove([networkDelete], server).blockingGet()
+							server = morpheusContext.async.computeServer.get(server.id).blockingGet()
 						}
 					}
 				}
@@ -1300,11 +1300,11 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 		def containerConfig = workload.getConfigMap()
 		def imageType = containerConfig.imageType ?: 'default'
 		if(imageType == 'private' && containerConfig.imageId) {
-			rtn = morpheusContext.virtualImage.get(containerConfig.imageId as Long).blockingGet()
+			rtn = morpheusContext.async.virtualImage.get(containerConfig.imageId as Long).blockingGet()
 		} else if(imageType == 'local' && (containerConfig.localImageId || containerConfig.template)) {
 			Long localImageId = getImageId(containerConfig.localImageId) ?: getImageId(containerConfig.template)
 			if(localImageId) {
-				rtn = morpheusContext.virtualImage.get(localImageId).blockingGet()
+				rtn = morpheusContext.async.virtualImage.get(localImageId).blockingGet()
 			}
 		} else if(imageType == 'public' && containerConfig.publicImageId) {
 
@@ -1443,11 +1443,11 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	}
 
 	protected ComputeServer saveAndGet(ComputeServer server) {
-		def saveSuccessful = morpheusContext.computeServer.save([server]).blockingGet()
+		def saveSuccessful = morpheusContext.async.computeServer.save([server]).blockingGet()
 		if(!saveSuccessful) {
 			log.warn("Error saving server: ${server?.id}" )
 		}
-		return morpheusContext.computeServer.get(server.id).blockingGet()
+		return morpheusContext.async.computeServer.get(server.id).blockingGet()
 	}
 
 	def buildDataDiskList(server, dataDisks, imageResults) {
@@ -1515,7 +1515,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 						}
 					}
 				}
-				morpheusContext.computeServer.computeServerInterface.save(serverInterfaces)
+				morpheusContext.async.computeServer.computeServerInterface.save(serverInterfaces)
 			}
 		} catch(e) {
 			log.error("setNetworkInfo error: ${e}", e)
@@ -1546,7 +1546,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 				rootVolume.deviceName = rootDeviceName
 				rootVolume.deviceDisplayName = extractDiskDisplayName(rootDeviceName)
 			}
-			morpheusContext.storageVolume.save([rootVolume])
+			morpheusContext.async.storageVolume.save([rootVolume])
 		}
 	}
 
@@ -1568,7 +1568,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 					}
 				}
 			}
-			morpheusContext.storageVolume.save(serverVolumes)
+			morpheusContext.async.storageVolume.save(serverVolumes)
 		} catch(e) {
 			log.error("setVolumeInfo error: ${e}", e)
 		}
@@ -1624,9 +1624,9 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 			}
 
 			if(newInterface == true)
-				morpheusContext.computeServer.computeServerInterface.create([network], server).blockingGet()
+				morpheusContext.async.computeServer.computeServerInterface.create([network], server).blockingGet()
 			else
-				morpheusContext.computeServer.computeServerInterface.save([network])
+				morpheusContext.async.computeServer.computeServerInterface.save([network])
 		}
 		saveAndGet(server)
 		return network
