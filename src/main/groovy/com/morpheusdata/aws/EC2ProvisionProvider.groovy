@@ -500,8 +500,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 
 		def runConfig = [:] + opts + buildRunConfig(server, virtualImage, hostRequest.networkConfiguration, amazonClient, serverConfig)
 
-		println "\u001B[33mAC Log - EC2ProvisionProvider:buildHostRunConfig- ${runConfig}\u001B[0m"
-
 		runConfig += [
 				name              : server.name,
 				account 		  : server.account,
@@ -561,7 +559,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 		if(!network && server.interfaces) {
 			network = server.interfaces.find {it.primaryInterface}?.network
 		}
-		println "\u001B[33mAC Log - EC2ProvisionProvider:buildRunConfig network - ${network}\u001B[0m"
 		def availabilityId = config.availabilityId ?: network?.availabilityZone ?: null
 		def rootVolume = server.volumes?.find{it.rootVolume == true}
 		def dataDisks = server?.volumes?.findAll{it.rootVolume == false}?.sort{it.id}
@@ -1032,7 +1029,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 
 
 	private ServiceResponse internalResizeServer(ComputeServer server, ResizeRequest resizeRequest, Map opts) {
-		println "\u001B[33mAC Log - EC2ProvisionProvider:internalResizeServer- ${server} ${resizeRequest.dump()}\u001B[0m"
 		def rtn = [success:false, supported:true]
 		def amazonOpts = [server:server]
 		Cloud cloud = server.cloud
@@ -1164,7 +1160,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 					def networkResults = AmazonComputeUtility.addNetworkInterface(networkConfig)
 					log.info("network results: ${networkResults}")
 					def nic = networkResults.networkInterface
-					println "\u001B[33mAC Log - EC2ProvisionProvider:internalResizeServer- ${networkResults}\u001B[0m"
 					def platform = server.platform
 					def nicName
 					if(platform == 'windows') {
