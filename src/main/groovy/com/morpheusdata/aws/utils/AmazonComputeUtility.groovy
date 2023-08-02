@@ -205,19 +205,26 @@ class AmazonComputeUtility {
 			}
 			def nameTag = new com.amazonaws.services.ec2.model.Tag('Name', opts.name ?: "morpheus node")
 			def tagList = new LinkedList<com.amazonaws.services.ec2.model.Tag>()
+			def volTagList = new LinkedList<com.amazonaws.services.ec2.model.Tag>()
 			tagList.add(nameTag)
 			HashSet<String> tagNames = new HashSet<>()
 			tagNames.add('Name')
 
 			buildAdditionalTags(opts.tagList, tagList, tagNames)
+			buildAdditionalTags(opts.tagList, volTagList, new HashSet<>())
 
 			TagSpecification tagSpecification = new TagSpecification()
 			tagSpecification.withResourceType(ResourceType.Instance)
 			tagSpecification.setTags(tagList)
-			TagSpecification volumeTagSpecification = new TagSpecification()
-			tagSpecification.withResourceType(ResourceType.Volume)
-			tagSpecification.setTags(tagList)
-			createServer.withTagSpecifications(tagSpecification,volumeTagSpecification)
+
+			if(volTagList.size() > 0){
+				TagSpecification volumeTagSpecification = new TagSpecification()
+				volumeTagSpecification.withResourceType(ResourceType.Volume)
+				volumeTagSpecification.setTags(volTagList)
+				createServer.withTagSpecifications(tagSpecification,volumeTagSpecification)
+			} else {
+				createServer.withTagSpecifications(tagSpecification)
+			}
 			//cloud config
 			if(opts.cloudConfig)
 				createServer.withUserData(opts.cloudConfig.bytes.encodeBase64().toString())
