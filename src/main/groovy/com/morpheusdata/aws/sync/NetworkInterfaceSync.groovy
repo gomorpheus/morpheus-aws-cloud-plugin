@@ -26,7 +26,7 @@ class NetworkInterfaceSync extends InternalResourceSync {
 	def execute() {
 		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
 			final String regionCode = region.externalId
-			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, region.externalId)
+			def amazonClient = plugin.getAmazonClient(cloud,false, region.externalId)
 			def apiList = AmazonComputeUtility.listNetworkInterfaces([amazonClient: amazonClient],[:])
 			if(apiList.success) {
 				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.async.cloud.resource.listIdentityProjections(cloud.id,'aws.cloudFormation.ec2.networkInterface', regionCode)

@@ -93,7 +93,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 
 		def rtn
 		if(AmazonComputeUtility.testConnection(cloud).success) {
-			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud, true)
+			def amazonClient = plugin.getAmazonClient(cloud, true)
 			def vpcResult = AmazonComputeUtility.listVpcs([amazonClient:amazonClient])
 			if(vpcResult.success) {
 				rtn = vpcResult.vpcList.collect {[name:"${it.vpcId} - ${it.tags?.find { tag -> tag.key == 'Name' }?.value ?: 'default'}", value:it.vpcId]}

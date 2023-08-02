@@ -37,7 +37,7 @@ class RouteTableSync {
 		routers = morpheusContext.async.network.router.listIdentityProjections(cloud.id).toList().blockingGet()
 		morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id, null, null).blockingSubscribe { ComputeZonePoolIdentityProjection zonePool ->
 			def router = morpheusContext.async.network.router.listById([routers.find { it.refType == 'ComputeZonePool' && it.refId == zonePool.id }?.id ?: 0L]).blockingFirst()
-			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud, false, zonePool.regionCode)
+			def amazonClient = plugin.getAmazonClient(cloud, false, zonePool.regionCode)
 			def cloudItems = AmazonComputeUtility.listRouteTables(amazonClient: amazonClient, filterVpcId: zonePool.externalId).routeTableList
 			Observable<NetworkRouteTableIdentityProjection> existingRecords = morpheusContext.async.network.routeTable.listIdentityProjections(zonePool.id)
 			SyncTask<NetworkRouteTableIdentityProjection, RouteTable, NetworkRouteTable> syncTask = new SyncTask<>(existingRecords, cloudItems)

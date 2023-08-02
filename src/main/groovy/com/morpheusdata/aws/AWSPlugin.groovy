@@ -89,7 +89,7 @@ class AWSPlugin extends Plugin {
 		if(!cloud.accountCredentialLoaded) {
 			AccountCredential accountCredential
 			try {
-				accountCredential = this.morpheus.cloud.loadCredentials(cloud.id).blockingGet()
+				accountCredential = this.morpheus.async.cloud.loadCredentials(cloud.id).blockingGet()
 			} catch(e) {
 				// If there is no credential on the cloud, then this will error
 				// TODO: Change to using 'maybe' rather than 'blockingGet'?

@@ -29,7 +29,7 @@ class KeyPairSync {
 
 	def execute() {
 		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
-			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud, false, region.externalId)
+			def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
 			List<KeyPairInfo> cloudItems = AmazonComputeUtility.listKeypairs([amazonClient: amazonClient]).keyPairs
 			Observable<KeyPairIdentityProjection> existingRecords = morpheusContext.async.keyPair.listIdentityProjections(cloud.id, region.externalId)
 			SyncTask<KeyPairIdentityProjection, KeyPairInfo, KeyPair> syncTask = new SyncTask<>(existingRecords, cloudItems)

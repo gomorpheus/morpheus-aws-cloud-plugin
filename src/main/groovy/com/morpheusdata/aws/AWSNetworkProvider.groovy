@@ -28,7 +28,7 @@ import groovy.util.logging.Slf4j
 @Slf4j
 class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider {
 
-	Plugin plugin
+	AWSPlugin plugin
 	MorpheusContext morpheus
 
 	final String code = 'amazon-network-server'

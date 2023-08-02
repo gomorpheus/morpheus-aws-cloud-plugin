@@ -25,7 +25,7 @@ class VpnGatewaySync extends InternalResourceSync {
 
 	def execute() {
 		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
-			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, region.externalId)
+			def amazonClient = plugin.getAmazonClient(cloud,false, region.externalId)
 			def apiList = AmazonComputeUtility.listVpnGateways([amazonClient: amazonClient],[:])
 			if(apiList.success) {
 				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.async.cloud.resource.listIdentityProjections(cloud.id,"aws.cloudFormation.ec2.vpnGateway", region.externalId)

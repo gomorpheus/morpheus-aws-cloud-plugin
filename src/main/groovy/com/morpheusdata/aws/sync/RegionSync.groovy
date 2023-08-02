@@ -26,7 +26,7 @@ class RegionSync {
 
 	def execute() {
 		//TODO: what is the default region for listing regions
-		def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false,null)
+		def amazonClient = plugin.getAmazonClient(cloud,false,null)
 		def regionResults = AmazonComputeUtility.listRegions([amazonClient: amazonClient])
 		if(regionResults.success) {
 			if(cloud.regionCode) { //cloud is scoped to a particular region already

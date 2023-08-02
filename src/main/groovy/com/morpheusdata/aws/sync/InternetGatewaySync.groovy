@@ -35,7 +35,7 @@ class InternetGatewaySync {
 	def execute() {
 		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
 			final String regionCode = region.externalId
-			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, regionCode)
+			def amazonClient = plugin.getAmazonClient(cloud,false, regionCode)
 			def routerResults = AmazonComputeUtility.listInternetGateways([amazonClient: amazonClient])
 			if(routerResults.success) {
 				Observable<NetworkRouterIdentityProjection> domainRecords = morpheusContext.async.network.router.listIdentityProjections(cloud.id,'amazonInternetGateway')

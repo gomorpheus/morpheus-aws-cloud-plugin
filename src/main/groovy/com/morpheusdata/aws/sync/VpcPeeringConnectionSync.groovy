@@ -26,7 +26,7 @@ class VpcPeeringConnectionSync extends InternalResourceSync {
 		try {
 			log.debug("VpcPeeringConnectionSync: starting sync")
 			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
-				def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, region.externalId)
+				def amazonClient = plugin.getAmazonClient(cloud,false, region.externalId)
 				def apiList = AmazonComputeUtility.listVpcPeeringConnections([amazonClient: amazonClient],[:])
 				if(apiList.success) {
 					Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.async.cloud.resource.listIdentityProjections(cloud.id,'aws.cloudFormation.ec2.vpcPeeringConnection', region.externalId)

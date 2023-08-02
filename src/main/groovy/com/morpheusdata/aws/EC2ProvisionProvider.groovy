@@ -262,8 +262,9 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 		log.debug("validateWorkload: ${opts}")
 		ServiceResponse rtn = new ServiceResponse(true, null, [:], null)
 		try {
+			def cloud = morpheusContext.async.cloud.getCloudById(opts.cloud?.id ?: opts.zoneId).blockingGet()
 			def validateTemplate = opts.template != null
-			def validationResults = AmazonComputeUtility.validateServerConfig(morpheusContext, [validateTemplate:validateTemplate] + opts)
+			def validationResults = AmazonComputeUtility.validateServerConfig(morpheusContext, [amazonClient:plugin.getAmazonClient(cloud, false, opts.resourcePool?.regionCode), validateTemplate:validateTemplate] + opts)
 			if(!validationResults.success) {
 				validationResults.errors?.each { it ->
 					rtn.addError(it.field, it.msg)
@@ -327,7 +328,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 			}
 		}
 		//build config
-		AmazonEC2 amazonClient = AmazonComputeUtility.getAmazonClient(workload.server.cloud,false, workload.server.resourcePool.regionCode)
+		AmazonEC2 amazonClient = plugin.getAmazonClient(workload.server.cloud,false, workload.server.resourcePool.regionCode)
 		//lets figure out what image we are deploying
 		def imageType = workload.getConfigMap().imageType ?: 'default' //amazon generic instance type has a radio button for this
 		def virtualImage = getWorkloadImage(amazonClient,server.resourcePool.regionCode,workload, opts)
@@ -369,7 +370,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 		try {
 			Cloud cloud = server.cloud
 			VirtualImage virtualImage = server.sourceImage
-			amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, server.resourcePool.regionCode)
+			amazonClient = plugin.getAmazonClient(cloud,false, server.resourcePool.regionCode)
 
 			def runConfig = buildWorkloadRunConfig(workload, workloadRequest, virtualImage, amazonClient, opts)
 
@@ -432,7 +433,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 			WorkloadResponse workloadResponse = new WorkloadResponse(success: true, installAgent: false)
 			Cloud cloud = server.cloud
 			VirtualImage virtualImage = server.sourceImage
-			amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, server.resourcePool.regionCode)
+			amazonClient = plugin.getAmazonClient(cloud,false, server.resourcePool.regionCode)
 
 			def runConfig = buildHostRunConfig(server, hostRequest, virtualImage, amazonClient, opts)
 
@@ -465,7 +466,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 		log.debug "finalizeWorkload: ${workload?.id}"
 		try {
 			if(server && server.uuid && server.resourcePool?.externalId) {
-				def amazonClient = AmazonComputeUtility.getAmazonClient(server.cloud, false, server.resourcePool.regionCode)
+				def amazonClient = plugin.getAmazonClient(server.cloud, false, server.resourcePool.regionCode)
 				Map serverDetails = AmazonComputeUtility.checkServerReady([amazonClient: amazonClient, server: server])
 				if (serverDetails.success && serverDetails.results) {
 					def privateIp = serverDetails.results.getPrivateIpAddress()
@@ -874,7 +875,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	ServiceResponse stopServer(ComputeServer server) {
 		log.debug("stopServer: ${server}")
 		if(server?.externalId && (server.managed == true || server.computeServerType?.controlPower)) {
-			def client = AmazonComputeUtility.getAmazonClient(server.cloud, false, server.resourcePool.regionCode)
+			def client = plugin.getAmazonClient(server.cloud, false, server.resourcePool.regionCode)
 			def stopResult = AmazonComputeUtility.stopServer([amazonClient: client, server: server])
 
 			if (stopResult.success) {
@@ -897,7 +898,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	ServiceResponse startServer(ComputeServer server) {
 		log.debug("startServer: ${server}")
 		if(server?.externalId && (server.managed == true || server.computeServerType?.controlPower)) {
-			def client = AmazonComputeUtility.getAmazonClient(server.cloud, false, server.resourcePool.regionCode)
+			def client = plugin.getAmazonClient(server.cloud, false, server.resourcePool.regionCode)
 			def startResult = AmazonComputeUtility.startServer([amazonClient: client, server: server])
 
 			if (startResult.success) {
@@ -919,7 +920,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 	ServiceResponse deleteServer(ComputeServer server) {
 		log.debug("deleteServer: ${server}")
 		if(server?.externalId && (server.managed == true || server.computeServerType?.controlPower)) {
-			def client = AmazonComputeUtility.getAmazonClient(server.cloud, false, server.resourcePool.regionCode)
+			def client = plugin.getAmazonClient(server.cloud, false, server.resourcePool.regionCode)
 			def deleteResult = AmazonComputeUtility.deleteServer([amazonClient: client, server: server])
 
 			if (deleteResult.success) {
@@ -971,7 +972,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 		WorkloadResponse rtn = new WorkloadResponse()
 		def serverUuid = server.externalId
 		if(server && server.uuid && server.resourcePool?.externalId) {
-			def amazonClient = AmazonComputeUtility.getAmazonClient(server.cloud,false, server.resourcePool.regionCode)
+			def amazonClient = plugin.getAmazonClient(server.cloud,false, server.resourcePool.regionCode)
 			Map serverDetails = AmazonComputeUtility.checkServerReady([amazonClient:amazonClient, server:server])
 			if(serverDetails.success && serverDetails.results) {
 				rtn.externalId = serverUuid
@@ -1041,7 +1042,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 			def encryptEbs = cloud.getConfigProperty('ebsEncryption') == 'on'
 
 			amazonOpts.account = server.account
-			amazonOpts.amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, server.resourcePool.regionCode)
+			amazonOpts.amazonClient = plugin.getAmazonClient(cloud,false, server.resourcePool.regionCode)
 			def serverId = server.id
 
 			def statusResults = AmazonComputeUtility.waitForServerStatus(amazonOpts, 80)

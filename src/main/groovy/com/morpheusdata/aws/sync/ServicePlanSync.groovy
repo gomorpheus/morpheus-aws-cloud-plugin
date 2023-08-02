@@ -29,7 +29,7 @@ class ServicePlanSync {
 		// Get map of instance types to regions
 		def instanceTypeRegions = [:]
 		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
-			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud, false, region.externalId)
+			def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
 
 			for(InstanceTypeInfo instanceType in AmazonComputeUtility.listInstanceTypes([amazonClient: amazonClient]).instanceTypes) {
 				if(!instanceTypeRegions[instanceType.instanceType]) {

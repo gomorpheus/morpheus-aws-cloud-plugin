@@ -34,7 +34,7 @@ class SnapshotSync {
 		def updatedSnapshotExternalIds = []
 		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
 			def volumes = morpheusContext.async.storageVolume.listIdentityProjections(cloud.id, region.externalId).toMap { it.externalId }.blockingGet()
-			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud, false, region.externalId)
+			def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
 			def cloudItems = AmazonComputeUtility.listSnapshots([amazonClient: amazonClient, zone: cloud]).snapshotList
 			Observable<SnapshotIdentityProjection> existingRecords = morpheusContext.async.snapshot.listIdentityProjections(cloud.id, region.externalId)
 			SyncTask<SnapshotIdentityProjection, Snapshot, SnapshotModel> syncTask = new SyncTask<>(existingRecords, cloudItems)

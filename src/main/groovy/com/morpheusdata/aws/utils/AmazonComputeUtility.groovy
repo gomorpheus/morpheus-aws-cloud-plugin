@@ -2517,7 +2517,7 @@ class AmazonComputeUtility {
 		def rtn = [success:false, errors: []]
 		try {
 			def cloud = morpheusContext.async.cloud.getCloudById(opts.zoneId?.toLong()).blockingGet()
-			AmazonEC2 amazonClient = getAmazonClient(cloud,false, null)
+			AmazonEC2 amazonClient = opts.amazonClient ?: getAmazonClient(cloud,false, null)
 			// Validate enough Elastic IPs left
 			if(opts.publicIpType == 'elasticIp') {
 				def elasticIPsResult = listElasticIPs([amazonClient: amazonClient, cloud: cloud])

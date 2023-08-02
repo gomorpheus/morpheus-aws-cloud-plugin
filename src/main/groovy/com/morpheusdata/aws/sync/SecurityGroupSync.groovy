@@ -38,7 +38,7 @@ class SecurityGroupSync {
 			def vpcId = cloud.getConfigProperty('vpcId')
 			def zonePool = vpcId ? allZonePools[vpcId] : null
 			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
-				def amazonClient = AmazonComputeUtility.getAmazonClient(cloud, false, region.externalId)
+				def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
 				Collection<AWSSecurityGroup> cloudItems = AmazonComputeUtility.listSecurityGroups([amazonClient: amazonClient, zone: cloud]).securityList.findAll {
 					(!vpcId || it.vpcId == vpcId) && (!it.vpcId || allZonePools[it.vpcId]) //this vpc isnt synced in scope so dont add this security group
 				} as Collection<AWSSecurityGroup>

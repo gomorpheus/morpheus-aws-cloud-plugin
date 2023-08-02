@@ -33,7 +33,7 @@ class ImageSync {
 
 	def execute() {
 		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
-			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud, false, region.externalId)
+			def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
 			def cloudItems = AmazonComputeUtility.listImages([amazonClient: amazonClient, zone: cloud]).imageList
 			Observable<VirtualImageIdentityProjection> existingRecords = morpheusContext.async.virtualImage.location.listIdentityProjections(cloud.id, region.externalId)
 			SyncTask<VirtualImageIdentityProjection, Image, VirtualImageLocation> syncTask = new SyncTask<>(existingRecords, cloudItems)

@@ -28,7 +28,7 @@ class SubnetSync {
 	def execute() {
 		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
 			final String regionCode = region.externalId
-			def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, regionCode)
+			def amazonClient = plugin.getAmazonClient(cloud,false, regionCode)
 			def subnetResults = AmazonComputeUtility.listSubnets([amazonClient: amazonClient, zone: cloud])
 			if(subnetResults.success) {
 				Observable<NetworkIdentityProjection> domainRecords = morpheusContext.async.network.listIdentityProjections(cloud)

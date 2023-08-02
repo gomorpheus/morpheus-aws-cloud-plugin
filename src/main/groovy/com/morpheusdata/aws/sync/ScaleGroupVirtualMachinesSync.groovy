@@ -43,7 +43,7 @@ class ScaleGroupVirtualMachinesSync {
 			morpheusContext.async.instance.scale.listIdentityProjections(cloud.id, region.externalId).blockingSubscribe { scale ->
 				if (scale.externalId) {
 					scale = morpheusContext.async.instance.scale.get(scale.id).blockingGet()
-					def amazonClient = AmazonComputeUtility.getAmazonClient(cloud,false, region.externalId)
+					def amazonClient = plugin.getAmazonClient(cloud,false, region.externalId)
 					def autoScaleAmazonClient = AmazonComputeUtility.getAmazonAutoScalingClient(cloud, false, region.externalId)
 					def scaleGroupResult = AmazonComputeUtility.getAutoScaleGroup(autoScaleAmazonClient, scale.externalId)
 
