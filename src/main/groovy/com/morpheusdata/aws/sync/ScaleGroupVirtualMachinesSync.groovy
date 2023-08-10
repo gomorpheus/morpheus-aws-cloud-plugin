@@ -62,7 +62,7 @@ class ScaleGroupVirtualMachinesSync {
 						// If the scale group is part of a cloud formation deployment (has iacId) then:
 						// 1.  The Server is associated to the scale group (set scale on computeserver)
 						// 2.  Make sure an Instance exists for which multiple VMs (containers can be added to)
-						ComputeServer managedSibling = existingRecords.find { it.computeServerTypeCode != 'amazonUnmanaged' }
+						ComputeServer managedSibling = existingRecords.find { it.scale?.id == scale.id && it.computeServerTypeCode != 'amazonUnmanaged' }
 
 						SyncList.MatchFunction matchMasterToValidFunc = { ComputeServer server, AutoScaleInstance cloudItem ->
 							server.externalId == cloudItem.instanceId
@@ -119,23 +119,11 @@ class ScaleGroupVirtualMachinesSync {
 			existingItem.computeServerType = managedSibling?.computeServerType ?: allComputeServerTypes['amazonVm']
 			existingItem.scale = scale
 
-			if (managedSibling) {
-				existingItem.serverType == managedSibling.serverType
-				existingItem.computeServerType = managedSibling.computeServerType
-				existingItem.provision = managedSibling.provision
-				existingItem.singleTenant = managedSibling.singleTenant
-				existingItem.lvmEnabled = managedSibling.lvmEnabled
-				existingItem.managed = managedSibling.managed
-				existingItem.discovered = managedSibling.discovered
-				existingItem.resourcePool = managedSibling.resourcePool
-				existingItem.hostname = managedSibling.hostname
-			}
-
 			// Need to make the VM a part of the instance, create a Container, etc
 			Workload siblingWorkload
 
 			if (managedSibling) {
-				siblingWorkload = morpheusContext.async.workload.find(new DataQuery().withFilters(['zone.id': cloud.id, 'server.id': managedSibling.id])).blockingGet()
+				siblingWorkload = morpheusContext.async.workload.find(new DataQuery().withFilter('server.id', managedSibling.id)).blockingGet()
 			}
 
 			Instance instance = siblingWorkload?.instance
@@ -144,8 +132,10 @@ class ScaleGroupVirtualMachinesSync {
 				instance = morpheusContext.async.instance.find(new DataQuery().withFilter('scale.id', scale.id)).blockingGet()
 			}
 
+			Boolean newInstanceNeeded = instance == null
+
 			// Copy over the existing instance metadata
-			if (!instance) {
+			if (newInstanceNeeded) {
 				// Determine if this instance needs to be added to an App (in the case of cloudformation deploy for scale group)
 				App app = morpheusContext.async.app.list(
 					new DataQuery().withFilter(new DataFilter('templateType.code', 'in', ['cloudFormation', 'terraform']))
@@ -167,7 +157,8 @@ class ScaleGroupVirtualMachinesSync {
 					hostName: existingItem.hostname,
 					networkDomain: existingItem.networkDomain,
 					site: site,
-					unformattedName: instance.unformattedName,
+					status: 'running',
+					unformattedName: existingItem.name,
 					account: cloud.account,
 					instanceTypeCode: 'amazon',
 					layoutCode: 'amazon-1.0-single',
@@ -177,7 +168,7 @@ class ScaleGroupVirtualMachinesSync {
 				)
 				buildInstanceCapacity(instance)
 
-				instance = morpheusContext.async.instance.create(instance)
+				instance = morpheusContext.async.instance.create(instance).blockingGet()
 
 				if (app) {
 					app.instances << new AppInstance(app: app, instance: instance)
@@ -185,7 +176,7 @@ class ScaleGroupVirtualMachinesSync {
 				}
 			}
 
-			if(!existingItem.computeCapacityInfo) {
+			if (!existingItem.computeCapacityInfo) {
 				existingItem.setComputeCapacityInfo(new ComputeCapacityInfo())
 			}
 
@@ -196,8 +187,17 @@ class ScaleGroupVirtualMachinesSync {
 			existingItem.name = getNextComputeServerName(instance)
 
 			// New VM much match closely with its sibling
-			if(managedSibling) {
+			if (managedSibling && managedSibling.id != existingItem.id) {
 				existingItem.managed = true
+				existingItem.serverType = managedSibling.serverType
+				existingItem.computeServerType = managedSibling.computeServerType
+				existingItem.provision = managedSibling.provision
+				existingItem.singleTenant = managedSibling.singleTenant
+				existingItem.lvmEnabled = managedSibling.lvmEnabled
+				existingItem.managed = managedSibling.managed
+				existingItem.discovered = managedSibling.discovered
+				existingItem.resourcePool = managedSibling.resourcePool
+				existingItem.hostname = managedSibling.hostname
 				existingItem.config = managedSibling.config
 				existingItem.osType = managedSibling.osType
 				existingItem.osDevice = managedSibling.osDevice
@@ -212,23 +212,36 @@ class ScaleGroupVirtualMachinesSync {
 			}
 			morpheusContext.async.computeServer.save([existingItem]).blockingGet()
 
-			// Need to add a Container
-			WorkloadTypeSet typeSet = siblingWorkload?.workloadTypeSet ?: morpheusContext.async.workload.typeSet.find(new DataQuery().withFilter(code:'amazon-1.0-set'))
-			Workload workload = new Workload(
-				account: instance.account,
-				userStatus: Workload.Status.stopped,
-				workloadType: typeSet.workloadType,
-				workloadTypeSet: typeSet,
-				planCategory: typeSet.planCategory,
-				computeZonePool: instance.resourcePool,
-				plan: existingItem.plan,
-				instance: instance
-			)
-			existingItem = morpheusContext.async.workload.create(workload).blockingGet()
+			// Need to add a Workload
+			if (siblingWorkload?.server?.id != existingItem.id) {
+				WorkloadTypeSet typeSet = siblingWorkload?.workloadTypeSet ?: morpheusContext.async.workload.typeSet.find(new DataQuery().withFilter('code', 'amazon-1.0-set')).blockingGet()
+				Workload workload = new Workload(
+					account: instance.account,
+					userStatus: Workload.Status.stopped,
+					workloadType: typeSet.workloadType,
+					workloadTypeSet: typeSet,
+					planCategory: typeSet.planCategory,
+					computeZonePool: instance.resourcePool,
+					plan: existingItem.plan,
+					instance: instance,
+					server: new ComputeServer(id: existingItem.id)
+				)
 
+				workload = morpheusContext.async.workload.create(workload).blockingGet()
+			}
+				/*
+				// set to 'Amazon Scale-Group Added Instance', provision
+				def installAgent = managedSibling?.agentInstalled
+				def finalizeOpts = [callbackType:'scale', installAgent:installAgent ]
+				if(newInstanceNeeded || (managedSibling && !managedSibling.agentInstalled)) {}
+					finalizeOpts.noAgent = true
+				Process process = morpheusContext.async.process.startProcess(workload, ProcessEvent.ProcessType.provision, null, workload.workloadType.provisionType.code, 'Amazon Scale-Group Added Instance').blockingGet()
+				// start step provisionFinalize
+				//morpheusContext.async.process.runProcessStep(process, ProcessEvent.ProcessType.provisionFinalize, 'finalizeContainer', finalizeOpts)
+				*/
 			// insert process job
+			// 			morpheusContext.process.startProcessStep(workloadRequest.process, new ProcessEvent(type: ProcessEvent.ProcessType.provisionConfig), 'configuring')
 			/*
-
 					def containerId = newContainer.id
 					def serverId = newContainer.server.id
 					Promises.task {
@@ -276,35 +289,13 @@ class ScaleGroupVirtualMachinesSync {
 
 	private buildInstanceCapacity(Instance instance) {
 		if(instance.plan) {
-			def servicePlanOptions = [:]
-			instance.maxMemory = instance.plan.customMaxMemory ?
-				(servicePlanOptions.maxMemoryId ? AccountPrice.read(servicePlanOptions.maxMemoryId)?.matchValue?.toLong() : servicePlanOptions.maxMemory?.toLong() ?: instance.plan.maxMemory) :
-				instance.plan.maxMemory
-			if(servicePlanOptions.maxMemoryId) {
-				instance.setConfigProperty('maxMemoryId', servicePlanOptions.maxMemoryId)
-			}
-			if(servicePlanOptions.maxCoresId) {
-				instance.setConfigProperty('maxCoresId', servicePlanOptions.maxCoresId)
-			}
-			// Calculate customMaxStorage
-			if(instance.plan.customMaxStorage || instance.plan.customMaxDataStorage) {
-				if(servicePlanOptions?.maxStorage) {
-					instance.maxStorage = servicePlanOptions.maxStorage?.toLong()
-					instance.setConfigProperty('memoryDisplay', servicePlanOptions["maxMemory-display"]?: 'MB')
-				} else {
-					instance.maxStorage = instance.plan.getStorageTotal()
-				}
-			} else {
-				instance.maxStorage = instance.plan.maxStorage ?: instance.plan.maxLog ?: 0L
-			}
+			instance.maxMemory = instance.plan.maxMemory
+			instance.maxStorage = instance.plan.maxStorage ?: instance.plan.maxLog ?: 0L
 			if(instance.plan.maxCores) {
-				instance.maxCores = instance.plan.customCores ?
-					(servicePlanOptions.maxCoresId ? AccountPrice.read(servicePlanOptions.maxCoresId)?.matchValue?.toLong() : servicePlanOptions.maxCores?.toLong() ?: instance.plan.maxCores) :
-					instance.plan.maxCores
+				instance.maxCores = instance.plan.maxCores
 			}
 			if(instance.plan.coresPerSocket) {
-				instance.coresPerSocket = instance.plan.customCores ? (servicePlanOptions.coresPerSocket?.toLong() ?: instance.plan.coresPerSocket) :
-					instance.plan.coresPerSocket
+				instance.coresPerSocket = instance.plan.coresPerSocket
 			}
 		}
 	}
