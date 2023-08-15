@@ -2,6 +2,7 @@ package com.morpheusdata.aws.sync
 
 import com.amazonaws.services.ec2.model.Instance
 import com.amazonaws.services.ec2.model.Volume
+import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.aws.AWSPlugin
 import com.morpheusdata.aws.utils.AmazonComputeUtility
@@ -26,6 +27,7 @@ class VolumeSync {
 	}
 
 	def execute() {
+
 		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
 			def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
 			def cloudItems = AmazonComputeUtility.listVolumes([amazonClient: amazonClient, zone: cloud]).volumeList
@@ -126,7 +128,11 @@ class VolumeSync {
 
 	private removeMissingStorageVolumes(Collection<StorageVolume> removeList) {
 		log.debug "removeMissingStorageVolumes: ${cloud} ${removeList.size()}"
-		morpheusContext.async.storageVolume.remove(removeList).blockingGet()
+		// filter out any volumes associated w/ compute server
+		List<Long> keepVolumeIds = morpheusContext.async.computeServer.list(new DataQuery().withFilter(
+			'volumes.id', 'in', removeList.collect{ it.id }
+		)).toList().blockingGet().collect { it.volumes?.collect { it.id }}.flatten()
+		morpheusContext.async.storageVolume.remove(removeList.findAll { !(it.id in keepVolumeIds) }).blockingGet()
 	}
 
 	private Map<String, StorageVolumeType> getAllStorageVolumeTypes() {

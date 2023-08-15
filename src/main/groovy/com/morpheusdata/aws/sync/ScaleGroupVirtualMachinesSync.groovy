@@ -18,6 +18,8 @@ import com.morpheusdata.model.ComputeServerType
 import com.morpheusdata.model.ComputeSite
 import com.morpheusdata.model.Instance
 import com.morpheusdata.model.InstanceScale
+import com.morpheusdata.model.Process
+import com.morpheusdata.model.ProcessEvent
 import com.morpheusdata.model.Workload
 import com.morpheusdata.model.WorkloadTypeSet
 import com.morpheusdata.model.projection.ComputeZoneRegionIdentityProjection
@@ -84,9 +86,7 @@ class ScaleGroupVirtualMachinesSync {
 							syncLists.updateList = syncLists.updateList.drop(50)
 						}
 						while(syncLists.removeList) {
-							for(ComputeServer removeItem in syncLists.removeList.take(50)) {
-								removeVmFromScaleGroup(removeItem)
-							}
+							removeVmsFromScaleGroup(syncLists.removeList.take(50), scale)
 							syncLists.removeList = syncLists.removeList.drop(50)
 						}
 					}
@@ -228,59 +228,26 @@ class ScaleGroupVirtualMachinesSync {
 				)
 
 				workload = morpheusContext.async.workload.create(workload).blockingGet()
-			}
-				/*
+
 				// set to 'Amazon Scale-Group Added Instance', provision
 				def installAgent = managedSibling?.agentInstalled
-				def finalizeOpts = [callbackType:'scale', installAgent:installAgent ]
-				if(newInstanceNeeded || (managedSibling && !managedSibling.agentInstalled)) {}
-					finalizeOpts.noAgent = true
+				def finalizeJobConfig = [callbackType:'scale', installAgent:installAgent ]
+				if(newInstanceNeeded || (managedSibling && !managedSibling.agentInstalled))
+					finalizeJobConfig.noAgent = true
 				Process process = morpheusContext.async.process.startProcess(workload, ProcessEvent.ProcessType.provision, null, workload.workloadType.provisionType.code, 'Amazon Scale-Group Added Instance').blockingGet()
 				// start step provisionFinalize
-				//morpheusContext.async.process.runProcessStep(process, ProcessEvent.ProcessType.provisionFinalize, 'finalizeContainer', finalizeOpts)
-				*/
-			// insert process job
-			// 			morpheusContext.process.startProcessStep(workloadRequest.process, new ProcessEvent(type: ProcessEvent.ProcessType.provisionConfig), 'configuring')
-			/*
-					def containerId = newContainer.id
-					def serverId = newContainer.server.id
-					Promises.task {
-						try {
-							ComputeServer.withNewSession { session ->
-								def tmpContainer = Container.get(containerId)
-								def tmpServer = ComputeServer.get(serverId)
-								def installAgent = siblingManagedVM?.agentInstalled != null ? siblingManagedVM?.agentInstalled : false
-								def finalizeOpts = [callbackType:'scale', installAgent:installAgent ]
-								if(newInstanceNeeded || (siblingManagedVM && !siblingManagedVM.agentInstalled))
-									finalizeOpts.noAgent = true
-								log.debug "FinalizeOpts: ${finalizeOpts}: siblingManagedVM: ${siblingManagedVM}"
-								def processConfig = instanceService.containerService.getContainerProcessConfig(tmpContainer, 'Amazon Scale-Group Added Instance', tmpContainer.containerType.provisionType.code, null, [:])
-								def processMap = processService.startProcess('provision', processConfig)
-								def processStepMap = processService.insertProcessEvent(processMap?.process, null, 'provisionFinalize',
-										instanceService.containerService.getContainerProcessEventConfig(tmpContainer, 'Finalize', [:]) + [containerId: tmpContainer.id, jobName: 'finalizeContainer',retryable:true,jobMsg:[containerId: tmpContainer.id]])
-								processService.runStep(processMap.process,processStepMap.process,[runResults:[success:true],opts:finalizeOpts])
-*/
+				ProcessEvent processEvent = new ProcessEvent(
+					type: ProcessEvent.ProcessType.provisionFinalize,
+					jobName: 'finalizeContainer',
+					jobConfig: finalizeJobConfig
+				)
+				morpheusContext.async.process.startProcessStep(process, processEvent, 'finalize').blockingGet()
+			}
 		}
 	}
 
-	private removeVmFromScaleGroup(ComputeServer removeItem) {
-		removeItem.status = 'deprovisioning'
-		morpheusContext.async.computeServer.save(removeItem)
-/*
-		if(currentServer.containers.size() > 0) {
-			currentServer.containers.each { container ->
-				containerService.scaleDownContainer(container,null,[removeResources:false])
-			}
-		} else {
-			//queue delete
-			def serverMessage = [refId:currentServer.id, jobType:'serverDelete', serverId:currentServer.id,
-								 force:true, removeResources:false, removeVolumes:true]
-			sendRabbitMessage('main', '', ApplianceJobService.applianceJobHighQueue, serverMessage)
-			//queue update
-			def hubMessage = [refId:currentServer.id, jobType:'hubUpdate', serverId:currentServer.id, eventName:'event.server.deleted']
-			sendRabbitMessage('main', '', ApplianceJobService.applianceJobLowQueue, hubMessage)
-		}
- */
+	private removeVmsFromScaleGroup(List<ComputeServer> servers, InstanceScale instanceScale) {
+		morpheusContext.async.computeServer.remove(servers, instanceScale)
 	}
 
 	private Map<String, ComputeServerType> getAllComputeServerTypes() {
