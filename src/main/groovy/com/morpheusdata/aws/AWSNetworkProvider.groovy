@@ -164,6 +164,11 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 	}
 
 	@Override
+	Collection<OptionType> getOptionTypes() {
+		return null
+	}
+
+	@Override
 	ServiceResponse initializeProvider(Cloud cloud) {
 		log.info("Initializeing network provider for ${cloud.name}")
 		ServiceResponse rtn = ServiceResponse.prepare()

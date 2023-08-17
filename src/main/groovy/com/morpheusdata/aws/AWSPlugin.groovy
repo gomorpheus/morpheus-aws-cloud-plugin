@@ -23,6 +23,7 @@ class AWSPlugin extends Plugin {
 	void initialize() {
 		this.setName('Amazon Web Services')
 		def provisionProvider = new EC2ProvisionProvider(this, this.morpheus)
+		def cloudFormationProvisionProvider = new CloudFormationProvisionProvider(this, this.morpheus)
 		def cloudProvider = new AWSCloudProvider(this, this.morpheus)
 		def optionSourceProvider = new AWSOptionSourceProvider(this, this.morpheus)
 		def networkProvider = new AWSNetworkProvider(this, this.morpheus)
@@ -36,6 +37,7 @@ class AWSPlugin extends Plugin {
 		this.pluginProviders.put(elbProvider.code, elbProvider)
 
 		this.pluginProviders.put(provisionProvider.code, provisionProvider)
+		this.pluginProviders.put(cloudFormationProvisionProvider.provisionTypeCode, cloudFormationProvisionProvider)
 		this.pluginProviders.put(cloudProvider.code, cloudProvider)
 
 		// option source providers
@@ -73,7 +75,7 @@ class AWSPlugin extends Plugin {
 		this.getProviderByCode(dnsProviderCode)
 	}
 
-	def getAmazonClient(Cloud cloud, Boolean fresh = false, String region=null) {
+	def getAmazonClient(Cloud cloud, Boolean fresh = false, String region = null) {
 		return AmazonComputeUtility.getAmazonClient(checkCloudCredentials(cloud), fresh, region)
 	}
 
@@ -81,8 +83,12 @@ class AWSPlugin extends Plugin {
 		return AmazonComputeUtility.getAmazonElbClient(checkCloudCredentials(cloud), fresh, region)
 	}
 
-	def getAmazonAutoScaleClient(Cloud cloud, Boolean fresh = false, String region = nul) {
+	def getAmazonAutoScaleClient(Cloud cloud, Boolean fresh = false, String region = null) {
 		return AmazonComputeUtility.getAmazonAutoScalingClient(checkCloudCredentials(cloud), fresh, region)
+	}
+
+	def getAmazonCloudFormationClient(cloud, Boolean fresh = false, String region = null) {
+		AmazonComputeUtility.getAmazonCloudFormationClient(checkCloudCredentials(cloud), fresh, region)
 	}
 
 	protected Cloud checkCloudCredentials(Cloud cloud) {
