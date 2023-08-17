@@ -4,9 +4,8 @@ import com.amazonaws.services.ec2.AmazonEC2
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.AbstractProvisionProvider
 import com.morpheusdata.core.MorpheusContext
-import com.morpheusdata.core.providers.ComputeProvisioningProvider
-import com.morpheusdata.core.providers.HostProvisioningProvider
-import com.morpheusdata.core.providers.WorkloadProvisioningProvider
+import com.morpheusdata.core.providers.VmProvisionProvider
+import com.morpheusdata.core.providers.WorkloadProvisionProvider
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.ComputeCapacityInfo
@@ -40,7 +39,7 @@ import com.morpheusdata.response.WorkloadResponse
 import groovy.util.logging.Slf4j
 
 @Slf4j
-class EC2ProvisionProvider extends AbstractProvisionProvider implements WorkloadProvisioningProvider, HostProvisioningProvider, ComputeProvisioningProvider {
+class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvisionProvider, WorkloadProvisionProvider.ResizeFacet {
 	AWSPlugin plugin
 	MorpheusContext morpheusContext
 
@@ -97,7 +96,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements Workload
 	}
 
 	/**
-	 * Provides a Collection of ${@link ServicePlan} related to this ProvisioningProvider
+	 * Provides a Collection of ${@link ServicePlan} related to this ProvisionProvider
 	 * @return Collection of ServicePlan
 	 */
 	@Override
@@ -107,7 +106,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements Workload
 	}
 
 	/**
-	 * Provides a Collection of {@link ComputeServerInterfaceType} related to this ProvisioningProvider
+	 * Provides a Collection of {@link ComputeServerInterfaceType} related to this ProvisionProvider
 	 * @return Collection of ComputeServerInterfaceType
 	 */
 	@Override
@@ -116,7 +115,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements Workload
 	}
 
 	/**
-	 * Provides a Collection of {@link StorageVolumeType} related to this ProvisioningProvider for the root volume
+	 * Provides a Collection of {@link StorageVolumeType} related to this ProvisionProvider for the root volume
 	 * @return Collection of StorageVolumeType
 	 */
 	@Override
@@ -125,7 +124,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements Workload
 	}
 
 	/**
-	 * Provides a Collection of {@link StorageVolumeType} related to this ProvisioningProvider for adding data volumes
+	 * Provides a Collection of {@link StorageVolumeType} related to this ProvisionProvider for adding data volumes
 	 * @return Collection of StorageVolumeType
 	 */
 	@Override
@@ -1229,7 +1228,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements Workload
 	}
 
 	/**
-	 * Provides a Collection of {@link VirtualImage} related to this ProvisioningProvider. This provides a way to specify
+	 * Provides a Collection of {@link VirtualImage} related to this ProvisionProvider. This provides a way to specify
 	 * known VirtualImages in the Cloud environment prior to a typical 'refresh' on a Cloud. These are often used in
 	 * predefined layouts. For example, when building up ComputeTypeLayouts
 	 * @return Collection of {@link VirtualImage}
@@ -1240,8 +1239,8 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements Workload
 	}
 
 	/**
-	 * Provides a Collection of {@link ComputeTypeLayout} related to this ProvisioningProvider. These define the types
-	 * of clusters that are exposed for this ProvisioningProvider. ComputeTypeLayouts have a collection of ComputeTypeSets,
+	 * Provides a Collection of {@link ComputeTypeLayout} related to this ProvisionProvider. These define the types
+	 * of clusters that are exposed for this ProvisionProvider. ComputeTypeLayouts have a collection of ComputeTypeSets,
 	 * which reference a ContainerType. When returning this structure from implementations, it is often helpful to start
 	 * with the ComputeTypeLayoutFactory to construct the default structure and modify fields as needed.
 	 * @return Collection of ComputeTypeLayout
