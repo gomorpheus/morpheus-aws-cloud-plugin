@@ -4,6 +4,9 @@ import com.amazonaws.services.ec2.AmazonEC2
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.AbstractProvisionProvider
 import com.morpheusdata.core.MorpheusContext
+import com.morpheusdata.core.providers.ComputeProvisioningProvider
+import com.morpheusdata.core.providers.HostProvisioningProvider
+import com.morpheusdata.core.providers.WorkloadProvisioningProvider
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.ComputeCapacityInfo
@@ -37,7 +40,7 @@ import com.morpheusdata.response.WorkloadResponse
 import groovy.util.logging.Slf4j
 
 @Slf4j
-class EC2ProvisionProvider extends AbstractProvisionProvider {
+class EC2ProvisionProvider extends AbstractProvisionProvider implements WorkloadProvisioningProvider, HostProvisioningProvider, ComputeProvisioningProvider {
 	AWSPlugin plugin
 	MorpheusContext morpheusContext
 
@@ -277,18 +280,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider {
 		return rtn
 	}
 
-	/**
-	 * Validate the provided provisioning options for an Instance.  A return of success = false will halt the
-	 * creation and display errors
-	 * @param instance the Instance to validate
-	 * @param opts options
-	 * @return Response from API
-	 */
-	@Override
-	ServiceResponse validateInstance(Instance instance, Map opts) {
-		log.debug "validateInstance: ${instance} ${opts}"
-		ServiceResponse.success()
-	}
 
 	/**
 	 * Validate the provided provisioning options for a Docker host server.  A return of success = false will halt the
