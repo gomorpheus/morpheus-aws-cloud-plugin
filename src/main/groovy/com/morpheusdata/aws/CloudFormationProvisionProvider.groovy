@@ -40,10 +40,9 @@ import com.morpheusdata.model.provisioning.InstanceRequest
 import com.morpheusdata.model.provisioning.WorkloadRequest
 import com.morpheusdata.request.ResizeRequest
 import com.morpheusdata.request.UpdateModel
-import com.morpheusdata.response.InstanceResponse
 import com.morpheusdata.response.PrepareInstanceResponse
 import com.morpheusdata.response.ServiceResponse
-import com.morpheusdata.response.WorkloadResponse
+import com.morpheusdata.response.ProvisionResponse
 import groovy.json.JsonSlurper
 import groovy.util.logging.Slf4j
 import org.apache.http.client.utils.URIBuilder
@@ -324,7 +323,7 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 	}
 
 	@Override
-	ServiceResponse<InstanceResponse> runInstance(Instance instance, InstanceRequest instanceRequest, Map opts) {
+	ServiceResponse<ProvisionResponse> runInstance(Instance instance, InstanceRequest instanceRequest, Map opts) {
 		println "\u001B[33mAC Log - CloudFormationProvisionProvider:runInstance- ${instance} ${instanceRequest} ${opts}\u001B[0m"
 		return ServiceResponse.error()
 	}
@@ -371,7 +370,7 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 	}
 
 	@Override
-	ServiceResponse<InstanceResponse> updateInstance(Instance instance, InstanceRequest instanceRequest, Map map) {
+	ServiceResponse<ProvisionResponse> updateInstance(Instance instance, InstanceRequest instanceRequest, Map map) {
 		return null
 	}
 

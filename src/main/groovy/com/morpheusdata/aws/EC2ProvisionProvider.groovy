@@ -32,10 +32,9 @@ import com.morpheusdata.model.provisioning.HostRequest
 import com.morpheusdata.model.provisioning.NetworkConfiguration
 import com.morpheusdata.model.provisioning.WorkloadRequest
 import com.morpheusdata.request.ResizeRequest
-import com.morpheusdata.response.HostResponse
 import com.morpheusdata.response.PrepareWorkloadResponse
 import com.morpheusdata.response.ServiceResponse
-import com.morpheusdata.response.WorkloadResponse
+import com.morpheusdata.response.ProvisionResponse
 import groovy.util.logging.Slf4j
 
 @Slf4j
@@ -352,10 +351,10 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	 * @return Response from API
 	 */
 	@Override
-	ServiceResponse<WorkloadResponse> runWorkload(Workload workload, WorkloadRequest workloadRequest, Map opts) {
+	ServiceResponse<ProvisionResponse> runWorkload(Workload workload, WorkloadRequest workloadRequest, Map opts) {
 		log.debug "runWorkload: ${workload} ${workloadRequest} ${opts}"
 		AmazonEC2 amazonClient
-	    WorkloadResponse workloadResponse = new WorkloadResponse(success: true, installAgent: false)
+		ProvisionResponse provisionResponse = new ProvisionResponse(success: true, installAgent: false)
 		ComputeServer server = workload.server
 		try {
 			Cloud cloud = server.cloud
@@ -364,14 +363,14 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 
 			def runConfig = buildWorkloadRunConfig(workload, workloadRequest, virtualImage, amazonClient, opts)
 
-			runVirtualMachine(runConfig, workloadResponse, opts + [amazonClient: amazonClient])
+			runVirtualMachine(runConfig, provisionResponse, opts + [amazonClient: amazonClient])
 
-			return new ServiceResponse<WorkloadResponse>(success: true, data: workloadResponse)
+			return new ServiceResponse<ProvisionResponse>(success: true, data: provisionResponse)
 
 		} catch (e) {
 			log.error "runWorkload: ${e}", e
-			workloadResponse.setError(e.message)
-			return new ServiceResponse(success: false, msg: e.message, error: e.message, data: workloadResponse)
+			provisionResponse.setError(e.message)
+			return new ServiceResponse(success: false, msg: e.message, error: e.message, data: provisionResponse)
 		}
 	}
 
@@ -415,32 +414,30 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 
 	@Override
 	//TODO - AC
-	ServiceResponse<HostResponse> runHost(ComputeServer server, HostRequest hostRequest, Map opts) {
+	ServiceResponse<ProvisionResponse> runHost(ComputeServer server, HostRequest hostRequest, Map opts) {
 		log.debug "runHost: ${server} ${hostRequest} ${opts}"
 		AmazonEC2 amazonClient
-		HostResponse hostResponse = new HostResponse(success: true, installAgent: false)
+		ProvisionResponse provisionResponse = new ProvisionResponse(success: true, installAgent: false)
 		try {
-			WorkloadResponse workloadResponse = new WorkloadResponse(success: true, installAgent: false)
 			Cloud cloud = server.cloud
 			VirtualImage virtualImage = server.sourceImage
 			amazonClient = plugin.getAmazonClient(cloud,false, server.resourcePool.regionCode)
 
 			def runConfig = buildHostRunConfig(server, hostRequest, virtualImage, amazonClient, opts)
 
-			runVirtualMachine(runConfig, workloadResponse, opts + [amazonClient: amazonClient])
+			runVirtualMachine(runConfig, provisionResponse, opts + [amazonClient: amazonClient])
 
-			hostResponse = workloadResponseToHostResponse(workloadResponse)
 
-			if (hostResponse.success != true) {
-				return new ServiceResponse(success: false, msg: hostResponse.message ?: 'vm config error', error: hostResponse.message, data: hostResponse)
+			if (provisionResponse.success != true) {
+				return new ServiceResponse(success: false, msg: provisionResponse.message ?: 'vm config error', error: provisionResponse.message, data: provisionResponse)
 			} else {
-				return new ServiceResponse<HostResponse>(success: true, data: hostResponse)
+				return new ServiceResponse<ProvisionResponse>(success: true, data: provisionResponse)
 			}
 
 		} catch (e) {
 			log.error "runWorkload: ${e}", e
-			hostResponse.setError(e.message)
-			return new ServiceResponse(success: false, msg: e.message, error: e.message, data: hostResponse)
+			provisionResponse.setError(e.message)
+			return new ServiceResponse(success: false, msg: e.message, error: e.message, data: provisionResponse)
 		}
 	}
 
@@ -626,22 +623,22 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		return runConfig
 	}
 
-	private void runVirtualMachine(Map runConfig, WorkloadResponse workloadResponse, Map opts) {
+	private void runVirtualMachine(Map runConfig, ProvisionResponse provisionResponse, Map opts) {
 		try {
 
 			runConfig.template = runConfig.imageId
-			def runResults = insertVm(runConfig, workloadResponse, opts)
-			if(workloadResponse.success) {
-				finalizeVm(runConfig, workloadResponse, runResults)
+			def runResults = insertVm(runConfig, provisionResponse, opts)
+			if(provisionResponse.success) {
+				finalizeVm(runConfig, provisionResponse, runResults)
 			}
 
 		} catch(e) {
 			log.error("runVirtualMachine error:${e}", e)
-			workloadResponse.setError('failed to upload image file')
+			provisionResponse.setError('failed to upload image file')
 		}
 	}
 
-	protected insertVm(Map runConfig, WorkloadResponse workloadResponse, Map opts) {
+	protected insertVm(Map runConfig, ProvisionResponse provisionResponse, Map opts) {
 		def taskResults = [success:false]
 		ComputeServer server = runConfig.server
 		//def instance = Instance.get(runConfig.instanceId)
@@ -694,7 +691,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 			server.externalId = createResults.externalId
 			server.powerState = 'on'
 			server.region = new ComputeZoneRegion(code: server.resourcePool.regionCode)
-			workloadResponse.externalId = server.externalId
+			provisionResponse.externalId = server.externalId
 			server = saveAndGet(server)
 			runConfig.server = server
 
@@ -807,11 +804,11 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		return taskResults
 	}
 
-	def finalizeVm(Map runConfig, WorkloadResponse workloadResponse, Map runResults) {
-		log.debug("runTask onComplete: workloadResponse: ${workloadResponse}")
+	def finalizeVm(Map runConfig, ProvisionResponse provisionResponse, Map runResults) {
+		log.debug("runTask onComplete: provisionResponse: ${provisionResponse}")
 		ComputeServer server = morpheusContext.async.computeServer.get(runConfig.serverId).blockingGet()
 		try {
-			if(workloadResponse.success == true) {
+			if(provisionResponse.success == true) {
 				server.sshHost = runResults.sshHost
 				server.status = 'provisioned'
 				server.statusDate = new Date()
@@ -827,7 +824,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 			}
 		} catch(e) {
 			log.error("finalizeVm error: ${e}", e)
-			workloadResponse.setError('failed to run server: ' + e)
+			provisionResponse.setError('failed to run server: ' + e)
 		}
 	}
 
@@ -952,11 +949,11 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	 * should not return until the server is successfully created in the underlying cloud or the server fails to
 	 * create.
 	 * @param server to check status
-	 * @return Response from API. The publicIp and privateIp set on the WorkloadResponse will be utilized to update the ComputeServer
+	 * @return Response from API. The publicIp and privateIp set on the ProvisionResponse will be utilized to update the ComputeServer
 	 */
 	@Override
-	ServiceResponse<WorkloadResponse> getServerDetails(ComputeServer server) {
-		WorkloadResponse rtn = new WorkloadResponse()
+	ServiceResponse<ProvisionResponse> getServerDetails(ComputeServer server) {
+		ProvisionResponse rtn = new ProvisionResponse()
 		def serverUuid = server.externalId
 		if(server && server.uuid && server.resourcePool?.externalId) {
 			def amazonClient = plugin.getAmazonClient(server.cloud,false, server.resourcePool.regionCode)
