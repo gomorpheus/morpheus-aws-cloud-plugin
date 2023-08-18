@@ -670,6 +670,23 @@ class AmazonComputeUtility {
 		return rtn
 	}
 
+	static getSecurityGroup(opts) {
+		def rtn = [success:false, securityGroup:[]]
+		try {
+			def amazonClient = opts.amazonClient
+			def groupId = opts.externalId
+			DescribeSecurityGroupsRequest request = new DescribeSecurityGroupsRequest().withGroupIds(groupId)
+			DescribeSecurityGroupsResult results = amazonClient.describeSecurityGroups(request)
+			if(results.securityGroups) {
+				rtn.securityGroup = results.securityGroups.first()
+			}
+			rtn.success = true
+		} catch(e) {
+			log.debug("getSecurityGroup error: ${e}", e)
+		}
+		return rtn
+	}
+
 	static setServerSecurityGroups(opts) {
 		log.debug "setServerSecurityGroups : $opts"
 		def rtn = [success:false]
@@ -2176,6 +2193,46 @@ class AmazonComputeUtility {
 			}
 		} catch(e) {
 			log.error("createSubnet error: ${e}", e)
+			rtn.msg = e.message
+		}
+		return rtn
+	}
+
+	static createSecurityGroup(Map opts) {
+		def rtn = [success:false]
+		try {
+			AmazonEC2Client amazonClient = opts.amazonClient
+			def securityGroupConfig = opts.config
+			log.debug("AWS create security group config: ${opts.config}")
+			CreateSecurityGroupRequest request = new CreateSecurityGroupRequest()
+			request.withGroupName(securityGroupConfig.name)
+			request.withDescription(securityGroupConfig.description)
+			request.withVpcId(securityGroupConfig.vpcId)
+			CreateSecurityGroupResult result = amazonClient.createSecurityGroup(request)
+			log.debug("aws security group result: ${result}")
+			if(result.groupId) {
+				rtn.data = [
+					externalId: result.groupId
+				]
+				rtn.success = true
+			}
+		} catch(e) {
+			log.error("createSecurityGroup error: ${e}", e)
+			rtn.msg = e.message
+		}
+		return rtn
+	}
+
+	static deleteSecurityGroup(Map opts) {
+		def rtn = [success:false]
+		try {
+			AmazonEC2Client amazonClient = opts.amazonClient
+			DeleteSecurityGroupRequest request = new DeleteSecurityGroupRequest().withGroupId(opts.groupId)
+			DeleteSecurityGroupResult result = amazonClient.deleteSecurityGroup(request)
+			log.debug("aws security group result: ${result}")
+			rtn.success = true
+		} catch(e) {
+			log.error("deleteSecurityGroup error: ${e}", e)
 			rtn.msg = e.message
 		}
 		return rtn
