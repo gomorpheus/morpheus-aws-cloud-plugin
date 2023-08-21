@@ -3,6 +3,7 @@ package com.morpheusdata.aws.sync
 import com.amazonaws.services.ec2.model.Instance
 import com.amazonaws.services.ec2.model.IpPermission
 import com.morpheusdata.aws.AWSPlugin
+import com.morpheusdata.aws.AWSSecurityGroupProvider
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.util.SyncTask
@@ -40,6 +41,7 @@ class SecurityGroupSync {
 			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
 				def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
 				Collection<AWSSecurityGroup> cloudItems = AmazonComputeUtility.listSecurityGroups([amazonClient: amazonClient, zone: cloud]).securityList.findAll {
+					log.debug("sync securigy group: ${it.groupName}")
 					(!vpcId || it.vpcId == vpcId) && (!it.vpcId || allZonePools[it.vpcId]) //this vpc isnt synced in scope so dont add this security group
 				} as Collection<AWSSecurityGroup>
 				Observable<SecurityGroupLocationIdentityProjection> existingRecords = morpheusContext.async.securityGroup.location.listIdentityProjections(cloud.id, zonePool?.id, null)
@@ -67,7 +69,7 @@ class SecurityGroupSync {
 			SecurityGroupLocation add = new SecurityGroupLocation(
 				refType: 'ComputeZone', refId: cloud.id, externalId: cloudItem.groupId, name: cloudItem.groupName,
 				description: cloudItem.description, regionCode: regionCode, groupName: cloudItem.groupName,
-				ruleHash: getGroupRuleHash(cloudItem), securityServer: cloud.securityServer,
+				ruleHash: AWSSecurityGroupProvider.getGroupRuleHash(cloudItem), securityServer: cloud.securityServer,
 				zonePool: cloudItem.vpcId ? new ComputeZonePool(id: allZonePools[cloudItem.vpcId].id) : null
 			)
 			morpheusContext.async.securityGroup.location.create(add).blockingGet()
@@ -80,7 +82,7 @@ class SecurityGroupSync {
 		for(def updateItem in updateList) {
 			def existingItem = updateItem.existingItem
 			def cloudItem = updateItem.masterItem
-			def ruleHash = getGroupRuleHash(cloudItem)
+			def ruleHash = AWSSecurityGroupProvider.getGroupRuleHash(cloudItem)
 			def save = false
 			if(existingItem.ruleHash != ruleHash) {
 				existingItem.ruleHash = ruleHash
@@ -112,44 +114,12 @@ class SecurityGroupSync {
 		morpheusContext.async.securityGroup.location.removeSecurityGroupLocations(removeList as List<SecurityGroupLocationIdentityProjection>)
 	}
 
-	private getGroupRuleHash(AWSSecurityGroup cloudItem) {
-		MessageDigest md = MessageDigest.getInstance("MD5")
-		md.update(getGroupRules(cloudItem).toString().bytes)
-		byte[] checksum = md.digest()
-		checksum.encodeHex().toString()
-	}
-
-	private getGroupRules(AWSSecurityGroup cloudItem) {
-		List rules = []
-
-		['ingress': cloudItem.ipPermissions, 'egress': cloudItem.ipPermissionsEgress].each { direction, permissions ->
-			for(IpPermission permission in permissions) {
-				def ruleOptions = [
-					direction: direction, ipProtocol: permission.ipProtocol, minPort: permission.fromPort, maxPort: permission.toPort
-				]
-				def ranges = permission.ipv4Ranges
-				def userIdGroupPairs = permission.userIdGroupPairs
-				if (ranges || userIdGroupPairs) {
-					ranges?.each { range ->
-						rules << ruleOptions + [description: range.description, ipRange: range.cidrIp]
-					}
-					userIdGroupPairs?.each { groupPair ->
-						rules << ruleOptions + [description: groupPair.description, targetGroupId: groupPair.groupId, targetGroupName: groupPair.groupName]
-					}
-				} else {
-					rules << ruleOptions
-				}
-			}
-		}
-		rules
-	}
-
 	private syncRules(Collection<AWSSecurityGroup> cloudList, Long zonePoolId) {
 		def securityGroupLocations = getSecurityGroupLocations(zonePoolId)
 
 		for(AWSSecurityGroup cloudItem in cloudList) {
 			def securityGroupLocation = morpheusContext.async.securityGroup.location.listByIds([securityGroupLocations[cloudItem.groupId].id]).blockingFirst()
-			def rules = getGroupRules(cloudItem).collect { cloudRule ->
+			def rules = AWSSecurityGroupProvider.getGroupRules(cloudItem).collect { cloudRule ->
 				SecurityGroupRuleLocation rule = new SecurityGroupRuleLocation(
 					name: cloudRule.description, ruleType: 'custom',
 					protocol: cloudRule.ipProtocol == '-1' ? 'all' : cloudRule.ipProtocol,

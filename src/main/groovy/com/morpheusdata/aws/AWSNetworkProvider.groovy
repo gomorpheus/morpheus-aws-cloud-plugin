@@ -7,6 +7,7 @@ import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.providers.NetworkProvider
 import com.morpheusdata.core.Plugin
 import com.morpheusdata.core.providers.CloudInitializationProvider
+import com.morpheusdata.core.providers.SecurityGroupProvider
 import com.morpheusdata.model.AccountIntegration
 import com.morpheusdata.model.AccountIntegrationType
 import com.morpheusdata.model.Cloud
@@ -30,6 +31,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 
 	AWSPlugin plugin
 	MorpheusContext morpheus
+	SecurityGroupProvider securityGroupProvider
 
 	final String code = 'amazon-network-server'
 	final String name = 'Amazon'
@@ -166,6 +168,24 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 	@Override
 	Collection<OptionType> getOptionTypes() {
 		return null
+	}
+
+	@Override
+	Collection<OptionType> getSecurityGroupOptionTypes() {
+		return [
+			new OptionType(code:'securityGroup.aws.vpc', inputType: OptionType.InputType.SELECT, name:'vpc', optionSource: 'awsPluginVpc', category:'securityGroup.aws',
+				fieldName:'vpc', fieldCode: 'gomorpheus.label.vpc', fieldLabel:'VPC', fieldContext:'config', required:true, enabled:true,
+				editable:false, noBlank: false, global:false, placeHolder:null, helpBlock:'', defaultValue:null, custom:false, displayOrder:30, fieldClass:null, wrapperClass:null
+			)
+		]
+	}
+
+	@Override
+	SecurityGroupProvider getSecurityGroupProvider() {
+		if(securityGroupProvider == null) {
+			securityGroupProvider = new AWSSecurityGroupProvider(plugin, morpheus);
+		}
+		return securityGroupProvider
 	}
 
 	@Override
