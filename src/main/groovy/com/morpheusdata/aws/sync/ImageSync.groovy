@@ -126,7 +126,7 @@ class ImageSync {
 				location.externalDiskId = virtualImageLocationProj.externalDiskId
 				locationAdds << location
 			} else {
-				log.warn "Unable to find virtualImage for ${cloudItem.imageId}"
+				//log.warn "Unable to find virtualImage for ${cloudItem.imageId}"
 			}
 		}
 

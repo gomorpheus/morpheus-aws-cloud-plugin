@@ -48,11 +48,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		this.morpheusContext = morpheusContext
 	}
 
-	@Override
-	Boolean createServer() {
-		return true
-	}
-
 	/**
 	 * Provides a Collection of OptionType inputs that need to be made available to various provisioning Wizards
 	 * @return Collection of OptionTypes

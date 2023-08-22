@@ -32,7 +32,7 @@ class IAMRoleSync {
 			AmazonIdentityManagement amazonClient = AmazonComputeUtility.getAmazonIamClient(cloud,false,it.externalId)
 			def RoleResults = AmazonComputeUtility.listRoles([amazonClient: amazonClient])
 			if(RoleResults.success) {
-				Observable<ReferenceDataSyncProjection> domainRecords = morpheusContext.async.cloud.listReferenceDataByCategory(cloud,"amazon.ec2.roles.${cloud.id}.${regionCode}".toString()).mergeWith(morpheusContext.async.cloud.listReferenceDataByCategory(cloud,"amazon.ec2.roles.${cloud.id}".toString()))
+				Observable<ReferenceDataSyncProjection> domainRecords = morpheusContext.async.referenceData.listByAccountIdAndCategories(cloud.owner.id, ["amazon.ec2.roles.${cloud.id}.${regionCode}", "amazon.ec2.roles.${cloud.id}"])
 				SyncTask<ReferenceDataSyncProjection, Role, ReferenceData> syncTask = new SyncTask<>(domainRecords, RoleResults.results as Collection<Role>)
 				return syncTask.addMatchFunction { ReferenceDataSyncProjection domainObject, Role data ->
 					domainObject.externalId == data.getRoleId()
@@ -45,7 +45,7 @@ class IAMRoleSync {
 				}.onAdd { itemsToAdd ->
 					addMissingRoles(itemsToAdd, regionCode)
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<ReferenceDataSyncProjection, Role>> updateItems ->
-					morpheusContext.async.cloud.listReferenceDataById(updateItems.collect { it.existingItem.id } as List<Long>)
+					morpheusContext.async.referenceData.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.observe()
 			} else {
 				log.error("Error Caching IAM Roles for Region: {} - {}",regionCode,RoleResults.msg)
