@@ -4131,7 +4131,7 @@ class AmazonComputeUtility {
 		rtn
 	}
 
-	static getBucketPolicy(AmazonS3Client amazonClient, String bucketName) {
+	static getBucketPolicy(AmazonS3 amazonClient, String bucketName) {
 		def rtn = [success:false]
 		try {
 			rtn.bucketPolicy = amazonClient.getBucketPolicy(new GetBucketPolicyRequest().withBucketName(bucketName))
@@ -4142,7 +4142,7 @@ class AmazonComputeUtility {
 		rtn
 	}
 
-	static setBucketPolicy(AmazonS3Client amazonClient, String bucketName, String policyText) {
+	static setBucketPolicy(AmazonS3 amazonClient, String bucketName, String policyText) {
 		def rtn = [success:false]
 		try {
 			amazonClient.setBucketPolicy(bucketName, policyText)
@@ -4616,7 +4616,7 @@ class AmazonComputeUtility {
 		return rtn
 	}
 
-	static getAmazonClient(Cloud zone, Boolean fresh=false, String region=null) {
+	static AmazonEC2 getAmazonClient(Cloud zone, Boolean fresh=false, String region=null) {
 		def creds
 		AWSCredentialsProvider credsProvider
 		def clientInfo = getCachedClientInfo("cloud:${zone.id}:${region}",'client')
@@ -5447,7 +5447,7 @@ class AmazonComputeUtility {
 		return amazonClient
 	}
 
-	static getAmazonCostClient(Cloud zone, Boolean fresh = false) {
+	static AWSCostExplorer getAmazonCostClient(Cloud zone, Boolean fresh = false) {
 		def creds
 		def clientExpires
 		// def clientInfo = getCachedClientInfo("zone:${zone.id}",'costClient')
@@ -5470,7 +5470,7 @@ class AmazonComputeUtility {
 		def costingEndpoint = getAmazonCostingEndpoint(zone)
 		def region = getAmazonEndpointRegion(endpoint)
 		def costingRegion = getAmazonEndpointRegion(costingEndpoint)
-		def amazonClient = builder.withCredentials(credsProvider).withClientConfiguration(clientConfiguration).withRegion(costingRegion).build()
+		AWSCostExplorer amazonClient = builder.withCredentials(credsProvider).withClientConfiguration(clientConfiguration).withRegion(costingRegion).build()
 		return amazonClient
 	}
 
