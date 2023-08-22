@@ -47,6 +47,18 @@ class AWSCloudCostingProviderSpec extends Specification {
 			def costFile = awsCloudCostingProvider.getTemporaryCostFile()
 		then:
 			costFile != null
+	}
 
+	void "should generate line item hash from string"() {
+		given:
+		when:
+			String hash = awsCloudCostingProvider.getLineItemHash("abc12345")
+			String hash2 = awsCloudCostingProvider.getLineItemHash("abc12345")
+			String hash3 = awsCloudCostingProvider.getLineItemHash("abc123456")
+
+		then:
+			hash != null
+			hash == hash2
+			hash != hash3
 	}
 }

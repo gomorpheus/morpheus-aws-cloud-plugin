@@ -308,6 +308,10 @@ dependencies {
 
 	implementation 'org.yaml:snakeyaml:1.26'
 
+	testImplementation platform("org.spockframework:spock-bom:$spockVersion")
+	testImplementation "org.spockframework:spock-core"
+	testImplementation "org.spockframework:spock-junit4"  // you can remove this if your code does not rely on old JUnit 4 rules
+
 	// Include morpheus-core and it's dependencies
 	testImplementation 'io.reactivex.rxjava2:rxjava:2.2.0'
 	testImplementation 'org.apache.httpcomponents:httpclient:4.5.3'
@@ -315,10 +319,10 @@ dependencies {
 	testImplementation "org.slf4j:slf4j-parent:$slf4jVersion"
 
 	testImplementation "org.codehaus.groovy:groovy-all:$groovyVersion"
-	testImplementation 'net.bytebuddy:byte-buddy:1.9.3'
-	testImplementation 'org.objenesis:objenesis:2.6'
-	testImplementation "org.spockframework:spock-core:$spockVersion"
-	testImplementation 'cglib:cglib-nodep:3.2.12'
+	// optional dependencies for using Spock
+	testImplementation "org.hamcrest:hamcrest-core:2.2"   // only necessary if Hamcrest matchers are used
+	testRuntimeOnly 'net.bytebuddy:byte-buddy:1.12.17' // allows mocking of classes (in addition to interfaces)
+	testRuntimeOnly "org.objenesis:objenesis:3.3"      // allows mocking of classes without default constructor (together with ByteBuddy or CGLIB)
 	testImplementation "com.morpheusdata:morpheus-plugin-api:$morphPluginApiVersion"
 }
 
@@ -326,6 +330,9 @@ sourceSets {
 	main {
 		compileClasspath += configurations.provided
 	}
+	 test {
+		 compileClasspath += configurations.provided
+	 }
 }
 
 jar {
@@ -353,9 +360,9 @@ task(console, dependsOn: 'classes', type: JavaExec) {
 }
 
 test {
+	useJUnitPlatform()
 	testLogging {
-		exceptionFormat = 'full'
-		showStandardStreams = true
+		events "passed", "skipped", "failed"
 	}
 }
 
