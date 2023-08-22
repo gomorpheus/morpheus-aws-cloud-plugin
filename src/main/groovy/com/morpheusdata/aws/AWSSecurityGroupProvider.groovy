@@ -11,6 +11,8 @@ import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.ComputeZonePool
 import com.morpheusdata.model.SecurityGroup
 import com.morpheusdata.model.SecurityGroupLocation
+import com.morpheusdata.model.SecurityGroupRule
+import com.morpheusdata.model.SecurityGroupRuleLocation
 import com.morpheusdata.response.ServiceResponse
 import com.amazonaws.services.ec2.model.SecurityGroup as AWSSecurityGroup
 import groovy.util.logging.Slf4j
@@ -137,6 +139,31 @@ class AWSSecurityGroupProvider implements SecurityGroupProvider {
 			log.error("Error in deleteSecurityGroupLocation: ${e}", e)
 		}
 		return rtn
+	}
+
+	@Override
+	ServiceResponse<SecurityGroupRule> prepareSecurityGroupRule(SecurityGroupRule securityGroupRule, Map opts) {
+		return null
+	}
+
+	@Override
+	ServiceResponse<SecurityGroupRule> validateSecurityGroupRule(SecurityGroupRule securityGroupRule) {
+		return null
+	}
+
+	@Override
+	ServiceResponse<SecurityGroupRuleLocation> createSecurityGroupRule(SecurityGroupLocation securityGroupLocation, SecurityGroupRule securityGroupRule) {
+		return null
+	}
+
+	@Override
+	ServiceResponse<SecurityGroupRule> updateSecurityGroupRule(SecurityGroupLocation securityGroupLocation, SecurityGroupRule securityGroupRule, SecurityGroupRule securityGroupRule1) {
+		return null
+	}
+
+	@Override
+	ServiceResponse deleteSecurityGroupRule(SecurityGroupLocation securityGroupLocation, SecurityGroupRule securityGroupRule) {
+		return null
 	}
 
 	static String getGroupRuleHash(AWSSecurityGroup cloudItem) {
