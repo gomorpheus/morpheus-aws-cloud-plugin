@@ -2236,227 +2236,228 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 		return rtn
 	}
 
-	def loadAwsSavingsPlanUsage(Cloud zone, Date costDate, String interval, Map opts) {
-		def rtn = [success:false, items:[]]
-		try {
-			costDate = costDate ?: new Date()
-			def periodStart = opts.periodStart ?: MorpheusUtils.getPeriodStart(costDate, interval)
-			def lookupStart = opts.lookupStart ?: MorpheusUtils.getPeriodStart(costDate - 30, interval)
-			def periodEnd = opts.periodEnd ?: MorpheusUtils.getPeriodEnd(costDate, interval)
-			rtn.periodStart = periodStart
-			rtn.periodEnd = periodEnd
-			//get security user
-			def securityClient = amazonComputeService.getAmazonSecurityClient(zone)
-			def identityResults = AmazonComputeUtility.getClientItentity(securityClient, opts)
-			log.debug("identityResults: {}", identityResults.results)
-			def awsAccountId = identityResults.results?.getAccount()
-			def awsUserArn = identityResults.results?.getArn()
-			def awsRegion = AmazonProvisionService.getAmazonRegion(zone)
-			def isGovAccount = awsUserArn.indexOf('-gov') > -1
-			log.debug("awsRegion: {} awsAccountId: {} awsUserArn: {} isGovAccount: {}", awsRegion, awsAccountId, awsUserArn, isGovAccount)
-			//get client
-			opts.amazonClient = opts.amazonClient ?: getAmazonCostClient(zone)
-			//get total spend month to day
-			def utilizationRequest = new GetSavingsPlansUtilizationDetailsRequest()
-			utilizationRequest.setMaxResults(100000)
-			def dateRange = new DateInterval()
-			dateRange.setStart(DateUtility.formatDate(lookupStart, dateIntervalFormat))
-			dateRange.setEnd(DateUtility.formatDate(periodEnd, dateIntervalFormat))
-			utilizationRequest.setTimePeriod(dateRange)
-
-			//filtering & grouping
-			def requestFilter
-
-			if(isGovAccount) {
-				//only filter by region because we don't know the account id link between billing and gov - limitation in api
-				requestFilter = new Expression().withDimensions(
-						new DimensionValues().withKey('REGION').withValues(awsRegion))
-			} else {
-				//filter by account of cloud creds and region
-				requestFilter = new Expression().withDimensions(
-						new DimensionValues().withKey('LINKED_ACCOUNT').withValues(awsAccountId))
-			}
-			//apply filter
-			utilizationRequest.setFilter(requestFilter)
-			//load data
-			def utilizationResults
-			def apiAttempt = 1
-			def apiSuccess = false
-			while(apiSuccess == false && apiAttempt < 4) {
-				try {
-					apiAttempt++
-					utilizationResults = opts.amazonClient.getSavingsPlansUtilizationDetails(utilizationRequest)
-					log.debug("saving plan results: {}", utilizationResults)
-					//println("next page token: ${totalCostResults.getNextPageToken()}")
-					println "hhh"
-					def timeStart = utilizationResults.getTimePeriod().getStart()
-					def timeEnd = utilizationResults.getTimePeriod().getEnd()
-					utilizationResults.getSavingsPlansUtilizationDetails()?.each { details ->
-
-						def amortizedCommitment = details.getAmortizedCommitment()
-						def savings = details.getSavings()
-						def utilization = details.getUtilization()
-
-						def row = [start:timeStart, end:timeEnd,
-								   totalCommitment: utilization.getTotalCommitment(),
-								   unusedCommitment: utilization.getUnusedCommitment(),
-								   usedCommitment: utilization.getUsedCommitment(),
-								   utilizationPercentage: utilization.getUtilizationPercentage(),
-								   savingsPlanArn: details.getSavingsPlanArn(),
-								   netSavings: savings.getNetSavings(),
-								   onDemandCostEquivalent: savings.getOnDemandCostEquivalent(),
-								   amortizedRecurringCommitment: amortizedCommitment.getAmortizedRecurringCommitment(),
-								   amortizedUpfrontCommitment: amortizedCommitment.getAmortizedUpfrontCommitment(),
-								   totalAmortizedCommitment: amortizedCommitment.getTotalAmortizedCommitment()]
-
-						def attrs = details.getAttributes()
-						row.instanceFamily = attrs.InstanceFamily
-						row.savingsPlansType = attrs.SavingsPlansType
-						row.upfrontFee = attrs.UpfrontFee
-						row.purchaseTerm = attrs.PurchaseTerm
-						row.paymentOption = attrs.PaymentOption
-						row.hourlyCommitment = attrs.HourlyCommitment
-						row.recurringHourlyFee = attrs.RecurringHourlyFee
-
-						rtn.items << row
-					}
-					//done
-					apiSuccess = true
-					//break out
-				} catch(com.amazonaws.services.costexplorer.model.LimitExceededException e2) {
-					//wait a bit
-					log.warn('aws cost explorer rate limit exceeded - retrying')
-					sleep(5000 * apiAttempt)
-				} catch(com.amazonaws.services.costexplorer.model.DataUnavailableException e3) {
-					// filters, time period, etc has no data.. not really an error
-					log.warn('no data available')
-					apiSuccess = true
-				} catch(e2) {
-					log.error("error loading aws savings plan usage: ${e2}", e2)
-				}
-			}
-			//good if we made it here
-			rtn.success = true
-			//done
-		} catch(e) {
-			log.error("error processing aws savings plan usage: ${e}", e)
-		}
-		return rtn
-	}
-
-	def loadAwsSavingsPlanCoverage(Cloud zone, Date costDate, String interval, Map opts) {
-		def rtn = [success:false, items:[]]
-		try {
-			costDate = costDate ?: new Date()
-			def periodStart = opts.periodStart ?: MorpheusUtils.getPeriodStart(costDate, interval)
-			def periodEnd = opts.periodEnd ?: MorpheusUtils.getPeriodEnd(costDate, interval)
-			rtn.periodStart = periodStart
-			rtn.periodEnd = periodEnd
-			//get security user
-			def securityClient = amazonComputeService.getAmazonSecurityClient(zone)
-			def identityResults = AmazonComputeUtility.getClientItentity(securityClient, opts)
-			log.debug("identityResults: {}", identityResults.results)
-			def awsAccountId = identityResults.results?.getAccount()
-			def awsUserArn = identityResults.results?.getArn()
-			def awsRegion = AmazonProvisionService.getAmazonRegion(zone)
-			def isGovAccount = awsUserArn.indexOf('-gov') > -1
-			log.debug("awsRegion: {} awsAccountId: {} awsUserArn: {} isGovAccount: {}", awsRegion, awsAccountId, awsUserArn, isGovAccount)
-			//get client
-			opts.amazonClient = opts.amazonClient ?: getAmazonCostClient(zone)
-			//get total spend month to day
-			def coverageRequest = new GetSavingsPlansCoverageRequest()
-			coverageRequest.setMaxResults(100000)
-			def dateRange = new DateInterval()
-			dateRange.setStart(DateUtility.formatDate(periodStart, dateIntervalFormat))
-			dateRange.setEnd(DateUtility.formatDate(periodEnd, dateIntervalFormat))
-			coverageRequest.setTimePeriod(dateRange)
-
-			//filtering & grouping
-			def requestFilter
-
-			if(isGovAccount) {
-				//only filter by region because we don't know the account id link between billing and gov - limitation in api
-				requestFilter = new Expression().withDimensions(
-						new DimensionValues().withKey('REGION').withValues(awsRegion))
-			} else {
-				//filter by account of cloud creds and region
-				def accountFilter = new Expression().withDimensions(
-						new DimensionValues().withKey('LINKED_ACCOUNT').withValues(awsAccountId))
-				def regionFilter = new Expression().withDimensions(
-						new DimensionValues().withKey('REGION').withValues(awsRegion))
-				requestFilter = new Expression().withAnd(accountFilter, regionFilter)
-			}
-			//apply filter
-			coverageRequest.setFilter(requestFilter)
-			//grouping
-			def groupType = new GroupDefinition()
-			groupType.setKey('INSTANCE_TYPE_FAMILY')
-			groupType.setType('DIMENSION')
-			def groupTypeService = new GroupDefinition()
-			groupTypeService.setKey('SERVICE')
-			groupTypeService.setType('DIMENSION')
-			def groupTypeRegion = new GroupDefinition()
-			groupTypeRegion.setKey('REGION')
-			groupTypeRegion.setType('DIMENSION')
-			def groupList = [groupType, groupTypeService, groupTypeRegion]
-			coverageRequest.setGroupBy(groupList)
-			//metrics
-			def metrics = new LinkedList<String>()
-			metrics.add('SpendCoveredBySavingsPlans')
-			coverageRequest.setMetrics(metrics)
-			//load data
-			def coverageResults
-			def apiAttempt = 1
-			def apiSuccess = false
-			while(apiSuccess == false && apiAttempt < 4) {
-				try {
-					apiAttempt++
-					coverageResults = opts.amazonClient.getSavingsPlansCoverage(coverageRequest)
-					log.debug("saving plan results: {}", coverageResults)
-					//println("next page token: ${totalCostResults.getNextPageToken()}")
-
-					coverageResults.getSavingsPlansCoverages()?.each { c ->
-
-						def timeStart = c.getTimePeriod().getStart()
-						def timeEnd = c.getTimePeriod().getEnd()
-						def coverage = c.getCoverage()
-						def attrs = c.getAttributes()
-						println "attrs: ${attrs}"
-
-						def row = [start:timeStart, end:timeEnd,
-								   coveragePercentage: coverage.getCoveragePercentage(),
-								   onDemandCost: coverage.getOnDemandCost(),
-								   spendCoveredBySavingsPlans: coverage.getSpendCoveredBySavingsPlans(),
-								   totalCost: coverage.getTotalCost(),
-								   instanceTypeFamily: attrs.INSTANCE_TYPE_FAMILY,
-								   service: attrs.SERVICE,
-								   region: attrs.REGION
-						]
-						rtn.items << row
-					}
-					//done
-					apiSuccess = true
-					//break out
-				} catch(LimitExceededException e2) {
-					//wait a bit
-					log.warn('aws cost explorer rate limit exceeded - retrying')
-					sleep(5000 * apiAttempt)
-				} catch(DataUnavailableException e3) {
-					// filters, time period, etc has no data.. not really an error
-					log.warn('no data available')
-					apiSuccess = true
-				} catch(e2) {
-					log.error("error loading aws savings plan coverage: ${e2}", e2)
-				}
-			}
-			//good if we made it here
-			rtn.success = true
-			//done
-		} catch(e) {
-			log.error("error processing aws savings plan coverage: ${e}", e)
-		}
-		return rtn
-	}
+	//TODO: These are a part of a custom report and need to be moved out to the report provider when implemented
+//	def loadAwsSavingsPlanUsage(Cloud zone, Date costDate, String interval, Map opts) {
+//		def rtn = [success:false, items:[]]
+//		try {
+//			costDate = costDate ?: new Date()
+//			def periodStart = opts.periodStart ?: MorpheusUtils.getPeriodStart(costDate, interval)
+//			def lookupStart = opts.lookupStart ?: MorpheusUtils.getPeriodStart(costDate - 30, interval)
+//			def periodEnd = opts.periodEnd ?: MorpheusUtils.getPeriodEnd(costDate, interval)
+//			rtn.periodStart = periodStart
+//			rtn.periodEnd = periodEnd
+//			//get security user
+//			def securityClient = amazonComputeService.getAmazonSecurityClient(zone)
+//			def identityResults = AmazonComputeUtility.getClientItentity(securityClient, opts)
+//			log.debug("identityResults: {}", identityResults.results)
+//			def awsAccountId = identityResults.results?.getAccount()
+//			def awsUserArn = identityResults.results?.getArn()
+//			def awsRegion = AmazonProvisionService.getAmazonRegion(zone)
+//			def isGovAccount = awsUserArn.indexOf('-gov') > -1
+//			log.debug("awsRegion: {} awsAccountId: {} awsUserArn: {} isGovAccount: {}", awsRegion, awsAccountId, awsUserArn, isGovAccount)
+//			//get client
+//			opts.amazonClient = opts.amazonClient ?: getAmazonCostClient(zone)
+//			//get total spend month to day
+//			def utilizationRequest = new GetSavingsPlansUtilizationDetailsRequest()
+//			utilizationRequest.setMaxResults(100000)
+//			def dateRange = new DateInterval()
+//			dateRange.setStart(DateUtility.formatDate(lookupStart, dateIntervalFormat))
+//			dateRange.setEnd(DateUtility.formatDate(periodEnd, dateIntervalFormat))
+//			utilizationRequest.setTimePeriod(dateRange)
+//
+//			//filtering & grouping
+//			def requestFilter
+//
+//			if(isGovAccount) {
+//				//only filter by region because we don't know the account id link between billing and gov - limitation in api
+//				requestFilter = new Expression().withDimensions(
+//						new DimensionValues().withKey('REGION').withValues(awsRegion))
+//			} else {
+//				//filter by account of cloud creds and region
+//				requestFilter = new Expression().withDimensions(
+//						new DimensionValues().withKey('LINKED_ACCOUNT').withValues(awsAccountId))
+//			}
+//			//apply filter
+//			utilizationRequest.setFilter(requestFilter)
+//			//load data
+//			def utilizationResults
+//			def apiAttempt = 1
+//			def apiSuccess = false
+//			while(apiSuccess == false && apiAttempt < 4) {
+//				try {
+//					apiAttempt++
+//					utilizationResults = opts.amazonClient.getSavingsPlansUtilizationDetails(utilizationRequest)
+//					log.debug("saving plan results: {}", utilizationResults)
+//					//println("next page token: ${totalCostResults.getNextPageToken()}")
+//					println "hhh"
+//					def timeStart = utilizationResults.getTimePeriod().getStart()
+//					def timeEnd = utilizationResults.getTimePeriod().getEnd()
+//					utilizationResults.getSavingsPlansUtilizationDetails()?.each { details ->
+//
+//						def amortizedCommitment = details.getAmortizedCommitment()
+//						def savings = details.getSavings()
+//						def utilization = details.getUtilization()
+//
+//						def row = [start:timeStart, end:timeEnd,
+//								   totalCommitment: utilization.getTotalCommitment(),
+//								   unusedCommitment: utilization.getUnusedCommitment(),
+//								   usedCommitment: utilization.getUsedCommitment(),
+//								   utilizationPercentage: utilization.getUtilizationPercentage(),
+//								   savingsPlanArn: details.getSavingsPlanArn(),
+//								   netSavings: savings.getNetSavings(),
+//								   onDemandCostEquivalent: savings.getOnDemandCostEquivalent(),
+//								   amortizedRecurringCommitment: amortizedCommitment.getAmortizedRecurringCommitment(),
+//								   amortizedUpfrontCommitment: amortizedCommitment.getAmortizedUpfrontCommitment(),
+//								   totalAmortizedCommitment: amortizedCommitment.getTotalAmortizedCommitment()]
+//
+//						def attrs = details.getAttributes()
+//						row.instanceFamily = attrs.InstanceFamily
+//						row.savingsPlansType = attrs.SavingsPlansType
+//						row.upfrontFee = attrs.UpfrontFee
+//						row.purchaseTerm = attrs.PurchaseTerm
+//						row.paymentOption = attrs.PaymentOption
+//						row.hourlyCommitment = attrs.HourlyCommitment
+//						row.recurringHourlyFee = attrs.RecurringHourlyFee
+//
+//						rtn.items << row
+//					}
+//					//done
+//					apiSuccess = true
+//					//break out
+//				} catch(com.amazonaws.services.costexplorer.model.LimitExceededException e2) {
+//					//wait a bit
+//					log.warn('aws cost explorer rate limit exceeded - retrying')
+//					sleep(5000 * apiAttempt)
+//				} catch(com.amazonaws.services.costexplorer.model.DataUnavailableException e3) {
+//					// filters, time period, etc has no data.. not really an error
+//					log.warn('no data available')
+//					apiSuccess = true
+//				} catch(e2) {
+//					log.error("error loading aws savings plan usage: ${e2}", e2)
+//				}
+//			}
+//			//good if we made it here
+//			rtn.success = true
+//			//done
+//		} catch(e) {
+//			log.error("error processing aws savings plan usage: ${e}", e)
+//		}
+//		return rtn
+//	}
+//
+//	def loadAwsSavingsPlanCoverage(Cloud zone, Date costDate, String interval) {
+//		def rtn = [success:false, items:[]]
+//		try {
+//			costDate = costDate ?: new Date()
+//			Date periodStart = InvoiceUtility.getPeriodStart(costDate, interval)
+//			Date periodEnd = InvoiceUtility.getPeriodEnd(costDate, interval)
+//			rtn.periodStart = periodStart
+//			rtn.periodEnd = periodEnd
+//			//get security user
+//			def securityClient = amazonComputeService.getAmazonSecurityClient(zone)
+//			def identityResults = AmazonComputeUtility.getClientItentity(securityClient, [:])
+//			log.debug("identityResults: {}", identityResults.results)
+//			def awsAccountId = identityResults.results?.getAccount()
+//			def awsUserArn = identityResults.results?.getArn()
+//			def awsRegion = AmazonProvisionService.getAmazonRegion(zone)
+//			def isGovAccount = awsUserArn.indexOf('-gov') > -1
+//			log.debug("awsRegion: {} awsAccountId: {} awsUserArn: {} isGovAccount: {}", awsRegion, awsAccountId, awsUserArn, isGovAccount)
+//			//get client
+//			AWSCostExplorer amazonClient = getAmazonCostClient(zone)
+//			//get total spend month to day
+//			def coverageRequest = new GetSavingsPlansCoverageRequest()
+//			coverageRequest.setMaxResults(100000)
+//			def dateRange = new DateInterval()
+//			dateRange.setStart(DateUtility.formatDate(periodStart, dateIntervalFormat))
+//			dateRange.setEnd(DateUtility.formatDate(periodEnd, dateIntervalFormat))
+//			coverageRequest.setTimePeriod(dateRange)
+//
+//			//filtering & grouping
+//			def requestFilter
+//
+//			if(isGovAccount) {
+//				//only filter by region because we don't know the account id link between billing and gov - limitation in api
+//				requestFilter = new Expression().withDimensions(
+//						new DimensionValues().withKey('REGION').withValues(awsRegion))
+//			} else {
+//				//filter by account of cloud creds and region
+//				def accountFilter = new Expression().withDimensions(
+//						new DimensionValues().withKey('LINKED_ACCOUNT').withValues(awsAccountId))
+//				def regionFilter = new Expression().withDimensions(
+//						new DimensionValues().withKey('REGION').withValues(awsRegion))
+//				requestFilter = new Expression().withAnd(accountFilter, regionFilter)
+//			}
+//			//apply filter
+//			coverageRequest.setFilter(requestFilter)
+//			//grouping
+//			def groupType = new GroupDefinition()
+//			groupType.setKey('INSTANCE_TYPE_FAMILY')
+//			groupType.setType('DIMENSION')
+//			def groupTypeService = new GroupDefinition()
+//			groupTypeService.setKey('SERVICE')
+//			groupTypeService.setType('DIMENSION')
+//			def groupTypeRegion = new GroupDefinition()
+//			groupTypeRegion.setKey('REGION')
+//			groupTypeRegion.setType('DIMENSION')
+//			def groupList = [groupType, groupTypeService, groupTypeRegion]
+//			coverageRequest.setGroupBy(groupList)
+//			//metrics
+//			def metrics = new LinkedList<String>()
+//			metrics.add('SpendCoveredBySavingsPlans')
+//			coverageRequest.setMetrics(metrics)
+//			//load data
+//			def coverageResults
+//			def apiAttempt = 1
+//			def apiSuccess = false
+//			while(apiSuccess == false && apiAttempt < 4) {
+//				try {
+//					apiAttempt++
+//					coverageResults = amazonClient.getSavingsPlansCoverage(coverageRequest)
+//					log.debug("saving plan results: {}", coverageResults)
+//					//println("next page token: ${totalCostResults.getNextPageToken()}")
+//
+//					coverageResults.getSavingsPlansCoverages()?.each { c ->
+//
+//						def timeStart = c.getTimePeriod().getStart()
+//						def timeEnd = c.getTimePeriod().getEnd()
+//						def coverage = c.getCoverage()
+//						def attrs = c.getAttributes()
+//						println "attrs: ${attrs}"
+//
+//						def row = [start:timeStart, end:timeEnd,
+//								   coveragePercentage: coverage.getCoveragePercentage(),
+//								   onDemandCost: coverage.getOnDemandCost(),
+//								   spendCoveredBySavingsPlans: coverage.getSpendCoveredBySavingsPlans(),
+//								   totalCost: coverage.getTotalCost(),
+//								   instanceTypeFamily: attrs.INSTANCE_TYPE_FAMILY,
+//								   service: attrs.SERVICE,
+//								   region: attrs.REGION
+//						]
+//						rtn.items << row
+//					}
+//					//done
+//					apiSuccess = true
+//					//break out
+//				} catch(LimitExceededException e2) {
+//					//wait a bit
+//					log.warn('aws cost explorer rate limit exceeded - retrying')
+//					sleep(5000 * apiAttempt)
+//				} catch(DataUnavailableException e3) {
+//					// filters, time period, etc has no data.. not really an error
+//					log.warn('no data available')
+//					apiSuccess = true
+//				} catch(e2) {
+//					log.error("error loading aws savings plan coverage: ${e2}", e2)
+//				}
+//			}
+//			//good if we made it here
+//			rtn.success = true
+//			//done
+//		} catch(e) {
+//			log.error("error processing aws savings plan coverage: ${e}", e)
+//		}
+//		return rtn
+//	}
 
 
 
@@ -2706,6 +2707,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 		}
 		return rtn
 	}
+
 	@CompileStatic
 	private Map<String,Object> processBillingLine(Collection columns, CsvRow line) {
 		// row.lineItem['BlendedCost']
