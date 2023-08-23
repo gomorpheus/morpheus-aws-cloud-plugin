@@ -73,11 +73,11 @@ class InstanceProfileSync {
 		}
 
 		if(adds) {
-			morpheusContext.async.cloud.create(adds, cloud, getCategory(regionCode)).blockingGet()
+			morpheusContext.async.referenceData.create(adds).blockingGet()
 		}
 	}
 
 	private removeMissingInstanceProfiles(List<ReferenceDataSyncProjection> removeList) {
-		morpheusContext.async.cloud.remove(removeList).blockingGet()
+		morpheusContext.async.referenceData.remove(removeList).blockingGet()
 	}
 }

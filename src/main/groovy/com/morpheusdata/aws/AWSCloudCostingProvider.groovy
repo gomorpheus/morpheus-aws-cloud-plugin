@@ -37,7 +37,7 @@ import com.morpheusdata.model.NetworkLoadBalancer
 import com.morpheusdata.model.OperationData
 import com.morpheusdata.model.StorageBucket
 import com.morpheusdata.model.StorageVolume
-import com.morpheusdata.model.provisioning.AccountInvoiceItem
+import com.morpheusdata.model.AccountInvoiceItem
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import groovy.transform.CompileStatic
