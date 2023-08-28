@@ -34,6 +34,8 @@ repositories {
 
 configurations {
 	provided
+	integrationTestImplementation.extendsFrom testImplementation
+	integrationTestRuntime.extendsFrom testRuntime
 }
 
 dependencies {
@@ -333,6 +335,13 @@ sourceSets {
 	 test {
 		 compileClasspath += configurations.provided
 	 }
+
+	integrationTest {
+		groovy.srcDirs = ["$projectDir/src/integrationTest/groovy"]
+		resources.srcDirs = ["$projectDir/src/integrationTest/resources"]
+		compileClasspath += main.output + test.output
+		runtimeClasspath += main.output + test.output
+	}
 }
 
 jar {
@@ -385,3 +394,9 @@ tasks.register('publishToMorpheus') {
 	dependsOn 'moveToPlugin'
 	tasks.findByName('moveToPlugin').mustRunAfter 'shadowJar'
 }
+
+tasks.register('integrationTest', Test) {
+	testClassesDirs = sourceSets.integrationTest.output.classesDirs
+	classpath = sourceSets.integrationTest.runtimeClasspath
+}
+check.dependsOn integrationTest

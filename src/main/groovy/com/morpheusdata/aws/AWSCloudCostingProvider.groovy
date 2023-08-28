@@ -1,7 +1,6 @@
 package com.morpheusdata.aws
 
 import com.amazonaws.services.costexplorer.AWSCostExplorer
-import com.amazonaws.services.costexplorer.model.DataUnavailableException
 import com.amazonaws.services.costexplorer.model.DateInterval
 import com.amazonaws.services.costexplorer.model.DimensionValues
 import com.amazonaws.services.costexplorer.model.Expression
@@ -10,9 +9,7 @@ import com.amazonaws.services.costexplorer.model.GetCostForecastRequest
 import com.amazonaws.services.costexplorer.model.GetReservationCoverageRequest
 import com.amazonaws.services.costexplorer.model.GetReservationPurchaseRecommendationRequest
 import com.amazonaws.services.costexplorer.model.GetReservationUtilizationRequest
-import com.amazonaws.services.costexplorer.model.GetSavingsPlansCoverageRequest
 import com.amazonaws.services.costexplorer.model.GetSavingsPlansPurchaseRecommendationRequest
-import com.amazonaws.services.costexplorer.model.GetSavingsPlansUtilizationDetailsRequest
 import com.amazonaws.services.costexplorer.model.GroupDefinition
 import com.amazonaws.services.costexplorer.model.LimitExceededException
 import com.amazonaws.services.ec2.AmazonEC2
@@ -24,6 +21,7 @@ import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
 import com.morpheusdata.core.data.DataFilter
+import com.morpheusdata.core.data.DataOrFilter
 import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.providers.AbstractCloudCostingProvider
 import com.morpheusdata.core.util.DateUtility
@@ -37,7 +35,7 @@ import com.morpheusdata.model.NetworkLoadBalancer
 import com.morpheusdata.model.OperationData
 import com.morpheusdata.model.StorageBucket
 import com.morpheusdata.model.StorageVolume
-import com.morpheusdata.model.provisioning.AccountInvoiceItem
+import com.morpheusdata.model.AccountInvoiceItem
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import groovy.transform.CompileStatic
@@ -51,9 +49,26 @@ import io.reactivex.annotations.NonNull
 import io.reactivex.schedulers.Schedulers
 
 import java.security.MessageDigest
-import java.util.regex.Pattern
 import java.util.zip.GZIPInputStream
 
+/**
+ * Provides AWS Public cloud costing data import into morpheus on a daily basis. Costing Providers always run around 1AM UTC.
+ * This particular one has several modes. The preferred method for grabbing costing data is to import the csv files in an s3 bucket known as the
+ * Billing CUR Report. This has been optimized heavily to efficiently import and group that data format.
+ *
+ * This will also work for one master payer account to sync costing down to all sub accounts discovered in the system.
+ *
+ * <p>
+ *     However, some AWS Users do not have access to this report. An AWS Cost Explorer API is also available but is less capable and is very expensive to call.
+ *     If that is available this will get attempted to at least grab a cloud cost summary set of data.
+ * </p>
+ * <p>
+ *     Another aspect of this cost provider is to gather reservation/forecasting information depending on need from the system.
+ * </p>
+ *
+ * @author David Estes
+ * TODO: Still a work in progress
+ */
 @Slf4j
 class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 	protected MorpheusContext morpheusContext
@@ -93,6 +108,12 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 	}
 
 
+	/**
+	 * This is where the magic starts!
+	 * @param cloud
+	 * @param costDate
+	 * @param cloudRefreshOptions
+	 */
 	@Override
 	void refreshDailyZoneCosting(Cloud cloud, Date costDate, CloudRefreshOptions cloudRefreshOptions) {
 		Date syncDate = new Date()
@@ -109,16 +130,16 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 					def costingRegion = costingReportDef?.s3Region ?: cloud.getConfigProperty('costingRegion')
 					def costingFolder = costingReportDef?.s3Prefix ?: cloud.getConfigProperty('costingFolder')
 
-					if(!costingBucket || !costingRegion || !costingReport) {
+					if(!costingBucket && !costingRegion && !costingReport) {
 						log.info("No costing report specified. Running Cost Explorer Set")
-						refreshCloudCostFromCostExplorer(cloud, costDate, opts)
+						refreshCloudCostFromCostExplorer(cloud, costDate)
 					}
 				} catch(e2) {
-					log.error("Error Checking cost explorer data")
+					log.error("Error Checking cost explorer data {}",e2.message,e2)
 				}
 				if(cloud.costingMode == 'full' || cloud.costingMode == 'reservations') {
 					//refreshes reservation recommendation information or reservation lists
-					refreshCloudReservations(cloud, costDate, interval, opts)
+					refreshCloudReservations(cloud, costDate)
 				}
 
 
@@ -126,13 +147,13 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 				Calendar cal = Calendar.getInstance()
 				int dayOfMonth = cal.get(Calendar.DAY_OF_MONTH)
 				if(cloudRefreshOptions.noLag != true && dayOfMonth < 4) { //lets check historical
-					processAwsBillingReport(cloud, new Date() - 4, opts)
+					processAwsBillingReport(cloud, new Date() - 4)
 				}
-				def results = processAwsBillingReport(cloud, costDate, opts)
+				def results = processAwsBillingReport(cloud, costDate)
 				if(results.success) {
 					morpheus.async.cloud.updateCloudCostStatus(cloud,Cloud.Status.ok,null,syncDate)
 				} else {
-					morpheus.async.cloud.updateCloudCostStatus(cloud,Cloud.Status.error,results.msg,syncDate)
+					morpheus.async.cloud.updateCloudCostStatus(cloud,Cloud.Status.error,results.msg as String,syncDate)
 				}
 			} else {
 				morpheus.async.cloud.updateCloudCostStatus(cloud,Cloud.Status.ok,null,syncDate)
@@ -141,36 +162,36 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			log.info("done refreshing daily resource invoice")
 		} catch (e) {
 
-			log.error("refreshDailyResourceInvoice error: ${e}", e)
+			log.error("refreshDailyResourceInvoice error: {}",e.message, e)
 			morpheus.async.cloud.updateCloudCostStatus(cloud,Cloud.Status.error,e.message,syncDate)
 		}
 	}
 
-	def processAwsBillingReport(Cloud cloud, Date costDate, Map opts) {
+	def processAwsBillingReport(Cloud cloud, Date costDate) {
 		def rtn = [success:false]
-		String lock
-		String lockName
-		try {
+		costDate = costDate ?: new Date()
+		String lock = null
+		Date startDate = DateUtility.getStartOfGmtMonth(costDate)
+		Date endDate = DateUtility.getStartOfNextGmtMonth(costDate)
+		String dateFolder = DateUtility.formatDate(startDate, billingDateFormat) + '-' + DateUtility.formatDate(endDate, billingDateFormat)
+		String period = InvoiceUtility.getPeriodString(startDate)
+		String lockZoneIdentifier = cloud.externalId ?: cloud.id
+		String lockName = "aws.billing.process.${lockZoneIdentifier}.${period}"
 
-			costDate = costDate ?: new Date()
-			cloud.owner //make sure we fetch zone.owner
-			def cutoffDate = new Date(costDate.time - (60000L*60L * 24L))
+		try {
 			//connect to bucket
 			// use report definition if available
-			def costingReportDef = loadAwsBillingReportDefinition(cloud, opts)
+			def costingReportDef = loadAwsBillingReportDefinition(cloud)
 			def costingReport = costingReportDef?.reportName ?: cloud.getConfigProperty('costingReport')
-			def costingBucket = costingReportDef?.s3Bucket ?: cloud.getConfigProperty('costingBucket')
-			def costingRegion = costingReportDef?.s3Region ?: cloud.getConfigProperty('costingRegion')
-			def costingFolder = costingReportDef?.s3Prefix ?: cloud.getConfigProperty('costingFolder') ?: ''
+			String costingBucket = costingReportDef?.s3Bucket as String ?: cloud.getConfigProperty('costingBucket') as String
+			String costingRegion = costingReportDef?.s3Region as String ?: cloud.getConfigProperty('costingRegion') as String
+			String costingFolder = costingReportDef?.s3Prefix as String ?: cloud.getConfigProperty('costingFolder') as String ?: ''
 
 			if(costingBucket && costingRegion && costingReport) {
-				//load creds
-				zoneService.loadFullZone(cloud)
-				//do it
 				def accessKey = AmazonComputeUtility.getAmazonCostingAccessKey(cloud)
 				def secretKey = AmazonComputeUtility.getAmazonCostingSecretKey(cloud)
-				def stsAssumeRole
-				def useHostCredentials
+				def stsAssumeRole = null
+				def useHostCredentials = null
 				if(accessKey == AmazonComputeUtility.getAmazonAccessKey(cloud)) {
 					//no costing account alternative credentials being used
 					stsAssumeRole = AmazonComputeUtility.getAmazonStsAssumeRole(cloud)
@@ -190,11 +211,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 					providerConfig.proxyWorkstation = cloud.apiProxy.proxyWorkstation
 				}
 				def provider = StorageProvider.create(providerConfig)
-				//def amazonClient = amazonProvisionService.getAmazonClient(zone)
-				//look for the right timerange - in montly folders
-				def startDate = MorpheusUtils.getStartOfGmtMonth(costDate)
-				def endDate = MorpheusUtils.getStartOfNextGmtMonth(costDate)
-				def dateFolder = MorpheusUtils.formatDate(startDate, billingDateFormat) + '-' + MorpheusUtils.formatDate(endDate, billingDateFormat)
+
 				log.info("dateFolder: {}", dateFolder)
 				//this should be a directory
 				def searchOpts
@@ -205,52 +222,30 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 				manifest = reportRoot[costingFolder + '/' + costingReport + '/' + dateFolder + '/' + costingReport + '-Manifest.json']
 
 				def processReport
-
-				String period = accountInvoiceService.getPeriodString(startDate, 'month')
-				def lockZoneIdentifier = cloud.externalId ?: cloud.id
-				lockName = "aws.billing.process.${lockZoneIdentifier}.${period}"
-				def existingLock = lockService.checkLock(lockName.toString(), [:])
+				def existingLock = morpheusContext.checkLock(lockName.toString(), [:])
 				if(existingLock) {
 					log.warn("Lock Already Exists for Processing AWS Billing Period: ${period}...If this is in error, please purge lock from DistributedLock table.")
 					return rtn
 				}
-				lock = lockService.acquireLock(lockName, [timeout: 48l * 60l * 60l * 1000l, ttl: 48l * 60l * 60l * 1000l])
+				lock = morpheusContext.acquireLock(lockName, [timeout: 48l * 60l * 60l * 1000l, ttl: 48l * 60l * 60l * 1000l])
 				if(manifest.exists()) {
 					processReport = [manifestFile:manifest,provider:provider,bucket:costingBucket, lastModified: manifest.getDateModified()]
 				} else {
 					log.warn("Manifest File not found: ${costingFolder + '/' + costingReport + '/' + dateFolder + '/' + costingReport + '-Manifest.json'}")
-					startCostingAlarm(cloud,"Manifest File not found: ${costingFolder + '/' + costingReport + '/' + dateFolder + '/' + costingReport + '-Manifest.json'}")
+					morpheusContext.async.cloud.updateCloudCostStatus(cloud,Cloud.Status.error,"Manifest File not found: ${costingFolder + '/' + costingReport + '/' + dateFolder + '/' + costingReport + '-Manifest.json'}",new Date())
 				}
-
 				if(processReport) {
-					Promises.task {
-						log.info("Processing aws billing file ${processReport}")
-						def results = processAwsBillingFile(cloud, processReport, costDate, opts + [lineCounter:0, lineItems:0, newInvoice:0, newItem:0, newResource:0, itemUpdate:0, unprocessed:0, lastEndDate:null, lockName: lockName])
-						return results
-					}.then { results ->
-						Cloud.withNewSession {
-							if(!results.success) {
-								startCostingAlarm(cloud,results.msg ?: "Unknown error processing file")
-							} else {
-								clearCostingAlarm(cloud)
-							}
-						}
-
-						return results
-					}.onError { Throwable t ->
-						log.error("Exception processing aws billing file {}", t.message,t)
-					}.get()
+					processAwsBillingFiles(cloud, processReport, costDate, opts + [lineCounter:0, lineItems:0, newInvoice:0, newItem:0, newResource:0, itemUpdate:0, unprocessed:0, lastEndDate:null, lockName: lockName])
 				}
 				rtn.success = true
 				//done
 			}
 		} catch(e) {
-			startCostingAlarm(cloud,"${e.message}")
 			rtn.msg = e.message
 			log.error("error processing billing: ${e}", e)
 		} finally {
 			if(lock) {
-				lockService.releaseLock(lockName)
+				morpheusContext.releaseLock(lockName,[lock:lock]).blockingGet()
 			}
 		}
 		return rtn
@@ -258,7 +253,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 
 
 //	@CompileStatic
-	void processAwsBillingFile(Cloud cloud, Map costReport, Date costDate, Map opts) {
+	void processAwsBillingFiles(Cloud cloud, Map costReport, Date costDate, Map opts) {
 
 		try {
 			//download the manifest
@@ -275,7 +270,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			StorageProvider storageProvider = ((StorageProvider) (costReport.provider))
 			log.info("Processing Files for Billing Period {} - File Count: {}", period, reportKeys.size())
 			Integer filePosition = 0
-			Observable<String> reportObservable = Observable.fromIterable { reportKeys }
+			Observable<String> reportObservable = Observable.fromIterable(reportKeys)
 			reportObservable.flatMap { String reportKey ->
 				Observable<Map> fileProcessor = Observable.create(new ObservableOnSubscribe<Map>() {
 					@Override
@@ -315,7 +310,6 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 										throw new Exception("Error Processing AWS Billing Report...Failed to download file ${reportKey}", e)
 									}
 								}
-
 							}
 							dataFileStream = new GZIPInputStream(costFile.newInputStream(), 65536)
 							BufferedReader br = new BufferedReader(new InputStreamReader(dataFileStream))
@@ -345,7 +339,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 							if(dataFileStream) {
 								try {
 									dataFileStream.close()
-								} catch(ex2) {
+								} catch(ignore) {
 									//ignore close errors
 								}
 							}
@@ -372,17 +366,522 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 		}
 	}
 
+
+
 	InvoiceProcessResult processAwsBillingBatch(Cloud cloud, String tmpPeriod, Map costReport, Collection lineItems, Date costDate, Map opts) {
+		InvoiceProcessResult chunkedResult = new InvoiceProcessResult()
+		try {
+			Date startDate = DateUtility.getStartOfGmtMonth(costDate)
+			List<String> lineItemIds = [] as List<String>
+			List<String> usageAccountIds = [] as List<String>
+			List<AccountInvoiceItem> invoiceItems = [] as List<AccountInvoiceItem>
+			for(li in lineItems) {
+				usageAccountIds << li.lineItem['UsageAccountId'] as String
+				lineItemIds << li.uniqueId
+			}
+			//reduce size of list for repeat entries for the same item
+			usageAccountIds.unique()
+			lineItemIds = lineItemIds.unique()
+			//grab all clouds that need items generated by this report
+			List<Cloud> usageClouds = []
+			if(usageAccountIds) {
+				def queryFilters = []
+				queryFilters.add(new DataOrFilter(
+						new DataFilter("externalId","in",usageAccountIds),
+						new DataFilter("linkedAccountId","in",usageAccountIds)
+				))
+				if(!cloud.owner.masterAccount) {
+					queryFilters.add(new DataFilter("owner.id",cloud.owner.id))
+				}
+				usageClouds = morpheusContext.async.cloud.list(new DataQuery().withFilters(queryFilters)).toList().blockingGet()
+			}
+			Map<String,List<Cloud>> usageCloudsByExternalId = (usageClouds.groupBy{it.linkedAccountId ?: it.externalId} as Map<String,List<Cloud>>)
+			List<Long> usageCloudIds = usageClouds ? (List<Long>)(usageClouds.collect{ it.id }) : [] as List<Long>
+			usageCloudIds.unique()
+
+
+			if(lineItemIds) {
+				//grab all invoice items we are going to need that may already exist
+				invoiceItems = morpheusContext.async.costing.invoiceItem.list(new DataQuery().withFilters(
+						new DataFilter("uniqueId","in",lineItemIds),
+						new DataFilter("invoice.zoneId","in",usageCloudIds),
+						new DataFilter("invoice.period",tmpPeriod),
+						new DataFilter("invoice.interval",interval)
+				)).toList().blockingGet()
+				def invoiceItemsByUniqueId = invoiceItems.groupBy{it.uniqueId}
+				def lineItemsToUse = []
+				def invoiceItemsToUse = []
+
+				//Filter out line items and invoice items that have already been previously processed to improve
+				//performance
+				for(li2 in lineItems) {
+					Boolean localFound = false
+					if(!li2.product['region']) {
+						li2.product['region'] = 'global' //alias no region costs to global for now
+					}
+					String rowId = li2.uniqueId
+					BigDecimal itemRate = parseStringBigDecimal(li2.lineItem['UnblendedRate'])
+					def invoiceItemsMatched = invoiceItemsByUniqueId[rowId]
+					def clouds = usageCloudsByExternalId[li2.lineItem['UsageAccountId']]?.findAll{zn -> (!zn.regionCode || (AmazonComputeUtility.getAmazonEndpointRegion(zn.regionCode) == li2.product['region'] ) || (!li2.product['region'] && zn.regionCode == 'global'))}
+					if(!li2.product['region'] || !invoiceItemsMatched) { //global we need to process it
+						lineItemsToUse << li2
+						if(invoiceItemsMatched) {
+							invoiceItemsToUse += invoiceItemsMatched
+						}
+					} else if(invoiceItemsMatched?.any { it -> it.itemRate != itemRate || !InvoiceUtility.checkDateCheckHash(startDate,li2.lineItem['UsageEndDate'] instanceof String ? DateUtility.parseDate(li2.lineItem['UsageEndDate'] as String) : li2.lineItem['UsageEndDate'] as Date ,it.dateCheckHash)}) {
+						lineItemsToUse << li2
+						invoiceItemsToUse += invoiceItemsMatched
+					} else if(clouds && clouds.collect{it.id}.intersect(invoiceItemsMatched?.collect{it[3]}?.unique() ?: []).size() != clouds.size()) {
+						lineItemsToUse << li2
+						invoiceItemsToUse += invoiceItemsMatched
+					}
+				}
+				invoiceItems = invoiceItemsToUse
+				lineItems = lineItemsToUse
+				List<String> resourceIds = [] as List<String>
+				for(row in lineItems) {
+					def usageAccountId = row.lineItem['UsageAccountId']
+
+					def targetZones = usageCloudsByExternalId[usageAccountId]?.findAll{zn -> !zn.regionCode || (AmazonComputeUtility.getAmazonEndpointRegion(zn.regionCode) == row.product['region'])}
+					for(zn in targetZones) {
+						def tmpInvoiceItems = invoiceItems[zn.id] ?: [:]
+						def itemMatch = tmpInvoiceItems[row.uniqueId]
+						if(!itemMatch) {
+							resourceIds.add(row.lineItem['ResourceId'] as String)
+							break
+						}
+					}
+				}
+
+				def serverListRecords =[]
+				//We filter out only ids related to compute server record types in amazon. This could change in future for RDS
+				//TODO: Factor in RDS IDS
+				def serverResourceIds = []
+				def volumeResourceIds = []
+				def snapshotResourceIds = []
+				def loadBalancerResourceIds = []
+				def virtualImageResourceIds = []
+				def resourceListRecords
+				def existingEmptyInvoices = []
+				def resourceStartTime = new Date().time
+				if(resourceIds) {
+					resourceListRecords = morpheusContext.async.cloud.resource.list(new DataQuery().withFilters(
+							new DataFilter("zoneId","in",usageCloudIds),
+							new DataFilter("externalId","in",resourceIds)
+					)).toList().blockingGet()
+
+					for(int rcount =0; rcount < resourceIds.size() ; rcount++) {
+						def resourceId = resourceIds[rcount] as String
+						if(resourceId?.startsWith('i-')) {
+							serverResourceIds << resourceId
+						} else if(resourceId.startsWith('vol-')) {
+							volumeResourceIds << resourceId
+						} else if(resourceId.startsWith('ami-')) {
+							virtualImageResourceIds << resourceId
+						} else if(resourceId.startsWith(':loadbalancer/')) {
+							loadBalancerResourceIds << resourceId
+						} else if(resourceId.startsWith(':snapshot/')) {
+							snapshotResourceIds << resourceId
+						}
+					}
+				}
+				def serverList = []
+				if(serverResourceIds) {
+					//we need to look for any possible matching server records
+					serverList = morpheusContext.async.computeServer.list(new DataQuery().withFilters(
+							new DataFilter("zone.id","in",usageCloudIds),
+							new DataFilter("externalId","in",serverResourceIds)
+					)).toList().blockingGet()
+					if(volumeResourceIds) {
+						serverList += morpheusContext.async.computeServer.list(new DataQuery().withFilters(
+								new DataFilter("zone.id","in",usageCloudIds),
+								new DataFilter("volumes.externalId","in",volumeResourceIds)
+						)).toList().blockingGet()
+					}
+					serverList.unique{it.id}
+
+				}
+				if(volumeResourceIds) {
+					//load storage volume objects
+//					morpheusContext.
+				}
+
+				//TODO: Load all resource objects we may need
+
+				accountIds = accountIds.unique()
+				Map<Long, Account> resourceAccounts
+				if(accountIds) {
+					resourceAccounts = Account.where{id in accountIds}.list()?.collectEntries{ [(it.id):it] } as Map<Long, Account>
+				}
+
+				List<AccountInvoice> invoiceUpdates = [] as List<AccountInvoice>
+				List<AccountInvoiceItem> invoiceItemUpdates = [] as List<AccountInvoiceItem>
+				Map<String,List<Map<String,Object>>> usageAccountLineItems = (lineItems.groupBy{ r->r.lineItem['UsageAccountId']} as Map<String,List<Map<String,Object>>>)
+
+				// log.info("Prep Time: ${new Date().time - checkTime.time}")
+				checkTime = new Date()
+				for(usageAccountId in usageAccountLineItems.keySet()) {
+					List<Cloud> targetClouds = usageCloudsByExternalId[usageAccountId]
+					for(Cloud targetCloud in targetClouds) {
+						Map<String,AccountInvoice> invoiceList = invoiceListByZone[targetCloud.id] ?: [:] as Map<String,AccountInvoice>
+						Map<String,AccountInvoiceItem> invoiceItemsForCloud = invoiceItemsByZone[targetCloud.id] ?: [:] as Map<String, AccountInvoiceItem>
+						def resourceList = resourceListByZone[targetCloud.id] ?: [:]
+						def serverScopedList = serverListByZone[targetCloud.id] ?: [:]
+						def volumeList = volumeListByZone[targetCloud.id] ?: [:]
+						def volumeServerMatches = volumeServerMatchesByZone[targetCloud.id] ?: [:]
+
+						def emptyInvoicesList = emptyInvoicesByZone[targetCloud.id] ?: [:]
+						def lbList = lbListByZone[targetCloud.id] ?: [:]
+						Map<Long,AccountInvoice> lbInvoices = lbInvoiceRecordsByZone[targetCloud.id] ?: [:]
+						Map<Long,AccountInvoice> serverInvoices = serverInvoiceRecordsByZone[targetCloud.id] ?: [:]
+						Map<Long,AccountInvoice> volumeInvoices = volumeInvoiceRecordsByZone[targetCloud.id] ?: [:]
+						//process line items
+						Date filterTime = new Date()
+						LinkedList<Map<String,Object>> regionLineItems = (usageAccountLineItems[usageAccountId].findAll{ tmpRow -> (tmpRow.product['region'] && (!targetCloud.regionCode || (AmazonComputeService.getAmazonEndpoingRegion(targetCloud.regionCode) == tmpRow.product['region']) || (!tmpRow.product['region'] && targetCloud.regionCode == 'global')))} as LinkedList<Map<String,Object>>)
+
+						for(Map<String,Object> row in regionLineItems) {
+							Boolean newResourceMade = false
+							String rowId = row.uniqueId
+							def resourceId = row.lineItem['ResourceId']
+							def lineItemId = row.identity['LineItemId']
+							Date lineItemStartDate = row.lineItem['UsageStartDate'] instanceof String ? DateUtility.parseDate(row.lineItem['UsageStartDate'] as String) : row.lineItem['UsageStartDate'] as Date
+							Date lineItemEndDate = row.lineItem['UsageEndDate'] instanceof String ? DateUtility.parseDate(row.lineItem['UsageEndDate'] as String) : row.lineItem['UsageEndDate'] as Date
+							def volMatch = null
+							def tags = row.resourceTags?.collect { [name: it.key.startsWith('user:') ? it.key.substring(5) : it.key, value: it.value]}?.findAll{it.value}
+							//find the line item
+							def itemMatch = invoiceItemsForCloud[rowId]
+							//if item match - just update info
+							if(itemMatch) {
+								Boolean recalculationTotalsNecessary=false
+								BigDecimal itemRate = parseStringBigDecimal(row.lineItem['UnblendedRate']) ?: 0.0G
+								if(!InvoiceUtility.checkDateCheckHash(startDate,lineItemEndDate,itemMatch.dateCheckHash)) {
+									//do an update
+									def itemConfig = [
+											startDate:lineItemStartDate, endDate:lineItemEndDate, itemUsage:parseStringBigDecimal(row.lineItem['UsageAmount']),
+											itemRate:itemRate, itemCost:parseStringBigDecimal(row.lineItem['UnblendedCost']),
+											onDemandCost:row.lineItem['LineItemType'] != 'SavingsPlanNegation' ? parseStringBigDecimal(row.pricing['publicOnDemandCost']) : 0.0,
+											amortizedCost:getAmortizedCost(row),
+											zoneRegion: targetCloud.regionCode,
+											rateExternalId:row.savingsPlan['SavingsPlanARN'] ?: row.reservation['ReservationARN'],
+											costProject:row.costCategory ? row.costCategory['Project'] : null,
+											costTeam:row.costCategory ? row.costCategory['Team'] : null,
+											costEnvironment:row.costCategory ? row.costCategory['Environment'] : null,
+											availabilityZone:row.lineItem['AvailabilityZone'],
+											operatingSystem:row.product ? row.product['operatingSystem'] : null,
+											purchaseOption:row.savingsPlan['SavingsPlanARN'] ? 'Savings Plan' : row.reservation['ReservationARN'] ? 'Reserved' : row.lineItem['UsageType']?.contains('Spot') ? 'Spot' : 'On Demand',
+											tenancy:row.product ? row.product['tenancy'] : null,
+											databaseEngine:row.product ? row.product['databaseEngine'] : null,
+											billingEntity:row.bill['BillingEntity'],
+											itemTerm:row.pricing['term'], regionCode: row.product['region'],lastInvoiceSyncDate: costDate
+									]
+									Map itemChanged = accountInvoiceService.updateAccountInvoiceItem(itemMatch, itemConfig, null,false,false)
+									if(itemChanged.changed == true) {
+										itemMatch.dateCheckHash = InvoiceUtility.updateDateCheckHash(startDate,lineItemEndDate,itemMatch.dateCheckHash)
+										invoiceItemUpdates << itemMatch
+										chunkedResult.invoicesToReconcile.add(itemMatch.invoice.id)
+									}
+								}
+							} else {
+								//find an invoice match
+								AccountInvoice invoiceMatch = invoiceList[resourceId]
+								def resourceMatch
+								def serverMatch = null
+								if(invoiceMatch) {
+									resourceMatch = resourceList[resourceId]
+									//look by server or what not
+								} else if(emptyInvoicesList[resourceId]) {
+									invoiceMatch = emptyInvoicesList[resourceId]
+								} else {
+									//find a resource
+									resourceMatch = resourceList[resourceId]
+									//if no match. - check for server
+									if(!resourceMatch) {
+										//check for a server, instance, container
+										serverMatch = serverScopedList[resourceId]
+										if(serverMatch) {
+											//log.debug("querying for resource")
+											//create a resource for the server?
+											invoiceMatch = serverInvoices[serverMatch[0]]
+											// invoiceMatch = AccountInvoice.where{ refType == 'ComputeServer' && refId == resourceMatch.id && period == period && interval == 'month' }.get()
+										}
+										//check for volume - add it to its server
+										if(!serverMatch) {
+											resourceMatch = volumeList[resourceId]
+											if(resourceMatch) {
+												//get what its attached to?
+												//create a resource for the volume?
+												volMatch = resourceMatch
+												serverMatch = volumeServerMatches ? volumeServerMatches[resourceMatch.id] : null
+												if(serverMatch) {
+													invoiceMatch = serverInvoices[serverMatch[0]]
+												} else {
+													invoiceMatch = volumeInvoices[resourceMatch.id]
+												}
+											} else {
+												//lb lookup
+												resourceMatch = lbList[resourceId]
+												if(resourceMatch) {
+													invoiceMatch = lbInvoices(resourceMatch.id)
+												}
+											}
+										}
+										//add instance / container lookups?
+									}
+									if(!resourceMatch && !serverMatch ) {
+										// println("no resource match...creating item ${lineItemId} ${resourceId}")
+										//create one if we have no match
+										def scriptConfig = [:]
+										// log.info("Creating Resource")
+										if(resourceId) {
+											def resourceResults = amazonResourceMappingService.createResource(targetCloud, row, opts,false)
+											if(resourceResults.success == true && resourceResults.data.resource) {
+												// println("resourceResults.data.resource: ${resourceResults.data.resource}")
+												resourceMatch = resourceResults.data.resource
+												resourceList[resourceId] = resourceMatch
+												newResourceMade = true
+												batchStats.newResource++
+											} else {
+												//can assign the item to the overall zone invoice
+												invoiceMatch = AccountInvoice.where{ refType == 'Cloud' && refId == targetCloud.id && period == period && interval == 'month' }.get()
+												resourceMatch = targetCloud
+											}
+										} else {
+											invoiceMatch = AccountInvoice.where{ refType == 'Cloud' && refId == targetCloud.id && period == period && interval == 'month' }.get()
+											resourceMatch = targetCloud
+										}
+
+									}
+									//if still no invoice - create one
+									if(!invoiceMatch) {
+										// log.info("No invoice match for ${rowId}")
+										if(resourceMatch || serverMatch) {
+											def resourceType
+											Boolean appendToServerInvoices = false
+											def invoiceConfig = [estimate:false, startDate:startDate, refCategory:'invoice', resourceExternalId: resourceId]
+											if(resourceMatch instanceof AccountResource) {
+												invoiceConfig = configureResourceInvoice(targetCloud, (AccountResource)resourceMatch, invoiceConfig)
+												resourceType = 'AccountResource'
+											}
+											else if(resourceMatch instanceof ComputeServer) {
+												invoiceConfig = configureResourceInvoice(targetCloud, (ComputeServer)resourceMatch, invoiceConfig)
+												resourceType = 'ComputeServer'
+												appendToServerInvoices = true
+											}
+											else if(resourceMatch instanceof Cloud) {
+												invoiceConfig = configureResourceInvoice(targetCloud, invoiceConfig)
+												resourceType = 'Cloud'
+											} else if(resourceMatch instanceof NetworkLoadBalancer) {
+												invoiceConfig = configureResourceInvoice(targetCloud, (NetworkLoadBalancer)resourceMatch, invoiceConfig)
+												resourceType = 'NetworkLoadBalancer'
+											} else if(serverMatch) {
+												invoiceConfig = [refName:serverMatch[1], userId:serverMatch[2], zoneId:serverMatch[3], zoneUUID: serverMatch[12], zoneName:serverMatch[4],
+																 siteId:serverMatch[5], planId:serverMatch[6], userName:serverMatch[7], planName:serverMatch[8],
+																 layoutId:serverMatch[9], layoutName:serverMatch[10], serverId:serverMatch[0], serverName:serverMatch[1],
+																 resourceExternalId:serverMatch[11], refUUID: serverMatch[13], zoneRegion: serverMatch[14], account: resourceAccounts[serverMatch[15]]
+												]
+												appendToServerInvoices = true
+												resourceType = 'ComputeServer'
+											} else if(resourceMatch instanceof StorageVolume) {
+												invoiceConfig = configureResourceInvoice(targetCloud, (StorageVolume)resourceMatch, invoiceConfig)
+												resourceType = 'StorageVolume'
+											}
+
+											//create it
+											invoiceConfig.lastInvoiceSyncDate = costDate
+											invoiceConfig.tags = tags
+
+											def invoiceResults = accountInvoiceService.ensureActiveAccountInvoice(targetCloud.owner, invoiceConfig.account ?: targetCloud.account, resourceType,
+													resourceMatch?.id ?: invoiceConfig.serverId, interval, costDate, invoiceConfig, resourceMatch?.uuid ?: invoiceConfig.refUUID, newResourceMade)
+											if(invoiceResults.invoice) {
+												invoiceMatch = invoiceResults.invoice
+												invoiceMatch.save()
+												invoiceList[resourceId] = invoiceMatch
+												if(resourceMatch instanceof StorageVolume) {
+													volumeInvoices[invoiceMatch.refId] = invoiceMatch
+												}
+												if(resourceMatch instanceof StorageVolume) {
+													volumeInvoices[invoiceMatch.refId] = invoiceMatch
+												}
+												if(serverMatch) {
+													serverInvoices[invoiceMatch.refId] = invoiceMatch
+												}
+												batchStats.newInvoice++
+											} else {
+												log.info("Warning...Unprocessed Item ${lineItemId} - ${resourceId}")
+												batchStats.unprocessed++
+											}
+										} else {
+											log.warn("Unprocessed things")
+											//shouldn't get here ever
+											batchStats.unprocessed++
+										}
+									}
+								}
+								//if we have an invoice
+								if(invoiceMatch) {
+									def category = categoryForInvoiceItem(row.product['servicecode'],row.lineItem['UsageType'])
+									//create the line item
+									BigDecimal unblendedRate = parseStringBigDecimal(row.lineItem['UnblendedRate'])
+									BigDecimal unblendedCost = parseStringBigDecimal(row.lineItem['UnblendedCost'])
+									def itemConfig = [
+											refName:invoiceMatch.refName, refCategory:'invoice',
+											startDate:lineItemStartDate, endDate:lineItemEndDate, itemId:lineItemId, itemType:row.lineItem['LineItemType'],
+											itemName:invoiceMatch.refName, itemDescription:row.lineItem['LineItemDescription'],
+											zoneRegion: targetCloud.regionCode,
+											productCode:row.lineItem['ProductCode'], productName:row.lineItem['ProductName'],
+											itemSeller:row.lineItem['LegalEntity'], itemAction:row.lineItem['Operation'], usageType:row.lineItem['UsageType'],
+											usageService:row.product['servicecode'], rateId:row.pricing['RateId'], rateClass:row.lineItem['RateClass'],
+											rateUnit:row.pricing['unit'], rateTerm:row.pricing['LeaseContractLength'], itemUsage:parseStringBigDecimal(row.lineItem['UsageAmount']),
+											itemRate:unblendedRate, itemCost:unblendedCost,
+											onDemandCost:row.lineItem['LineItemType'] != 'SavingsPlanNegation' ? parseStringBigDecimal(row.pricing['publicOnDemandCost']) : 0.0,
+											amortizedCost: getAmortizedCost(row),
+											rateExternalId:row.savingsPlan['SavingsPlanARN'] ?: row.reservation['ReservationARN'],
+											costProject:row.costCategory ? row.costCategory['Project'] : null,
+											costTeam:row.costCategory ? row.costCategory['Team'] : null,
+											costEnvironment:row.costCategory ? row.costCategory['Environment'] : null,
+											availabilityZone:row.lineItem['AvailabilityZone'],
+											operatingSystem:row.product ? row.product['operatingSystem'] : null,
+											purchaseOption:row.savingsPlan['SavingsPlanARN'] ? 'Savings Plan' : row.reservation['ReservationARN'] ? 'Reserved' : row.lineItem['UsageType']?.contains('Spot') ? 'Spot' : 'On Demand',
+											tenancy:row.product['tenancy'],
+											databaseEngine:row.product['databaseEngine'],
+											billingEntity:row.bill ? row.bill['BillingEntity'] : null,
+											itemTerm:row.pricing['term'], taxType:row.lineItem['TaxType'], usageCategory: category, uniqueId: rowId,
+											regionCode: row.product['region'], lastInvoiceSyncDate: costDate
+									]
+									//itemPrice:, itemTax:, productId:row.lineItem[''], usageCategory:,
+									def itemResults
+									if(volMatch) {
+										itemResults = accountInvoiceService.createAccountInvoiceItem(invoiceMatch, 'StorageVolume', volMatch.id, lineItemId, itemConfig, false)
+									} else {
+										itemResults = accountInvoiceService.createAccountInvoiceItem(invoiceMatch, invoiceMatch.refType, invoiceMatch.refId, lineItemId, itemConfig, false)
+									}
+
+									itemResults.invoiceItem.dateCheckHash = InvoiceUtility.updateDateCheckHash(startDate,lineItemEndDate,itemResults.invoiceItem.dateCheckHash)
+									invoiceItemsForCloud[itemConfig.uniqueId] = itemResults.invoiceItem
+									invoiceItemUpdates << itemResults.invoiceItem
+									chunkedResult.invoicesToReconcile << invoiceMatch.id
+									//done
+								}
+							}
+						}
+					}
+				}
+
+				// log.info("Process Time: ${new Date().time - checkTime.time}")
+				//invoice updates
+				if(invoiceItemUpdates) {
+					morpheusContext.async.costing.invoiceItem.bulkSave(invoiceItemUpdates).blockingGet()
+				}
+				if(invoiceUpdates) {
+					invoiceUpdates?.each { invoiceUpdate ->
+						invoiceUpdate.lastInvoiceSyncDate = costDate
+					}
+					morpheusContext.async.costing.invoice.bulkSave(invoiceUpdates).blockingGet()
+				}
+			}
+
+			chunkedResult.usageZones.addAll(usageClouds.collect{it.uuid})
+			return chunkedResult
+		}catch(e) {
+			log.error("Error Occurred Processing Batched set of Line Items {}",e.message,e)
+		}
+	}
+
+	Observable<Map> createCsvStreamer(StorageProvider storageProvider, String bucket, String reportKey, String period, String manifest) {
+		Observable<Map> fileProcessor = Observable.create(new ObservableOnSubscribe<Map>() {
+			@Override
+			public void subscribe(@NonNull ObservableEmitter<Map> emitter) throws Exception {
+				File costFile
+				InputStream dataFileStream
+				try {
+					log.info("Processing File ${reportKey} for Billing Period {}", period)
+					CloudFile dataFile = storageProvider[costReport.bucket as String][reportKey]
+
+					if(!dataFile.exists()) {
+						log.warn("Missing Amazon Costing Report File Defined in Manifest, Continuing to next file")
+						throw new Exception("Missing Amazon Costing Report File Defined in Manifest, Continuing to next file")
+					}
+
+
+					//processing stats
+					Map batchStats = [batchCount: 0L, lineItems: 0L, newInvoice: 0L, newItem: 0L, newResource: 0L, itemUpdate: 0L, unprocessed: 0L, maxDate: null]
+					//period date
+					Integer retryCount = 0
+					//need to throw an exception to break out
+					Boolean pending = true
+					while(pending) {
+						try {
+							costFile = getTemporaryCostFile()
+							OutputStream os = costFile.newOutputStream()
+							os << dataFile.getInputStream()
+							os.flush()
+							os.close()
+							break
+						} catch(e) {
+							log.error("Error Downloading File for AWS Cost CUR Report. Trying again...")
+							retryCount++
+							sleep(30000l)
+							if(retryCount > 3) {
+								throw new Exception("Error Processing AWS Billing Report...Failed to download file ${reportKey}", e)
+							}
+						}
+					}
+					dataFileStream = new GZIPInputStream(costFile.newInputStream(), 65536)
+					BufferedReader br = new BufferedReader(new InputStreamReader(dataFileStream))
+					CsvReader csvReader = CsvReader.builder().build(br)
+					Long lineCounter = 0
+					List columnList = []
+					for(CsvRow line : csvReader) {
+						if(lineCounter == 0) {
+							//process the header
+							columnList = processBillingHeader(manifest, line)
+							log.debug("columnList: {}", columnList)
+						} else {
+							Map<String, Object> row = processBillingLine(columnList, line)
+							//check if its got a price to it - and is past the last process cutoff
+							if(row && row.lineItem && (row.lineItem as Map<String, Object>)['UnblendedCost']) {
+								row.uniqueId = getLineItemHash("${row.lineItem['UsageAccountId']}_${row.product['servicecode']}_${row.lineItem['UsageType']}_${row.lineItem['Operation']}_${row.lineItem['LineItemType']}_${row.lineItem['UnblendedRate']}_${row.lineItem['ResourceId']}_${row.savingsPlan['SavingsPlanARN']}_${row.lineItem['AvailabilityZone']}_${row.reservation['SubscriptionId']}_${row.lineItem['LineItemDescription']}")
+								emitter.onNext(row)
+							}
+
+						}
+						lineCounter++
+					}
+					emitter.onComplete();
+				} catch(Exception e) {
+					emitter.onError(e);
+				}finally {
+					if(dataFileStream) {
+						try {
+							dataFileStream.close()
+						} catch(ignore) {
+							//ignore close errors
+						}
+					}
+					try {
+						if(costFile) {
+							costFile.delete()
+						}
+					} catch(ex3) {
+						log.warn("Error Deleting Cost File Cache: ${ex3.message}")
+					}
+
+				}
+			}
+		}).subscribeOn(Schedulers.io())
+
+		return fileProcessor
+	}
+
+	InvoiceProcessResult processAwsBillingBatchOld(Cloud cloud, String tmpPeriod, Map costReport, Collection lineItems, Date costDate, Map opts) {
 		def batchStats = [success:false, lineItems:lineItems.size(), usageZones: [],invoicesToReconcile: new HashSet<Long>(), newInvoice:0, newItem:0, newResource:0, itemUpdate:0,
 						  unprocessed:0, maxDate:null]
+		InvoiceProcessResult chunkedResult = new InvoiceProcessResult()
+
 		try {
-			Date checkTime = new Date()
 			String tmpInterval = 'month'
 			Date startDate = DateUtility.getStartOfGmtMonth(costDate)
 			List<String> lineItemIds = [] as List<String>
-
-
-
 			List<String> usageAccountIds = [] as List<String>
 			for(li in lineItems) {
 				usageAccountIds << li.lineItem['UsageAccountId'] as String
@@ -392,14 +891,19 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			usageAccountIds.unique()
 			lineItemIds = lineItemIds.unique()
 			List<String> statsUsageZones = batchStats.usageZones as List<String>
-			List<Cloud> usageZones
-			if(cloud.owner.masterAccount) {
-				usageZones = usageAccountIds ? Cloud.where{ (externalId in usageAccountIds || linkedAccountId in usageAccountIds) }.join('account').join('owner').list() : []
-
-			} else {
-				usageZones = usageAccountIds ? Cloud.where{ owner.id == cloud.owner.id && (externalId in usageAccountIds || linkedAccountId in usageAccountIds) }.join('account').join('owner').list() : []
-
+			List<Cloud> usageZones = []
+			if(usageAccountIds) {
+				def queryFilters = []
+				queryFilters.add(new DataOrFilter(
+						new DataFilter("externalId","in",usageAccountIds),
+						new DataFilter("linkedAccountId","in",usageAccountIds)
+				))
+				if(!cloud.owner.masterAccount) {
+					queryFilters.add(new DataFilter("owner.id",cloud.owner.id))
+				}
 			}
+			usageZones = morpheusContext.async.cloud.list(new DataQuery().withFilters(quaryFilters)).toList().blockingGet()
+
 
 			statsUsageZones.addAll(usageZones?.collect{it.linkedAccountId ?: it.externalId} as List<String>)
 			statsUsageZones.unique()
@@ -429,9 +933,6 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 							property('dateCheckHash')
 						}
 					}
-
-
-
 
 					def invoiceItemsByUniqueId = invoiceRecords.groupBy{it[1]}//.collectEntries{ [(it[1]):it]} //TODO THIS IS A PROBLEM WHEN MULTIPLE OF SAME CLOUD IS IN EFFECT
 					// log.info("invoiceItemsByUniqueId ${invoiceItemsByUniqueId} ")
@@ -467,19 +968,48 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 					}
 
 					invoiceRecords = invoiceItemsToUse
-
 					lineItems = lineItemsToUse
 
+					def resourceIds = []
+					for(row in lineItems) {
+						def usageAccountId = row.lineItem['UsageAccountId']
 
+						def targetZones = usageZonesByExternalId[usageAccountId]?.findAll{zn -> !zn.regionCode || (AmazonComputeService.getAmazonEndpoingRegion(zn.regionCode) == row.product['region'])}
+						for(zn in targetZones) {
+							def tmpInvoiceItems = invoiceItems[zn.id] ?: [:]
 
-					for(invoiceRecord in invoiceRecords) {
-						def zoneInvoices = invoiceItems[invoiceRecord[3]]
-						if(!zoneInvoices) {
-							zoneInvoices = [:]
-							invoiceItems[invoiceRecord[3]] = zoneInvoices
+							def itemMatch = tmpInvoiceItems[row.uniqueId]
+							if(!itemMatch) {
+								resourceIds << row.lineItem['ResourceId']
+								break
+							}
 						}
-						zoneInvoices[invoiceRecord[1]] = invoiceRecord
 					}
+
+//					def zoneInvoices = []
+//					for(invoiceRecord in invoiceRecords) {
+//						def zoneInvoices = invoiceItems[invoiceRecord[3]]
+//						if(!zoneInvoices) {
+//							zoneInvoices = [:]
+//							invoiceItems[invoiceRecord[3]] = zoneInvoices
+//						}
+//						zoneInvoices[invoiceRecord[1]] = invoiceRecord
+//					}
+
+					def serverListRecords =[]
+					//We filter out only ids related to compute server record types in amazon. This could change in future for RDS
+					//TODO: Factor in RDS IDS
+					def serverResourceIds = []
+					if(resourceIds) {
+						// log.info("Resource Ids Need Processing in ${resourceEndTime - resourceStartTime}ms: ${resourceIds}")
+						for(int rcount =0; rcount < resourceIds.size() ; rcount++) {
+							def resourceId = resourceIds[rcount] as String
+							if(resourceId?.startsWith('i-')) {
+								serverResourceIds << resourceId
+							}
+						}
+					}
+
 
 
 				}
@@ -1284,7 +1814,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 		return rtn
 	}
 
-	def refreshCloudReservations(Cloud cloud, Date costDate, String interval, Map opts) {
+	def refreshCloudReservations(Cloud cloud, Date costDate) {
 		def rtn = [success:false]
 		try {
 			costDate = costDate ?: new Date()
@@ -1297,7 +1827,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			if(coverageData.success == true) {
 				def coverageCategory = 'zone.reservation.coverage'
 				def coverageCode = coverageCategory + '.' + cloud.id + '.' + DateUtility.formatDate(costDate, dateIntervalFormat)
-				def coverageRecord = morpheusContext.services.operationData.find(new DataQuery(account:cloud.owner).withFilters([new DataFilter(name:"refType",value: 'computeZone'),new DataFilter(name:"refId",value: cloud.id),new DataFilter(name:"code",value: coverageCode)]))
+				def coverageRecord = morpheusContext.services.operationData.find(new DataQuery(cloud.owner).withFilters([new DataFilter("refType",'computeZone'),new DataFilter("refId", cloud.id),new DataFilter("code",coverageCode)]))
 				for(coverageItem in coverageData.items) {
 					def reservationDetails = reservationsData.items.findAll { it.instanceType == coverageItem.key }
 					if(reservationDetails) {
@@ -1320,7 +1850,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			if(usageData.success == true) {
 				def usageCategory = 'zone.reservation.usage'
 				def usageCode = usageCategory + '.' + cloud.id + '.' + DateUtility.formatDate(costDate, dateIntervalFormat)
-				def usageRecord = morpheusContext.services.operationData.find(new DataQuery(account:cloud.owner).withFilters([new DataFilter(name:"refType",value: 'computeZone'),new DataFilter(name:"refId",value: cloud.id),new DataFilter(name:"code",value: usageCode)]))
+				def usageRecord = morpheusContext.services.operationData.find(new DataQuery(cloud.owner).withFilters([new DataFilter("refType",'computeZone'),new DataFilter("refId", cloud.id),new DataFilter("code",usageCode)]))
 
 				if(usageRecord == null) {
 					def usageConfig = [account:cloud.account, refType:'computeZone', refId:"${cloud.id}", category:usageCategory,
@@ -1337,7 +1867,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			if(guidanceData.success == true) {
 				def guidanceCategory = 'zone.reservation.guidance'
 				def guidanceCode = guidanceCategory + '.' + cloud.id + '.' + DateUtility.formatDate(guidanceData.periodStart as Date, dateIntervalFormat)
-				def guidanceRecord = morpheusContext.services.operationData.find(new DataQuery(account:cloud.owner).withFilters([new DataFilter(name:"refType",value: 'computeZone'),new DataFilter(name:"refId",value: cloud.id),new DataFilter(name:"code",value: guidanceCode)]))
+				def guidanceRecord = morpheusContext.services.operationData.find(new DataQuery(cloud.owner).withFilters([new DataFilter("refType",'computeZone'),new DataFilter("refId", cloud.id),new DataFilter("code",guidanceCode)]))
 
 				if(guidanceRecord == null) {
 					def guidanceConfig = [account:cloud.account, refType:'computeZone', refId:"${cloud.id}", category:guidanceCategory,
@@ -1356,7 +1886,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			if(savingsPlanGuidanceData.success == true) {
 				def guidanceCategory = 'zone.savings.plan.guidance'
 				def guidanceCode = guidanceCategory + '.' + cloud.id + '.' + DateUtility.formatDate(savingsPlanGuidanceData.periodStart as Date, dateIntervalFormat)
-				def guidanceRecord = morpheusContext.services.operationData.find(new DataQuery(account:cloud.owner).withFilters([new DataFilter(name:"refType",value: 'computeZone'),new DataFilter(name:"refId",value: cloud.id),new DataFilter(name:"code",value: guidanceCode)]))
+				def guidanceRecord = morpheusContext.services.operationData.find(new DataQuery(cloud.owner).withFilters([new DataFilter("refType",'computeZone'),new DataFilter("refId", cloud.id),new DataFilter("code",guidanceCode)]))
 				if(guidanceRecord == null) {
 					def guidanceConfig = [account:cloud.account, refType:'computeZone', refId:"${cloud.id}", category:guidanceCategory,
 										  code:guidanceCode, enabled:true, name:'savings plan guidance', type:'json', refDate:costDate,
@@ -1389,7 +1919,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 				periodStart = now // this should fix range issues
 				//get identity info
 				def securityClient = AmazonComputeUtility.getAmazonSecurityClient(cloud)
-				def identityResults = AmazonComputeUtility.getClientItentity(securityClient, [:])
+				def identityResults = AmazonComputeUtility.getClientIdentity(securityClient, [:])
 				log.debug("identityResults: {}", identityResults.results)
 				def awsAccountId = identityResults.results?.getAccount()
 				def awsUserArn = identityResults.results?.getArn()
@@ -1445,7 +1975,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 						//done
 						apiSuccess = true
 						//break out
-					} catch(com.amazonaws.services.costexplorer.model.LimitExceededException e2) {
+					} catch(LimitExceededException e2) {
 						//wait a bit
 						log.warn('aws cost explorer rate limit exceeded - retrying')
 						sleep(5000 * apiAttempt)
@@ -1472,8 +2002,8 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			Date periodStart = InvoiceUtility.getPeriodStart(costDate)
 			Date periodEnd = InvoiceUtility.getPeriodEnd(costDate)
 			//get identity info
-			def securityClient = amazonComputeService.getAmazonSecurityClient(zone)
-			def identityResults = AmazonComputeUtility.getClientItentity(securityClient, [:])
+			def securityClient = AmazonComputeUtility.getAmazonSecurityClient(zone)
+			def identityResults = AmazonComputeUtility.getClientIdentity(securityClient, [:])
 			log.debug("identityResults: {}", identityResults.results)
 			def awsAccountId = identityResults.results?.getAccount()
 			def awsUserArn = identityResults.results?.getArn()
@@ -1605,7 +2135,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 		try {
 			//get security user
 			def securityClient = amazonComputeService.getAmazonSecurityClient(cloud)
-			def identityResults = AmazonComputeUtility.getClientItentity(securityClient)
+			def identityResults = AmazonComputeUtility.getClientIdentity(securityClient)
 			log.debug("identityResults: {}", identityResults.results)
 			def awsAccountId = identityResults.results?.getAccount()
 			def awsUserArn = identityResults.results?.getArn()
@@ -1687,8 +2217,8 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			rtn.periodStart = periodStart
 			rtn.periodEnd = periodEnd
 			//get security user
-			def securityClient = amazonComputeService.getAmazonSecurityClient(cloud)
-			def identityResults = AmazonComputeUtility.getClientItentity(securityClient, [:])
+			def securityClient = AmazonComputeUtility.getAmazonSecurityClient(cloud)
+			def identityResults = AmazonComputeUtility.getClientIdentity(securityClient, [:])
 			log.debug("identityResults: {}", identityResults.results)
 			def awsAccountId = identityResults.results?.getAccount()
 			def awsUserArn = identityResults.results?.getArn()
@@ -1797,7 +2327,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			rtn.periodEnd = periodEnd
 			//get security user
 			def securityClient = amazonComputeService.getAmazonSecurityClient(zone)
-			def identityResults = AmazonComputeUtility.getClientItentity(securityClient, [:])
+			def identityResults = AmazonComputeUtility.getClientIdentity(securityClient, [:])
 			log.debug("identityResults: {}", identityResults.results)
 			def awsAccountId = identityResults.results?.getAccount()
 			def awsUserArn = identityResults.results?.getArn()
@@ -1914,7 +2444,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 							   'Amazon ElastiCache', 'Amazon Elasticsearch Service']
 			//get security user
 			def securityClient = amazonComputeService.getAmazonCostingSecurityClient(zone)
-			def identityResults = AmazonComputeUtility.getClientItentity(securityClient, [:])
+			def identityResults = AmazonComputeUtility.getClientIdentity(securityClient, [:])
 			log.debug("identityResults: {}", identityResults.results)
 			def awsAccountId = identityResults.results?.getAccount()
 			def awsUserArn = identityResults.results?.getArn()
@@ -2096,7 +2626,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			def lookbackPeriodList = ['SEVEN_DAYS', 'THIRTY_DAYS', 'SIXTY_DAYS']
 			//get security user
 			def securityClient = amazonComputeService.getAmazonSecurityClient(zone)
-			def identityResults = AmazonComputeUtility.getClientItentity(securityClient, [:])
+			def identityResults = AmazonComputeUtility.getClientIdentity(securityClient, [:])
 			log.debug("identityResults: {}", identityResults.results)
 			def awsAccountId = identityResults.results?.getAccount()
 			def awsUserArn = identityResults.results?.getArn()
@@ -2778,6 +3308,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 
 	public class InvoiceProcessResult {
 		public HashSet<Long> invoicesToReconcile = new HashSet<Long>()
+		public List<String> usageZones = new ArrayList<>()
 		
 	}
 

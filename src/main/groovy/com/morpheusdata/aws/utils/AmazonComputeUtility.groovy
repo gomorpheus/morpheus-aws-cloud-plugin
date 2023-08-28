@@ -4218,14 +4218,14 @@ class AmazonComputeUtility {
 	}
 
 	//sts calls
-	static getClientItentity(AWSSecurityTokenServiceClient amazonClient, Map opts) {
+	static getClientIdentity(AWSSecurityTokenServiceClient amazonClient, Map opts) {
 		def rtn = [success:false, results:null]
 		try {
 			def identityRequest = new GetCallerIdentityRequest()
 			rtn.results = amazonClient.getCallerIdentity(identityRequest)
 			rtn.success = true
 		} catch(e) {
-			log.debug("getClientItentity error: ${e}", e)
+			log.debug("getClientIdentity error: ${e}", e)
 		}
 		return rtn
 	}
