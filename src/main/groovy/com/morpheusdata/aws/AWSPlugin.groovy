@@ -29,25 +29,15 @@ class AWSPlugin extends Plugin {
 		def networkProvider = new AWSNetworkProvider(this, this.morpheus)
 		def dnsProvider = new Route53DnsProvider(this, this.morpheus)
 		def scaleProvider = new AWSScaleProvider(this, this.morpheus)
-
 		// load balancer providers
 		def albProvider = new ALBLoadBalancerProvider(this, this.morpheus)
 		def elbProvider = new ELBLoadBalancerProvider(this, this.morpheus)
-		this.pluginProviders.put(albProvider.code, albProvider)
-		this.pluginProviders.put(elbProvider.code, elbProvider)
-
-		this.pluginProviders.put(provisionProvider.code, provisionProvider)
-		this.pluginProviders.put(cloudFormationProvisionProvider.provisionTypeCode, cloudFormationProvisionProvider)
-		this.pluginProviders.put(cloudProvider.code, cloudProvider)
-
-		// option source providers
 		def lbOptionSourceProvider = new LoadBalancerOptionSourceProvider(this, this.morpheus)
-		this.pluginProviders.put(lbOptionSourceProvider.code, lbOptionSourceProvider)
-		this.pluginProviders.put(optionSourceProvider.code, optionSourceProvider)
 
-		this.pluginProviders.put(networkProvider.code, networkProvider)
-		this.pluginProviders.put(dnsProvider.code, dnsProvider)
-		this.pluginProviders.put(scaleProvider.code, scaleProvider)
+		registerProviders(
+			albProvider, elbProvider, provisionProvider, cloudFormationProvisionProvider, cloudProvider,
+			lbOptionSourceProvider, optionSourceProvider, networkProvider, dnsProvider, scaleProvider
+		)
 
 		cloudProviderCode = cloudProvider.code
 		networkProviderCode = networkProvider.code
