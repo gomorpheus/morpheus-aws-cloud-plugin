@@ -787,7 +787,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 		}
 	}
 
-	Observable<Map> createCsvStreamer(StorageProvider storageProvider, String bucket, String reportKey, String period, String manifest) {
+	Observable<Map> createCsvStreamer(StorageProvider storageProvider, String bucket, String reportKey, String period, Map manifest) {
 		Observable<Map> fileProcessor = Observable.create(new ObservableOnSubscribe<Map>() {
 			@Override
 			public void subscribe(@NonNull ObservableEmitter<Map> emitter) throws Exception {
@@ -795,7 +795,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 				InputStream dataFileStream
 				try {
 					log.info("Processing File ${reportKey} for Billing Period {}", period)
-					CloudFile dataFile = storageProvider[costReport.bucket as String][reportKey]
+					CloudFile dataFile = storageProvider[bucket as String][reportKey]
 
 					if(!dataFile.exists()) {
 						log.warn("Missing Amazon Costing Report File Defined in Manifest, Continuing to next file")

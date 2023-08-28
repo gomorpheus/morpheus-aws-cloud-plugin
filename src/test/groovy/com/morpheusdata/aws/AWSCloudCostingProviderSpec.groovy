@@ -69,13 +69,15 @@ class AWSCloudCostingProviderSpec extends Specification {
 	void "should produce a stream of billing rows from passed in manifest and csv report key"() {
 		given:
 			File manifestFile = new File("src/test/resources/cloudability-Manifest.json")
-			StorageProvider provider = StorageProvider.create(type:'local', basePath: new File("src/test/resources").canonicalPath)
-			def manifest = new JsonSlurper().parseText(manifestFile.text)
+			StorageProvider provider = StorageProvider.create(provider:'local', basePath: new File("src/test/resources").canonicalPath)
+			Map manifest = new JsonSlurper().parseText(manifestFile.text) as Map
 		when:
 		Observable<Map> fileObserver = awsCloudCostingProvider.createCsvStreamer(provider,'.',"cloudability-00001.csv.gz","202308",manifest)
 		def rows = fileObserver.toList().blockingGet()
+		println rows
 		then:
 			rows.size() > 0
+			rows.first().identity.LineItemId != null
 	}
 
 //	void "should generate a costing report definition map from a clouds set of config properties"() {
