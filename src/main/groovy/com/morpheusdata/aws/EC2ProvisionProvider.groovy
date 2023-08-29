@@ -253,15 +253,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	}
 
 	/**
-	 * Indicates if this provider creates a {@link ComputeServer} for each instance.
-	 * @return Boolean
-	 */
-	@Override
-	Boolean createServer() {
-		return true;
-	}
-
-	/**
 	 * Validates the provided provisioning options of a workload. A return of success = false will halt the
 	 * creation and display errors
 	 * @param opts options
