@@ -132,15 +132,6 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 	}
 
 	/**
-	 * Determines if this provision type creates a {@link ComputeServer} for each instance
-	 * @return Boolean representation of whether or not this provision type creates a {@link ComputeServer} for each instance
-	 */
-	@Override
-	Boolean createServer() {
-		return false
-	}
-
-	/**
 	 * Determines if this provision type should set the server type to something different than the cloud code
 	 * @return Boolean representation of whether or not this provision type should set the server type to something different than the cloud code
 	 */

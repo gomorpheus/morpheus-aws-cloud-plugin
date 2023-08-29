@@ -4,6 +4,7 @@ import com.amazonaws.services.ec2.AmazonEC2
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.AbstractProvisionProvider
 import com.morpheusdata.core.MorpheusContext
+import com.morpheusdata.core.providers.HostProvisionProvider
 import com.morpheusdata.core.providers.VmProvisionProvider
 import com.morpheusdata.core.providers.WorkloadProvisionProvider
 import com.morpheusdata.core.util.ComputeUtility
@@ -38,7 +39,7 @@ import com.morpheusdata.response.ProvisionResponse
 import groovy.util.logging.Slf4j
 
 @Slf4j
-class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvisionProvider, WorkloadProvisionProvider.ResizeFacet {
+class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvisionProvider, WorkloadProvisionProvider.ResizeFacet, HostProvisionProvider.ResizeFacet {
 	AWSPlugin plugin
 	MorpheusContext morpheusContext
 

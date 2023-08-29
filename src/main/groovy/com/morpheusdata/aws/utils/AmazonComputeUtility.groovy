@@ -2238,6 +2238,149 @@ class AmazonComputeUtility {
 		return rtn
 	}
 
+
+	/**
+	 * Create a security group rule. Expected <b>opts</b> example:
+	 * <pre>{@code
+	 * 	[
+	 *  amazonClient: getAmazonClient(cloud, false, "us-west1")
+	 *  config: [
+	 *    description: "my security group",
+	 *    ipProtocol: "tcp"
+	 *    minPort: 0
+	 *    maxPort 80
+	 *    ipRange: [
+	 *      '0.0.0.0',
+	 *      '1.1.1.1'
+	 *    ]
+	 *    targetGroupId: 7
+	 *    direction: 'ingress'
+	 *    securityGroupId: 8
+	 *  ]
+	 *]
+	 * }</pre>
+	 * @param opts
+	 * @return a map of results
+	 */
+	static createSecurityGroupRule(Map opts) {
+		log.debug("createSecurityGroupRule: {}", opts)
+		def rtn = [success:false]
+		try {
+			AmazonEC2Client amazonClient = opts.amazonClient
+			def ruleConfig = opts.config
+			def ipPermission = new IpPermission()
+			ipPermission.withIpProtocol(ruleConfig.ipProtocol)
+			ipPermission.withFromPort(ruleConfig.minPort)
+			ipPermission.withToPort(ruleConfig.maxPort)
+
+			if(ruleConfig.ipRange) {
+				ipPermission.withIpv4Ranges(new IpRange().withCidrIp(ruleConfig.ipRange[0]).withDescription(ruleConfig.description))
+			}
+
+			if(ruleConfig.targetGroupId) {
+				ipPermission.withUserIdGroupPairs(new UserIdGroupPair().withGroupId(ruleConfig.targetGroupId).withDescription(ruleConfig.description))
+			}
+
+			TagSpecification tagSpecification = null
+			if(ruleConfig.name) {
+				Tag nameTag = new Tag("Name", (String)ruleConfig.name)
+				tagSpecification = new TagSpecification()
+				tagSpecification.withResourceType(ResourceType.SecurityGroupRule)
+				tagSpecification.withTags(nameTag)
+			}
+
+			def response
+			if(ruleConfig.direction == 'egress') {
+				AuthorizeSecurityGroupEgressRequest request = new AuthorizeSecurityGroupEgressRequest()
+				request.withIpPermissions(ipPermission)
+				request.withGroupId(ruleConfig.securityGroupId)
+				if(tagSpecification != null) {
+					request.withTagSpecifications(tagSpecification)
+				}
+				response = amazonClient.authorizeSecurityGroupEgress(request)
+			} else {
+				AuthorizeSecurityGroupIngressRequest request = new AuthorizeSecurityGroupIngressRequest()
+				request.withIpPermissions(ipPermission)
+				request.withGroupId(ruleConfig.securityGroupId)
+				if(tagSpecification != null) {
+					request.withTagSpecifications(tagSpecification)
+				}
+				response = amazonClient.authorizeSecurityGroupIngress(request)
+			}
+
+			if(response.isReturn() == true && response.securityGroupRules.size() > 0) {
+				rtn.rule = response.securityGroupRules?.getAt(0)
+				rtn.success = true
+			}
+		} catch(e) {
+			log.error("createSecurityGroupRule error: ${e}", e)
+			rtn.msg = e.message
+		}
+		return rtn
+	}
+
+	/**
+	 * Delete a security group rule. Expected <b>opts</b> example:
+	 * <pre>{@code
+	 * 	[
+	 *  amazonClient: getAmazonClient(cloud, false, "us-west1")
+	 *  config: [
+	 *    description: "my security group",
+	 *    ipProtocol: "tcp"
+	 *    minPort: 0
+	 *    maxPort 80
+	 *    ipRange: [
+	 *      '0.0.0.0',
+	 *      '1.1.1.1'
+	 *    ]
+	 *    targetGroupId: 7
+	 *    direction: 'ingress'
+	 *    securityGroupId: 8
+	 *  ]
+	 *]
+	 * }</pre>
+	 * @param opts
+	 * @return a map of results
+	 */
+	static deleteSecurityGroupRule(Map opts) {
+		log.debug("deleteSecurityGroupRule: {}", opts)
+		def rtn = [success:false]
+		try {
+			AmazonEC2Client amazonClient = opts.amazonClient
+			def ruleConfig = opts.config
+			def cidr = ruleConfig.ipRange[0]
+			def ipPermission = new IpPermission()
+			ipPermission.withIpProtocol(ruleConfig.ipProtocol)
+			ipPermission.withFromPort(ruleConfig.minPort)
+			ipPermission.withToPort(ruleConfig.maxPort)
+			if(ruleConfig.ipRange.size()) {
+				ipPermission.withIpv4Ranges(new IpRange().withCidrIp(cidr).withDescription(ruleConfig.description))
+			}
+			if(ruleConfig.targetGroupId) {
+				ipPermission.withUserIdGroupPairs(new UserIdGroupPair().withGroupId(ruleConfig.targetGroupId).withDescription(ruleConfig.description))
+			}
+
+			def response
+			if(ruleConfig.direction == 'egress') {
+				RevokeSecurityGroupEgressRequest egressRequest = new RevokeSecurityGroupEgressRequest()
+				egressRequest.withIpPermissions(ipPermission)
+				egressRequest.setGroupId(ruleConfig.securityGroupId)
+				response = amazonClient.revokeSecurityGroupEgress(egressRequest)
+			} else {
+				RevokeSecurityGroupIngressRequest ingressRequest = new RevokeSecurityGroupIngressRequest()
+				ingressRequest.withIpPermissions(ipPermission)
+				ingressRequest.setGroupId(ruleConfig.securityGroupId)
+				response = amazonClient.revokeSecurityGroupIngress(ingressRequest)
+			}
+			rtn.success = response.isReturn()
+			log.debug("aws delete security group rule result: ${rtn.success}")
+		} catch(e) {
+			log.error("deleteSecurityGroupRule error: ${e}", e)
+			rtn.msg = e.message
+		}
+		return rtn
+	}
+
 	static deleteSubnet(Map opts) {
 		def rtn = [success:false]
 		try {
@@ -4131,7 +4274,7 @@ class AmazonComputeUtility {
 		rtn
 	}
 
-	static getBucketPolicy(AmazonS3Client amazonClient, String bucketName) {
+	static getBucketPolicy(AmazonS3 amazonClient, String bucketName) {
 		def rtn = [success:false]
 		try {
 			rtn.bucketPolicy = amazonClient.getBucketPolicy(new GetBucketPolicyRequest().withBucketName(bucketName))
@@ -4142,7 +4285,7 @@ class AmazonComputeUtility {
 		rtn
 	}
 
-	static setBucketPolicy(AmazonS3Client amazonClient, String bucketName, String policyText) {
+	static setBucketPolicy(AmazonS3 amazonClient, String bucketName, String policyText) {
 		def rtn = [success:false]
 		try {
 			amazonClient.setBucketPolicy(bucketName, policyText)
@@ -4218,14 +4361,14 @@ class AmazonComputeUtility {
 	}
 
 	//sts calls
-	static getClientItentity(AWSSecurityTokenServiceClient amazonClient, Map opts) {
+	static getClientIdentity(AWSSecurityTokenServiceClient amazonClient, Map opts) {
 		def rtn = [success:false, results:null]
 		try {
 			def identityRequest = new GetCallerIdentityRequest()
 			rtn.results = amazonClient.getCallerIdentity(identityRequest)
 			rtn.success = true
 		} catch(e) {
-			log.debug("getClientItentity error: ${e}", e)
+			log.debug("getClientIdentity error: ${e}", e)
 		}
 		return rtn
 	}
@@ -4616,7 +4759,7 @@ class AmazonComputeUtility {
 		return rtn
 	}
 
-	static getAmazonClient(Cloud zone, Boolean fresh=false, String region=null) {
+	static AmazonEC2 getAmazonClient(Cloud zone, Boolean fresh=false, String region=null) {
 		def creds
 		AWSCredentialsProvider credsProvider
 		def clientInfo = getCachedClientInfo("cloud:${zone.id}:${region}",'client')
@@ -5447,7 +5590,7 @@ class AmazonComputeUtility {
 		return amazonClient
 	}
 
-	static getAmazonCostClient(Cloud zone, Boolean fresh = false) {
+	static AWSCostExplorer getAmazonCostClient(Cloud zone, Boolean fresh = false) {
 		def creds
 		def clientExpires
 		// def clientInfo = getCachedClientInfo("zone:${zone.id}",'costClient')
@@ -5470,7 +5613,7 @@ class AmazonComputeUtility {
 		def costingEndpoint = getAmazonCostingEndpoint(zone)
 		def region = getAmazonEndpointRegion(endpoint)
 		def costingRegion = getAmazonEndpointRegion(costingEndpoint)
-		def amazonClient = builder.withCredentials(credsProvider).withClientConfiguration(clientConfiguration).withRegion(costingRegion).build()
+		AWSCostExplorer amazonClient = builder.withCredentials(credsProvider).withClientConfiguration(clientConfiguration).withRegion(costingRegion).build()
 		return amazonClient
 	}
 

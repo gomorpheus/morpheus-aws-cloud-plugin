@@ -31,9 +31,10 @@ import com.morpheusdata.aws.sync.VpcPeeringConnectionSync
 import com.morpheusdata.aws.sync.VpnGatewaySync
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.backup.AbstractBackupProvider
+import com.morpheusdata.core.CloudProvider
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
-import com.morpheusdata.core.providers.CloudProvider
+import com.morpheusdata.core.providers.CloudCostingProvider
 import com.morpheusdata.core.providers.ProvisionProvider
 import com.morpheusdata.core.util.ConnectionUtils
 import com.morpheusdata.model.Cloud
@@ -63,6 +64,9 @@ class AWSCloudProvider implements CloudProvider {
 		this.plugin = plugin
 		this.morpheusContext = morpheusContext
 	}
+
+	@Override
+	CloudCostingProvider getCloudCostingProvider() { return new AWSCloudCostingProvider(plugin,morpheusContext) };
 
 	@Override
 	Collection<OptionType> getOptionTypes() {
