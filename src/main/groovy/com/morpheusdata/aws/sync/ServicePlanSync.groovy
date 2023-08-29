@@ -165,7 +165,7 @@ class ServicePlanSync {
 
 		if(removeList) {
 			log.debug "removeMissingServicePlans: ${cloud} ${removeList.size()}"
-			morpheusContext.async.servicePlan.remove(removeList).blockingGet()
+			morpheusContext.async.servicePlan.remove(removeList.collect { new ServicePlan(id: it.id)}).blockingGet()
 		}
 	}
 

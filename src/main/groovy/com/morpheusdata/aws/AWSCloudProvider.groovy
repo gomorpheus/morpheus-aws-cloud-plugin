@@ -12,6 +12,7 @@ import com.morpheusdata.aws.sync.InternetGatewaySync
 import com.morpheusdata.aws.sync.KeyPairSync
 import com.morpheusdata.aws.sync.NATGatewaySync
 import com.morpheusdata.aws.sync.NetworkInterfaceSync
+import com.morpheusdata.aws.sync.PriceSync
 import com.morpheusdata.aws.sync.RegionSync
 import com.morpheusdata.aws.sync.RouteTableSync
 import com.morpheusdata.aws.sync.ScaleGroupSync
@@ -30,9 +31,9 @@ import com.morpheusdata.aws.sync.VpcPeeringConnectionSync
 import com.morpheusdata.aws.sync.VpnGatewaySync
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.backup.AbstractBackupProvider
-import com.morpheusdata.core.CloudProvider
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
+import com.morpheusdata.core.providers.CloudProvider
 import com.morpheusdata.core.providers.ProvisionProvider
 import com.morpheusdata.core.util.ConnectionUtils
 import com.morpheusdata.model.Cloud
@@ -446,6 +447,11 @@ class AWSCloudProvider implements CloudProvider {
 			log.error('Error validating cloud', e)
 			return new ServiceResponse(success: false, msg: 'Error validating cloud')
 		}
+	}
+
+	@Override
+	void refreshDailyCloudType() {
+		new PriceSync(this.plugin).execute()
 	}
 
 	@Override
