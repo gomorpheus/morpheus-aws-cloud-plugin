@@ -10,18 +10,21 @@ import groovy.util.logging.Slf4j
 @Slf4j
 class AWSPlugin extends Plugin {
 
+	public static final String PLUGIN_CODE = 'morpheus-aws-plugin'
+	public static final String PLUGIN_NAME = 'Amazon Web Services'
+
 	private String cloudProviderCode
 	private String networkProviderCode
 	private String dnsProviderCode
 
 	@Override
 	String getCode() {
-		return 'morpheus-aws-plugin'
+		return PLUGIN_CODE
 	}
 
 	@Override
 	void initialize() {
-		this.setName('Amazon Web Services')
+		this.setName(PLUGIN_NAME)
 		def provisionProvider = new EC2ProvisionProvider(this, this.morpheus)
 		def cloudFormationProvisionProvider = new CloudFormationProvisionProvider(this, this.morpheus)
 		def cloudProvider = new AWSCloudProvider(this, this.morpheus)
@@ -29,6 +32,7 @@ class AWSPlugin extends Plugin {
 		def networkProvider = new AWSNetworkProvider(this, this.morpheus)
 		def dnsProvider = new Route53DnsProvider(this, this.morpheus)
 		def scaleProvider = new AWSScaleProvider(this, this.morpheus)
+		def backupProvider = new AWSBackupProvider(this, this.morpheus)
 		// load balancer providers
 		def albProvider = new ALBLoadBalancerProvider(this, this.morpheus)
 		def elbProvider = new ELBLoadBalancerProvider(this, this.morpheus)
@@ -36,7 +40,8 @@ class AWSPlugin extends Plugin {
 
 		registerProviders(
 			albProvider, elbProvider, provisionProvider, cloudFormationProvisionProvider, cloudProvider,
-			lbOptionSourceProvider, optionSourceProvider, networkProvider, dnsProvider, scaleProvider
+			lbOptionSourceProvider, optionSourceProvider, networkProvider, dnsProvider, scaleProvider,
+			backupProvider
 		)
 
 		cloudProviderCode = cloudProvider.code

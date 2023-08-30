@@ -451,7 +451,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 
 	private finalizeServer(ComputeServer server) {
 		def rtn = [success: true, msg: null]
-		log.debug "finalizeWorkload: ${workload?.id}"
+		log.debug "finalizeWorkload: ${server?.id}"
 		try {
 			if(server && server.uuid && server.resourcePool?.externalId) {
 				def amazonClient = plugin.getAmazonClient(server.cloud, false, server.resourcePool.regionCode)
