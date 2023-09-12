@@ -11,7 +11,7 @@ import com.morpheusdata.model.ComputeZonePool
 import com.morpheusdata.model.NetworkRoute
 import com.morpheusdata.model.NetworkRouteTable
 import com.morpheusdata.model.NetworkRouter
-import com.morpheusdata.model.projection.ComputeZonePoolIdentityProjection
+import com.morpheusdata.model.projection.CloudPoolIdentity
 import com.morpheusdata.model.projection.InstanceScaleIdentityProjection
 import com.morpheusdata.model.projection.NetworkRouteIdentityProjection
 import com.morpheusdata.model.projection.NetworkRouteTableIdentityProjection
@@ -35,7 +35,7 @@ class RouteTableSync {
 
 	def execute() {
 		routers = morpheusContext.async.network.router.listIdentityProjections(cloud.id).toList().blockingGet()
-		morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id, null, null).blockingSubscribe { ComputeZonePoolIdentityProjection zonePool ->
+		morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id, null, null).blockingSubscribe { CloudPoolIdentity zonePool ->
 			def router = morpheusContext.async.network.router.listById([routers.find { it.refType == 'ComputeZonePool' && it.refId == zonePool.id }?.id ?: 0L]).blockingFirst()
 			def amazonClient = plugin.getAmazonClient(cloud, false, zonePool.regionCode)
 			def cloudItems = AmazonComputeUtility.listRouteTables(amazonClient: amazonClient, filterVpcId: zonePool.externalId).routeTableList
@@ -55,7 +55,7 @@ class RouteTableSync {
 		}
 	}
 
-	private addMissingNetworkRouteTables(Collection<RouteTable> addList, ComputeZonePoolIdentityProjection zonePool, NetworkRouter router) {
+	private addMissingNetworkRouteTables(Collection<RouteTable> addList, CloudPoolIdentity zonePool, NetworkRouter router) {
 		log.debug "addMissingNetworkRouteTables: ${cloud} ${zonePool.regionCode} ${addList.size()}"
 		def adds = []
 
@@ -77,7 +77,7 @@ class RouteTableSync {
 		syncRouteTableRoutes(addList, zonePool, router)
 	}
 
-	private updateMatchedNetworkRouteTables(List<SyncTask.UpdateItem<NetworkRouteTable, RouteTable>> updateList, ComputeZonePoolIdentityProjection zonePool, NetworkRouter router) {
+	private updateMatchedNetworkRouteTables(List<SyncTask.UpdateItem<NetworkRouteTable, RouteTable>> updateList, CloudPoolIdentity zonePool, NetworkRouter router) {
 		log.debug "updateMatchedInstanceScales: ${cloud} ${region.externalId} ${updateList.size()}"
 		List<SyncTask.UpdateItem<NetworkRouteTable, RouteTable>> saveList = []
 
@@ -104,7 +104,7 @@ class RouteTableSync {
 		morpheusContext.async.network.routeTable.remove(removeList).blockingGet()
 	}
 
-	private syncRouteTableRoutes(List<RouteTable> amazonRouteTables, ComputeZonePoolIdentityProjection zonePool, NetworkRouter router) {
+	private syncRouteTableRoutes(List<RouteTable> amazonRouteTables, CloudPoolIdentity zonePool, NetworkRouter router) {
 		Map<String, RouteTable> routeTableMap = amazonRouteTables.collectEntries { [it.routeTableId, it] }
 		Collection<Long> routeTableIds = []
 		morpheusContext.async.network.routeTable.listIdentityProjections(zonePool.id).blockingSubscribe { NetworkRouteTableIdentityProjection routeTable ->

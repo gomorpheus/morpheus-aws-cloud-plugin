@@ -8,7 +8,7 @@ import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Account
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.KeyPair
-import com.morpheusdata.model.projection.ComputeZoneRegionIdentityProjection
+import com.morpheusdata.model.projection.CloudRegionIdentity
 import com.morpheusdata.model.projection.InstanceScaleIdentityProjection
 import com.morpheusdata.model.projection.KeyPairIdentityProjection
 import groovy.util.logging.Slf4j
@@ -49,7 +49,7 @@ class KeyPairSync {
 		}
 	}
 
-	private addMissingKeyPairs(Collection<KeyPairInfo> addList, ComputeZoneRegionIdentityProjection region) {
+	private addMissingKeyPairs(Collection<KeyPairInfo> addList, CloudRegionIdentity region) {
 		log.debug "addMissingKeyPairs: ${cloud} ${region.externalId} ${addList.size()}"
 		List adds = []
 		for (KeyPairInfo cloudItem in addList) {
@@ -71,7 +71,7 @@ class KeyPairSync {
 		morpheusContext.async.keyPair.create(adds).blockingGet()
 	}
 
-	private updateMatchedKeyPairs(List<SyncTask.UpdateItem<KeyPair, KeyPairInfo>> updateList, ComputeZoneRegionIdentityProjection region) {
+	private updateMatchedKeyPairs(List<SyncTask.UpdateItem<KeyPair, KeyPairInfo>> updateList, CloudRegionIdentity region) {
 		log.debug "updateMatchedKeyPairs: ${cloud} ${region.externalId} ${updateList.size()}"
 		def saveList = []
 

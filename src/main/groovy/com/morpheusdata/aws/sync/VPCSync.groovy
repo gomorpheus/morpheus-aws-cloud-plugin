@@ -6,9 +6,11 @@ import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
+import com.morpheusdata.model.CloudPool
 import com.morpheusdata.model.ComputeZonePool
 import com.morpheusdata.model.NetworkRouter
 import com.morpheusdata.model.NetworkRouterType
+import com.morpheusdata.model.projection.CloudPoolIdentity
 import com.morpheusdata.model.projection.ComputeZonePoolIdentityProjection
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable
@@ -36,17 +38,17 @@ class VPCSync {
 			def amazonClient = plugin.getAmazonClient(cloud,false,it.externalId)
 			def vpcResults = AmazonComputeUtility.listVpcs([amazonClient: amazonClient])
 			if(vpcResults.success) {
-				Observable<ComputeZonePoolIdentityProjection> domainRecords = morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id, null, regionCode)
-				SyncTask<ComputeZonePoolIdentityProjection, Vpc, ComputeZonePool> syncTask = new SyncTask<>(domainRecords, vpcResults.vpcList as Collection<Vpc>)
-				return syncTask.addMatchFunction { ComputeZonePoolIdentityProjection domainObject, Vpc data ->
+				Observable<CloudPoolIdentity> domainRecords = morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id, null, regionCode)
+				SyncTask<CloudPoolIdentity, Vpc, CloudPool> syncTask = new SyncTask<>(domainRecords, vpcResults.vpcList as Collection<Vpc>)
+				return syncTask.addMatchFunction { CloudPoolIdentity domainObject, Vpc data ->
 					domainObject.externalId == data.getVpcId()
 				}.onDelete { removeItems ->
 					removeMissingResourcePools(removeItems)
-				}.onUpdate { List<SyncTask.UpdateItem<ComputeZonePool, Vpc>> updateItems ->
+				}.onUpdate { List<SyncTask.UpdateItem<CloudPool, Vpc>> updateItems ->
 					updateMatchedVpcs(updateItems,regionCode)
 				}.onAdd { itemsToAdd ->
 					addMissingVpcs(itemsToAdd, regionCode)
-				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<ComputeZonePoolIdentityProjection, Vpc>> updateItems ->
+				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<CloudPoolIdentity, Vpc>> updateItems ->
 					return morpheusContext.async.cloud.pool.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.observe()
 			} else {
@@ -65,7 +67,7 @@ class VPCSync {
 			def poolConfig = [owner:[id:cloud.owner.id], type:'vpc', name: "${name} (${region})", description:"${name} - ${cloudItem.getVpcId()} - ${cloudItem.getCidrBlock()}",
 							  externalId:cloudItem.getVpcId(), refType:'ComputeZone', regionCode: region, refId:cloud.id, cloud:[id:cloud.id], category:"aws.vpc.${cloud.id}",
 							  code:"aws.vpc.${cloud.id}.${cloudItem.getVpcId()}"]
-			def add = new ComputeZonePool(poolConfig)
+			def add = new CloudPool(poolConfig)
 			add.setConfigProperty('cidrBlock',cloudItem.getCidrBlock())
 			add.setConfigProperty('tenancy',cloudItem.getInstanceTenancy())
 			adds << add
@@ -76,7 +78,7 @@ class VPCSync {
 		}
 	}
 
-	protected void updateMatchedVpcs(List<SyncTask.UpdateItem<ComputeZonePool, Vpc>> updateList, String region) {
+	protected void updateMatchedVpcs(List<SyncTask.UpdateItem<CloudPool, Vpc>> updateList, String region) {
 		def updates = []
 
 		for(update in updateList) {
@@ -124,7 +126,7 @@ class VPCSync {
 		}
 	}
 
-	protected removeMissingResourcePools(List<ComputeZonePoolIdentityProjection> removeList) {
+	protected removeMissingResourcePools(List<CloudPoolIdentity> removeList) {
 		log.debug "removeMissingResourcePools: ${removeList?.size()}"
 		morpheusContext.async.cloud.pool.remove(removeList).blockingGet()
 	}

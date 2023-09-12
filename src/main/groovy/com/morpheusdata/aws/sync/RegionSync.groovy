@@ -5,8 +5,11 @@ import com.morpheusdata.aws.AWSPlugin
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.util.SyncTask
+import com.morpheusdata.model.Account
 import com.morpheusdata.model.Cloud
+import com.morpheusdata.model.CloudRegion
 import com.morpheusdata.model.ComputeZoneRegion
+import com.morpheusdata.model.projection.CloudRegionIdentity
 import com.morpheusdata.model.projection.ComputeZoneRegionIdentityProjection
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable
@@ -33,17 +36,17 @@ class RegionSync {
 				String region = AmazonComputeUtility.getAmazonEndpointRegion(cloud.regionCode)
 				regionResults.regionList = regionResults.regionList.findAll{it.getRegionName() == region}
 			}
-			Observable<ComputeZoneRegionIdentityProjection> domainRecords = morpheusContext.async.cloud.region.listIdentityProjections(cloud.id)
-			SyncTask<ComputeZoneRegionIdentityProjection, Region, ComputeZoneRegion> syncTask = new SyncTask<>(domainRecords, regionResults.regionList as Collection<Region>)
-			syncTask.addMatchFunction { ComputeZoneRegionIdentityProjection domainObject, Region data ->
+			Observable<CloudRegionIdentity> domainRecords = morpheusContext.async.cloud.region.listIdentityProjections(cloud.id)
+			SyncTask<CloudRegionIdentity, Region, CloudRegion> syncTask = new SyncTask<>(domainRecords, regionResults.regionList as Collection<Region>)
+			syncTask.addMatchFunction { CloudRegionIdentity domainObject, Region data ->
 				domainObject.externalId == data.getRegionName()
 			}.onDelete { removeItems ->
 				removeMissingRegions(removeItems)
-			}.onUpdate { List<SyncTask.UpdateItem<ComputeZoneRegion, Region>> updateItems ->
+			}.onUpdate { List<SyncTask.UpdateItem<CloudRegion, Region>> updateItems ->
 				// Nothing to do
 			}.onAdd { itemsToAdd ->
-				addMissingRegions(itemsToAdd)
-			}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<ComputeZoneRegionIdentityProjection, Region>> updateItems ->
+				addMissingRegions(itemsToAdd, this.@cloud.account)
+			}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<CloudRegionIdentity, Region>> updateItems ->
 				morpheusContext.async.cloud.region.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 			}.start()
 
@@ -52,11 +55,11 @@ class RegionSync {
 		}
 	}
 
-	protected void addMissingRegions(Collection<Region> addList) {
+	protected void addMissingRegions(Collection<Region> addList, Account account) {
 		def adds = []
 		for(cloudItem in addList) {
 			def name = cloudItem.getRegionName()
-			def add = new ComputeZoneRegion(cloud: cloud, code: name, name: name, externalId: name, regionCode: name,zoneCode: name,internalId: cloudItem.getEndpoint())
+			def add = new CloudRegion(cloud: cloud, account:account, code: name, name: name, externalId: name, regionCode: name,zoneCode: name,internalId: cloudItem.getEndpoint())
 			adds << add
 		}
 		if(adds) {
