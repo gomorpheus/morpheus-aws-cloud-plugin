@@ -1,6 +1,5 @@
 package com.morpheusdata.aws.sync
 
-import com.amazonaws.services.ec2.model.Subnet
 import com.amazonaws.services.rds.AmazonRDS
 import com.amazonaws.services.rds.model.DBSubnetGroup
 import com.morpheusdata.aws.AWSPlugin
@@ -8,13 +7,10 @@ import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
-import com.morpheusdata.model.Network
 import com.morpheusdata.model.ReferenceData
-import com.morpheusdata.model.projection.NetworkIdentityProjection
 import com.morpheusdata.model.projection.ReferenceDataSyncProjection
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable
-import io.reactivex.ObservableSource
 import io.reactivex.Single
 
 @Slf4j
@@ -73,12 +69,12 @@ class DbSubnetGroupSync {
 		}
 
 		if(adds) {
-			morpheusContext.async.cloud.create(adds, cloud, getCategory(regionCode)).blockingGet()
+			morpheusContext.async.referenceData.create(adds).blockingGet()
 		}
 	}
 
 	private removeMissingDbSubnetGroups(List<ReferenceDataSyncProjection> removeList) {
-		morpheusContext.async.cloud.remove(removeList).blockingGet()
+		morpheusContext.async.referenceData.remove(removeList).blockingGet()
 	}
 
 }

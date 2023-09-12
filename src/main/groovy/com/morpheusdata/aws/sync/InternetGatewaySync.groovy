@@ -6,10 +6,9 @@ import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
-import com.morpheusdata.model.ComputeZonePool
 import com.morpheusdata.model.NetworkRouter
 import com.morpheusdata.model.NetworkRouterType
-import com.morpheusdata.model.projection.ComputeZonePoolIdentityProjection
+import com.morpheusdata.model.projection.CloudPoolIdentity
 import com.morpheusdata.model.projection.NetworkRouterIdentityProjection
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable
@@ -24,7 +23,7 @@ class InternetGatewaySync {
 	private Cloud cloud
 	private MorpheusContext morpheusContext
 	private AWSPlugin plugin
-	private Map<String, ComputeZonePoolIdentityProjection> zonePools
+	private Map<String, CloudPoolIdentity> zonePools
 
 	public InternetGatewaySync(AWSPlugin plugin, Cloud cloud) {
 		this.plugin = plugin
@@ -44,7 +43,7 @@ class InternetGatewaySync {
 					domainObject.externalId == data.getInternetGatewayId()
 				}.onDelete { removeItems ->
 					removeMissingRouters(removeItems)
-				}.onUpdate { List<SyncTask.UpdateItem<ComputeZonePool, InternetGateway>> updateItems ->
+				}.onUpdate { List<SyncTask.UpdateItem<NetworkRouter, InternetGateway>> updateItems ->
 					updateMatchedInternetGateways(updateItems, regionCode)
 				}.onAdd { itemsToAdd ->
 					addMissingInternetGateways(itemsToAdd, regionCode)
@@ -133,7 +132,7 @@ class InternetGatewaySync {
 		morpheusContext.async.network.router.remove(removeList).blockingGet()
 	}
 
-	private Map<String, ComputeZonePoolIdentityProjection> getAllZonePools() {
+	private Map<String, CloudPoolIdentity> getAllZonePools() {
 		zonePools ?: (zonePools = morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id, '', null).toMap {it.externalId}.blockingGet())
 	}
 }

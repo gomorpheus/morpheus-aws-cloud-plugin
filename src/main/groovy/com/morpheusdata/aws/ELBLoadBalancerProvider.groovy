@@ -20,8 +20,7 @@ import com.morpheusdata.core.Plugin
 import com.morpheusdata.core.network.loadbalancer.LoadBalancerProvider
 import com.morpheusdata.model.AccountCertificate
 import com.morpheusdata.model.Cloud
-import com.morpheusdata.model.CloudType
-import com.morpheusdata.model.ComputeZoneRegion
+import com.morpheusdata.model.CloudRegion
 import com.morpheusdata.model.Icon
 import com.morpheusdata.model.Instance
 import com.morpheusdata.model.NetworkLoadBalancer
@@ -371,7 +370,7 @@ class ELBLoadBalancerProvider implements LoadBalancerProvider {
             def loadBalancer = loadBalancerInstance.loadBalancer
             def cloud = loadBalancer.cloud
             def createRequired = !loadBalancer.externalId
-            ComputeZoneRegion regionFromInstance = instance.containers?.getAt(0)?.server?.region
+            CloudRegion regionFromInstance = instance.containers?.getAt(0)?.server?.region
             if(regionFromInstance && !loadBalancer.region?.regionCode) {
                 loadBalancer.region = regionFromInstance
             }

@@ -7,9 +7,9 @@ import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.AccountResource
 import com.morpheusdata.model.AccountResourceType
 import com.morpheusdata.model.Cloud
-import com.morpheusdata.model.ComputeZoneRegion
+import com.morpheusdata.model.CloudRegion
 import com.morpheusdata.model.projection.AccountResourceIdentityProjection
-import com.morpheusdata.model.projection.ComputeZoneRegionIdentityProjection
+import com.morpheusdata.model.projection.CloudRegionIdentity
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable
 import io.reactivex.Single
@@ -57,20 +57,20 @@ class VpcPeeringConnectionSync extends InternalResourceSync {
 		return "amazon.ec2.vpc.peerings.${cloud.id}"
 	}
 
-	protected void addMissingVpcPeeringConnection(Collection<VpcPeeringConnection> addList, ComputeZoneRegionIdentityProjection region) {
+	protected void addMissingVpcPeeringConnection(Collection<VpcPeeringConnection> addList, CloudRegionIdentity region) {
 		def adds = []
 		for(VpcPeeringConnection cloudItem in addList) {
 			def name = cloudItem.tags?.find{it.key == 'Name'}?.value ?: cloudItem.vpcPeeringConnectionId
 			adds << new AccountResource(
 				owner:cloud.account, category:getCategory(), code:(getCategory() + '.' + cloudItem.vpcPeeringConnectionId),
 				externalId:cloudItem.vpcPeeringConnectionId, cloudId:cloud.id, type: new AccountResourceType(code: 'aws.cloudFormation.ec2.vpcPeeringConnection'),
-				resourceType:'VpcPeeringConnection', cloudName: cloud.name, name: name, displayName: name, region: new ComputeZoneRegion(id: region.id)
+				resourceType:'VpcPeeringConnection', cloudName: cloud.name, name: name, displayName: name, region: new CloudRegion(id: region.id)
 			)
 		}
 		morpheusContext.async.cloud.resource.create(adds).blockingGet()
 	}
 
-	protected void updateMatchedVpcPeeringConnections(List<SyncTask.UpdateItem<AccountResource, VpcPeeringConnection>> updateList, ComputeZoneRegionIdentityProjection region) {
+	protected void updateMatchedVpcPeeringConnections(List<SyncTask.UpdateItem<AccountResource, VpcPeeringConnection>> updateList, CloudRegionIdentity region) {
 		def updates = []
 		for(update in updateList) {
 			def masterItem = update.masterItem
@@ -82,7 +82,7 @@ class VpcPeeringConnectionSync extends InternalResourceSync {
 				save = true
 			}
 			if(existingItem.region?.id != region.id) {
-				existingItem.region = new ComputeZoneRegion(id: region.id)
+				existingItem.region = new CloudRegion(id: region.id)
 				save = true
 			}
 

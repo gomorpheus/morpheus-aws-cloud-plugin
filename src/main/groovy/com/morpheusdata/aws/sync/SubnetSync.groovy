@@ -7,7 +7,6 @@ import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.Network
-import com.morpheusdata.model.projection.ComputeZoneRegionIdentityProjection
 import com.morpheusdata.model.projection.NetworkIdentityProjection
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable

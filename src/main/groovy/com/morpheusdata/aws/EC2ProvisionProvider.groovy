@@ -9,13 +9,13 @@ import com.morpheusdata.core.providers.VmProvisionProvider
 import com.morpheusdata.core.providers.WorkloadProvisionProvider
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.model.Cloud
+import com.morpheusdata.model.CloudRegion
 import com.morpheusdata.model.ComputeCapacityInfo
 import com.morpheusdata.model.ComputeServer
 import com.morpheusdata.model.ComputeServerInterface
 import com.morpheusdata.model.ComputeServerInterfaceType
 import com.morpheusdata.model.ComputeTypeLayout
 import com.morpheusdata.model.ComputeTypeSet
-import com.morpheusdata.model.ComputeZoneRegion
 import com.morpheusdata.model.ContainerType
 import com.morpheusdata.model.HostType
 import com.morpheusdata.model.ImageType
@@ -312,7 +312,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		ComputeServer server = workload.server
 
 		if (server.resourcePool.regionCode) {
-			ComputeZoneRegion region = morpheus.cloud.region.findByCloudAndRegionCode(server.cloud.id,server.resourcePool.regionCode).blockingGet().get()
+			CloudRegion region = morpheus.cloud.region.findByCloudAndRegionCode(server.cloud.id,server.resourcePool.regionCode).blockingGet().get()
 			server.volumes?.each { vol ->
 				vol.regionCode = server.resourcePool.regionCode
 			}
@@ -691,7 +691,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 			}
 			server.externalId = createResults.externalId
 			server.powerState = 'on'
-			server.region = new ComputeZoneRegion(code: server.resourcePool.regionCode)
+			server.region = new CloudRegion(code: server.resourcePool.regionCode)
 			provisionResponse.externalId = server.externalId
 			server = saveAndGet(server)
 			runConfig.server = server

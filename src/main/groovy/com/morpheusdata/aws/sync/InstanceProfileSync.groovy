@@ -2,7 +2,6 @@ package com.morpheusdata.aws.sync
 
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagement
 import com.amazonaws.services.identitymanagement.model.InstanceProfile
-import com.amazonaws.services.rds.AmazonRDS
 import com.morpheusdata.aws.AWSPlugin
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext

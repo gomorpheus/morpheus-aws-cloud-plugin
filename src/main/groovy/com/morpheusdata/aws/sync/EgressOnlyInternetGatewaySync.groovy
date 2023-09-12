@@ -7,9 +7,9 @@ import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.AccountResource
 import com.morpheusdata.model.AccountResourceType
 import com.morpheusdata.model.Cloud
-import com.morpheusdata.model.ComputeZoneRegion
+import com.morpheusdata.model.CloudRegion
 import com.morpheusdata.model.projection.AccountResourceIdentityProjection
-import com.morpheusdata.model.projection.ComputeZoneRegionIdentityProjection
+import com.morpheusdata.model.projection.CloudRegionIdentity
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable
 import io.reactivex.Single
@@ -53,7 +53,7 @@ class EgressOnlyInternetGatewaySync extends InternalResourceSync {
 		return "amazon.ec2.egress.only.internet.gateway.${cloud.id}"
 	}
 
-	protected void addMissingEgressOnlyInternetGateways(Collection<EgressOnlyInternetGateway> addList, ComputeZoneRegionIdentityProjection region) {
+	protected void addMissingEgressOnlyInternetGateways(Collection<EgressOnlyInternetGateway> addList, CloudRegionIdentity region) {
 		def adds = []
 
 		for(EgressOnlyInternetGateway cloudItem in addList) {
@@ -61,13 +61,13 @@ class EgressOnlyInternetGatewaySync extends InternalResourceSync {
 				owner:cloud.account, category:getCategory(), code:(getCategory() + '.' + cloudItem.egressOnlyInternetGatewayId),
 				externalId:cloudItem.egressOnlyInternetGatewayId, zoneId:cloud.id, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.egressOnlyInternetGateway'), resourceType:'EgressOnlyInternetGateway',
 				zoneName: cloud.name, name: cloudItem.egressOnlyInternetGatewayId, displayName: cloudItem.egressOnlyInternetGatewayId,
-				region: new ComputeZoneRegion(id: region.id)
+				region: new CloudRegion(id: region.id)
 			)
 		}
 		morpheusContext.async.cloud.resource.create(adds).blockingGet()
 	}
 
-	protected void updateMatchedEgressOnlyInternetGateways(List<SyncTask.UpdateItem<AccountResource, EgressOnlyInternetGateway>> updateList, ComputeZoneRegionIdentityProjection region) {
+	protected void updateMatchedEgressOnlyInternetGateways(List<SyncTask.UpdateItem<AccountResource, EgressOnlyInternetGateway>> updateList, CloudRegionIdentity region) {
 		def updates = []
 		for(update in updateList) {
 			def masterItem = update.masterItem
@@ -75,7 +75,7 @@ class EgressOnlyInternetGatewaySync extends InternalResourceSync {
 			Boolean save = false
 
 			if(existingItem.region?.id != region.id) {
-				existingItem.region = new ComputeZoneRegion(id: region.id)
+				existingItem.region = new CloudRegion(id: region.id)
 				save = true
 			}
 

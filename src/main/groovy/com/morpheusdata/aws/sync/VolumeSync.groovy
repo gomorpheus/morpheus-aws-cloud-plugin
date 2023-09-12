@@ -57,7 +57,7 @@ class VolumeSync {
 					account: cloud.account, maxStorage: cloudItem.size * ComputeUtility.ONE_GIGABYTE,
 					type: new StorageVolumeType(id: storageVolumeType.id), externalId: cloudItem.volumeId,
 					name: cloudItem.tags?.find{it.key == 'Name'}?.value ?: cloudItem.volumeId,
-					refType:' ComputeZone', refId: cloud.id, regionCode: regionCode, status: 'unattached'
+					refType:'ComputeZone', refId: cloud.id, regionCode: regionCode, status: 'unattached'
 				])
 
 				if(cloudItem.attachments) {

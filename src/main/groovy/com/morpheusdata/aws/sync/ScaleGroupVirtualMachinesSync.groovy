@@ -22,7 +22,7 @@ import com.morpheusdata.model.Process
 import com.morpheusdata.model.ProcessEvent
 import com.morpheusdata.model.Workload
 import com.morpheusdata.model.WorkloadTypeSet
-import com.morpheusdata.model.projection.ComputeZoneRegionIdentityProjection
+import com.morpheusdata.model.projection.CloudRegionIdentity
 import groovy.util.logging.Slf4j
 
 @Slf4j
@@ -95,7 +95,7 @@ class ScaleGroupVirtualMachinesSync {
 		}
 	}
 
-	private addVmToScaleGroup(AmazonEC2 amazonClient, ComputeZoneRegionIdentityProjection region, InstanceScale scale, AutoScaleInstance cloudItem, ComputeServer managedSibling, ComputeServer existingItem = null) {
+	private addVmToScaleGroup(AmazonEC2 amazonClient, CloudRegionIdentity region, InstanceScale scale, AutoScaleInstance cloudItem, ComputeServer managedSibling, ComputeServer existingItem = null) {
 		if(cloudItem.healthStatus != 'Healthy') {
 			log.debug "AWS server (${cloudItem.instanceId} not healthy.. not adding"
 			return

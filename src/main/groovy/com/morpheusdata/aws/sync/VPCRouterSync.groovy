@@ -1,22 +1,18 @@
 package com.morpheusdata.aws.sync
 
 import com.amazonaws.services.ec2.model.Region
-import com.amazonaws.services.ec2.model.Vpc
 import com.morpheusdata.aws.AWSPlugin
-import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
-import com.morpheusdata.model.ComputeZonePool
-import com.morpheusdata.model.ComputeZoneRegion
+import com.morpheusdata.model.CloudPool
+import com.morpheusdata.model.CloudRegion
 import com.morpheusdata.model.NetworkRouter
 import com.morpheusdata.model.NetworkRouterType
-import com.morpheusdata.model.projection.ComputeZonePoolIdentityProjection
-import com.morpheusdata.model.projection.ComputeZoneRegionIdentityProjection
+import com.morpheusdata.model.projection.CloudPoolIdentity
 import com.morpheusdata.model.projection.NetworkRouterIdentityProjection
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable
-import io.reactivex.Single
 
 /**
  * Sync class for syncing VPCs within an AWS Cloud account
@@ -36,14 +32,14 @@ class VPCRouterSync {
 	}
 
 	def execute() {
-		List<ComputeZonePoolIdentityProjection> resourcePools = morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id,null,null).toList().blockingGet()
+		List<CloudPoolIdentity> resourcePools = morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id,null,null).toList().blockingGet()
 		Observable<NetworkRouterIdentityProjection> vpcRouters = morpheusContext.async.network.router.listIdentityProjections(cloud.id,'amazonVpcRouter')
-		SyncTask<NetworkRouterIdentityProjection, ComputeZonePoolIdentityProjection, NetworkRouter> syncTask = new SyncTask<>(vpcRouters, resourcePools)
-		syncTask.addMatchFunction { NetworkRouterIdentityProjection domainObject, ComputeZonePoolIdentityProjection data ->
+		SyncTask<NetworkRouterIdentityProjection, CloudPoolIdentity, NetworkRouter> syncTask = new SyncTask<>(vpcRouters, resourcePools)
+		syncTask.addMatchFunction { NetworkRouterIdentityProjection domainObject, CloudPoolIdentity data ->
 			domainObject.refType == 'ComputeZonePool' && domainObject.refId == data.id
 		}.onDelete { removeItems ->
 			removeMissingRouters(removeItems)
-		}.onUpdate { List<SyncTask.UpdateItem<ComputeZoneRegion, Region>> updateItems ->
+		}.onUpdate { List<SyncTask.UpdateItem<CloudRegion, Region>> updateItems ->
 			updateMatchedVpcRouters(updateItems)
 		}.onAdd { itemsToAdd ->
 			addMissingVPCRouters(itemsToAdd)
@@ -53,10 +49,10 @@ class VPCRouterSync {
 	}
 
 
-	protected void addMissingVPCRouters(Collection<ComputeZonePoolIdentityProjection> addList) {
+	protected void addMissingVPCRouters(Collection<CloudPoolIdentity> addList) {
 		def adds = []
-		Collection<ComputeZonePool> pools = morpheusContext.async.cloud.pool.listById(addList.collect{it.id}).toList().blockingGet()
-		for(ComputeZonePool resourcePool in pools) {
+		Collection<CloudPool> pools = morpheusContext.async.cloud.pool.listById(addList.collect{it.id}).toList().blockingGet()
+		for(CloudPool resourcePool in pools) {
 			def routerConfig = [
 					owner        : cloud.owner,
 					category     : "aws.router.${cloud.id}",
@@ -77,7 +73,7 @@ class VPCRouterSync {
 		}
 	}
 
-	protected void updateMatchedVpcRouters(List<SyncTask.UpdateItem<NetworkRouter, ComputeZonePoolIdentityProjection>> updateList) {
+	protected void updateMatchedVpcRouters(List<SyncTask.UpdateItem<NetworkRouter, CloudPoolIdentity>> updateList) {
 		def updates = []
 
 		for(update in updateList) {

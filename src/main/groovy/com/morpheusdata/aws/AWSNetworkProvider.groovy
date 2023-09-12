@@ -8,7 +8,7 @@ import com.morpheusdata.core.providers.NetworkProvider
 import com.morpheusdata.core.providers.CloudInitializationProvider
 import com.morpheusdata.core.providers.SecurityGroupProvider
 import com.morpheusdata.model.Cloud
-import com.morpheusdata.model.ComputeZonePool
+import com.morpheusdata.model.CloudPool
 import com.morpheusdata.model.Network
 import com.morpheusdata.model.NetworkRoute
 import com.morpheusdata.model.NetworkRouter
@@ -17,7 +17,6 @@ import com.morpheusdata.model.NetworkServer
 import com.morpheusdata.model.NetworkServerType
 import com.morpheusdata.model.NetworkSubnet
 import com.morpheusdata.model.NetworkType
-import com.morpheusdata.model.ComputeZonePool as CloudPool
 import com.morpheusdata.model.OptionType
 import com.morpheusdata.response.ServiceResponse
 import com.morpheusdata.core.util.MorpheusUtils
@@ -216,7 +215,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 		try {
 			if(network.networkServer) {
 				Cloud cloud = network.cloud
-				ComputeZonePool resourcePool = network.zonePoolId ? morpheus.cloud.pool.listById([network.zonePoolId]).toList().blockingGet()?.getAt(0) : null
+				CloudPool resourcePool = network.zonePoolId ? morpheus.cloud.pool.listById([network.zonePoolId]).toList().blockingGet()?.getAt(0) : null
 				AmazonEC2Client amazonClient = plugin.getAmazonClient(cloud, false, resourcePool?.regionCode)
 				def networkConfig = [:]
 				networkConfig.name = network.name
@@ -267,7 +266,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 		def rtn = ServiceResponse.prepare()
 		//remove the network
 		if(network.externalId) {
-			ComputeZonePool resourcePool = network.zonePoolId ? morpheus.cloud.pool.listById([network.zonePoolId]).toList().blockingGet()?.getAt(0) : null
+			CloudPool resourcePool = network.zonePoolId ? morpheus.cloud.pool.listById([network.zonePoolId]).toList().blockingGet()?.getAt(0) : null
 			AmazonEC2Client amazonClient = plugin.getAmazonClient(network.cloud, false, resourcePool?.regionCode)
 			def deleteResults = AmazonComputeUtility.deleteSubnet([amazonClient: amazonClient, network: network])
 			log.debug("deleteResults: {}", deleteResults)
