@@ -56,7 +56,7 @@ class RegionSync {
 		def adds = []
 		for(cloudItem in addList) {
 			def name = cloudItem.getRegionName()
-			def add = new CloudRegion(cloud: cloud, code: name, name: name, externalId: name, regionCode: name,zoneCode: name,internalId: cloudItem.getEndpoint())
+			def add = new CloudRegion(cloud: cloud, account: cloud.account, code: name, name: name, externalId: name, regionCode: name,zoneCode: name,internalId: cloudItem.getEndpoint())
 			adds << add
 		}
 		if(adds) {
