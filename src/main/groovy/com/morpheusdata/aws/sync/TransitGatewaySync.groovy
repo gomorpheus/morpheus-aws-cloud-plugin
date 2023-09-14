@@ -60,8 +60,8 @@ class TransitGatewaySync extends InternalResourceSync{
 			def name = cloudItem.tags?.find { it.key == 'Name' }?.value ?: cloudItem.transitGatewayId
 			adds << new AccountResource(
 				owner:cloud.account, category:getCategory(), code:(getCategory() + '.' + cloudItem.transitGatewayId),
-				externalId:cloudItem.transitGatewayId, zoneId:cloud.id, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.transitGateway'), resourceType:'TransitGateway',
-				zoneName: cloud.name, name: name, displayName: name, region: new CloudRegion(id: region.id)
+				externalId:cloudItem.transitGatewayId, cloudId:cloud.id, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.transitGateway'), resourceType:'TransitGateway',
+				cloudName: cloud.name, name: name, displayName: name, region: new CloudRegion(id: region.id)
 			)
 		}
 		if(adds) {

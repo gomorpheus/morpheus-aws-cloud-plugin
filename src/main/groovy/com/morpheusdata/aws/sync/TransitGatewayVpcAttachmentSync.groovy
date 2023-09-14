@@ -61,8 +61,8 @@ class TransitGatewayVpcAttachmentSync extends InternalResourceSync {
 			def name = cloudItem.tags?.find { it.key == 'Name' }?.value ?: cloudItem.transitGatewayAttachmentId
 			adds << new AccountResource(
 				owner: cloud.account, category:getCategory(), code:(getCategory() + '.' + cloudItem.transitGatewayAttachmentId),
-				externalId:cloudItem.transitGatewayAttachmentId, zoneId:cloud.id, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.transitGatewayAttachment'), resourceType:'TransitGatewayAttachment',
-				zoneName: cloud.name, name: name, displayName: name, region: new CloudRegion(id: region.id),
+				externalId:cloudItem.transitGatewayAttachmentId, cloudId:cloud.id, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.transitGatewayAttachment'), resourceType:'TransitGatewayAttachment',
+				cloudName: cloud.name, name: name, displayName: name, region: new CloudRegion(id: region.id),
 				rawData: JsonOutput.toJson([vpcId: cloudItem.vpcId, state: cloudItem.state])
 			)
 		}
