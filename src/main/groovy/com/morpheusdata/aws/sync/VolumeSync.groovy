@@ -70,7 +70,7 @@ class VolumeSync {
 		}
 
 		if(adds) {
-			morpheusContext.async.storageVolume.create(adds).blockingGet()
+			morpheusContext.async.storageVolume.bulkCreate(adds).blockingGet()
 		}
 	}
 

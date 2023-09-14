@@ -94,13 +94,14 @@ class VirtualMachineSync {
 
 	def addMissingVirtualMachines(List<Instance> addList, CloudRegionIdentity region, Map<String, Volume> volumeMap, Map usageLists = null, String defaultServerType = null) {
 		while (addList?.size() > 0) {
+			List<ComputeServer> saves = []
 			addList.take(50).each { cloudItem ->
 				def zonePool = allZonePools[cloudItem.vpcId]
 				if ((!cloudItem.getVpcId() || zonePool?.inventory != false) && cloudItem.getState()?.getCode() != 0) {
 					// get service plan
 					def servicePlan = cloudItem.instanceType ? getServicePlan("amazon-${cloudItem.instanceType}") : null
 					def osType = cloudItem.platform?.toLowerCase()?.contains('windows') ? 'windows' : 'linux'
-					def vmConfig = [
+					ComputeServer add = new ComputeServer(
 						account          : cloud.account,
 						externalId       : cloudItem.instanceId,
 						resourcePool     : zonePool ? new CloudPool(id:zonePool.id) : null,
@@ -125,10 +126,25 @@ class VirtualMachineSync {
 						serverOs         : allOsTypes[osType] ?: new OsType(code: 'unknown'),
 						region           : new CloudRegion(id: region.id),
 						computeServerType: allComputeServerTypes[defaultServerType ?: (osType == 'windows' ? 'amazonWindowsVm' : 'amazonUnmanaged')],
-						maxMemory        : servicePlan?.maxMemory
-					]
-
-					ComputeServer add = new ComputeServer(vmConfig)
+						maxMemory        : servicePlan?.maxMemory,
+						configMap		 : [
+							blockDevices: cloudItem.blockDeviceMappings?.collect{[name:it.deviceName, ebs:it.ebs]} ?: [],
+							imageId: cloudItem.imageId,
+							instanceType: cloudItem.instanceType,
+							keyName: cloudItem.keyName,
+							launchTime: cloudItem.launchTime,
+							privateDnsName: cloudItem.privateDnsName,
+							publicDnsName: cloudItem.publicDnsName,
+							securityGroups: cloudItem.securityGroups?.collect{[id:it.groupId, name:it.groupName]} ?: [],
+							subnetId: cloudItem.subnetId,
+							tags: cloudItem.tags?.collect{[key:it.key, value:it.value]} ?: [],
+							vpcId: cloudItem.vpcId,
+							vpc: cloudItem.vpcId,
+							architecture: cloudItem.architecture,
+							clientToken: cloudItem.clientToken,
+							ebsOptimized: cloudItem.ebsOptimized
+						]
+					)
 					if (servicePlan) {
 						applyServicePlan(add, servicePlan)
 					}
@@ -138,12 +154,12 @@ class VirtualMachineSync {
 					} else {
 						def postSaveResults = performPostSaveSync(cloudItem, savedServer, volumeMap)
 						if (postSaveResults.saveRequired) {
-							morpheusContext.async.computeServer.save([savedServer]).blockingGet()
+							saves << savedServer
 						}
 					}
 
 					if(usageLists) {
-						if (vmConfig.powerState == ComputeServer.PowerState.on) {
+						if (savedServer.powerState == ComputeServer.PowerState.on) {
 							usageLists.startUsageIds << savedServer.id
 						} else {
 							usageLists.stopUsageIds << savedServer.id
@@ -152,6 +168,9 @@ class VirtualMachineSync {
 				} else {
 					log.info("skipping: {}", cloudItem)
 				}
+			}
+			if(saves) {
+				morpheusContext.async.computeServer.bulkSave(saves).blockingGet()
 			}
 			addList = addList.drop(50)
 		}
