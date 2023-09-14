@@ -87,14 +87,13 @@ class PriceSync {
 			def loadBalancerPriceData = []
 			def snapshotPriceData = []
 			def storagePriceData = []
+
 			HttpRequestBase request = new HttpGet("https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/index.csv")
 			withClient([timeout: 240000]) { HttpClient client ->
 				HttpResponse response
 				CsvReader reader
 				try {
-					//response = client.execute(request)
-					InputStream inputStream = new File("/Users/ddevilbiss/Downloads/aws_pricing.csv").newInputStream()
-					// response.getEntity().getContent()
+					InputStream inputStream = client.execute(request).getEntity().getContent()
 					reader = CsvReader.builder().build(new BufferedReader(new InputStreamReader(inputStream)))
 					for(CsvRow row : reader) {
 						if (lineNumber == 5) {
@@ -193,7 +192,6 @@ class PriceSync {
 								}
 							}
 						}
-						if(lineNumber % 50000 == 0) println lineNumber
 						lineNumber++
 					}
 				} catch(e) {
