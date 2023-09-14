@@ -64,15 +64,16 @@ class SecurityGroupSync {
 	}
 
 	private addMissingSecurityGroups(Collection<AWSSecurityGroup> addList, String regionCode, Long zonePoolId) {
+		List<SecurityGroupLocation> adds = []
 		for(AWSSecurityGroup cloudItem in addList) {
-			SecurityGroupLocation add = new SecurityGroupLocation(
+			adds << new SecurityGroupLocation(
 				refType: 'ComputeZone', refId: cloud.id, externalId: cloudItem.groupId, name: cloudItem.groupName,
 				description: cloudItem.description, regionCode: regionCode, groupName: cloudItem.groupName,
 				ruleHash: AWSSecurityGroupProvider.getGroupRuleHash(cloudItem), securityServer: cloud.securityServer,
 				zonePool: cloudItem.vpcId ? new CloudPool(id: allZonePools[cloudItem.vpcId].id) : null
 			)
-			morpheusContext.async.securityGroup.location.create(add).blockingGet()
 		}
+		morpheusContext.async.securityGroup.location.create(adds).blockingGet()
 		syncRules(addList, zonePoolId)
 	}
 

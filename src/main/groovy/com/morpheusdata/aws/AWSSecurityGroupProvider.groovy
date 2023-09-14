@@ -332,9 +332,8 @@ class AWSSecurityGroupProvider implements SecurityGroupProvider {
 
 	static String getGroupRuleHash(AWSSecurityGroup cloudItem) {
 		MessageDigest digest = MessageDigest.getInstance("MD5")
-		digest.update(getGroupRules(cloudItem).toString().bytes)
-		byte[] checksum = digest.digest()
-		checksum.encodeHex().toString()
+		digest.update([name: cloudItem.groupName, id: cloudItem.groupId, rules: getGroupRules(cloudItem)].toString().bytes)
+		digest.digest().encodeHex().toString()
 	}
 
 	static List getGroupRules(AWSSecurityGroup cloudItem) {
