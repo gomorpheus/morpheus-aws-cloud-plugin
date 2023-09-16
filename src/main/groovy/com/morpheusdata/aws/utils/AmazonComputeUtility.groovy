@@ -175,6 +175,7 @@ class AmazonComputeUtility {
 	}
 
 	static createServer(opts) {
+		log.debug("createServer opts: ${opts}")
 		def rtn = [success:false]
 		try {
 			def amazonClient = opts.amazonClient
@@ -247,10 +248,12 @@ class AmazonComputeUtility {
 			}
 			//disks
 			def diskList = new LinkedList<BlockDeviceMapping>()
+			log.debug("createServer osDiskSize: ${opts.osDiskSize}")
 			if(opts.osDiskSize) {
 				EbsBlockDevice rootDisk = new EbsBlockDevice()
 				opts += addDiskOpts(diskType, opts.osDiskSize.toInteger(), opts)
 				rootDisk.withVolumeType(diskType).withVolumeSize(opts.osDiskSize.toInteger())
+				log.debug("createServer osDiskSnapshot: ${opts.osDiskSnapshot}, imageRef: ${imageRef}")
 				if(opts.osDiskSnapshot) {
 					rootDisk.withSnapshotId(opts.osDiskSnapshot)
 				}
@@ -293,7 +296,7 @@ class AmazonComputeUtility {
 				rtn.volumes = getVmVolumes(rtn.server)
 				rtn.networks = getVmNetworks(rtn.server)
 			}
-			log.debug("got: ${rtn.results}")
+			log.debug("createServer results: ${rtn.results}")
 			// //tag it
 			// def nameTag = new Tag('Name', opts.name ?:"morpheus node")
 			// def resourceList = new LinkedList<String>()
@@ -3358,6 +3361,7 @@ class AmazonComputeUtility {
 			rtn.imageId = match.imageId
 			rtn.success = true
 		}
+		log.debug("Insert snapshot image results: ${rtn}")
 		return rtn
 	}
 
@@ -3376,7 +3380,7 @@ class AmazonComputeUtility {
 		blockDeviceMapping.setDeviceName(snapshotOpts.deviceName)
 		def ebsDevice = new EbsBlockDevice()
 		ebsDevice.setSnapshotId(snapshotOpts.snapshotId)
-		ebsDevice.setVolumeSize(snapshotOpts.volumeSize)
+		ebsDevice.setVolumeSize(snapshotOpts.volumeSize?.toInteger())
 		ebsDevice.setVolumeType(snapshotOpts.volumeType)
 		if(snapshotOpts.volumeType == "io1")
 			ebsDevice.setIops(snapshotOpts.iops)

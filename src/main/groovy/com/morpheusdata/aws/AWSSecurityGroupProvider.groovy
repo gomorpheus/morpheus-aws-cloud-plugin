@@ -57,7 +57,7 @@ class AWSSecurityGroupProvider implements SecurityGroupProvider {
 
 	@Override
 	ServiceResponse<SecurityGroup> prepareSecurityGroup(SecurityGroup securityGroup, Map opts) {
-		def vpcId = opts.vpc ?: opts.vpcId ?: opts.config?.vpc ?: opts.config?.vpcId
+		def vpcId = opts.vpc ?: opts.vpcId ?: opts.config?.vpc ?: opts.config?.vpcId ?: opts.customOptions?.vpc
 		securityGroup.setConfigProperty("vpcId", vpcId)
 
 		return ServiceResponse.success(securityGroup)

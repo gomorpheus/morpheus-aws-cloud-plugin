@@ -16,6 +16,7 @@ class AWSPlugin extends Plugin {
 	private String cloudProviderCode
 	private String networkProviderCode
 	private String dnsProviderCode
+	private String backupProviderCode
 
 	@Override
 	String getCode() {
@@ -47,6 +48,7 @@ class AWSPlugin extends Plugin {
 		cloudProviderCode = cloudProvider.code
 		networkProviderCode = networkProvider.code
 		dnsProviderCode = dnsProvider.code
+		backupProviderCode = backupProvider.code
 	}
 
 	@Override
@@ -68,6 +70,10 @@ class AWSPlugin extends Plugin {
 
 	def Route53DnsProvider getDnsProvider() {
 		this.getProviderByCode(dnsProviderCode)
+	}
+
+	def AWSBackupProvider getBackupProvider() {
+		this.getProviderByCode(backupProviderCode)
 	}
 
 	def getAmazonClient(Cloud cloud, Boolean fresh = false, String region = null) {
