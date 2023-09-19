@@ -1,6 +1,7 @@
 package com.morpheusdata.aws
 
 import com.amazonaws.services.ec2.AmazonEC2
+import com.amazonaws.services.ec2.AmazonEC2Client
 import com.morpheusdata.aws.backup.AWSSnapshotBackupProvider
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.AbstractProvisionProvider
@@ -9,6 +10,7 @@ import com.morpheusdata.core.providers.HostProvisionProvider
 import com.morpheusdata.core.providers.VmProvisionProvider
 import com.morpheusdata.core.providers.WorkloadProvisionProvider
 import com.morpheusdata.core.util.ComputeUtility
+import com.morpheusdata.model.Account
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.CloudRegion
 import com.morpheusdata.model.ComputeCapacityInfo
@@ -21,6 +23,7 @@ import com.morpheusdata.model.ContainerType
 import com.morpheusdata.model.HostType
 import com.morpheusdata.model.ImageType
 import com.morpheusdata.model.Instance
+import com.morpheusdata.model.KeyPair
 import com.morpheusdata.model.Network
 import com.morpheusdata.model.OptionType
 import com.morpheusdata.model.OsType
@@ -305,7 +308,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	 * @param opts additional configuration options that may have been passed during provisioning
 	 * @return Response from API
 	 */
-	 ServiceResponse<PrepareWorkloadResponse> prepareWorkload(Workload workload, WorkloadRequest workloadRequest, Map opts) {
+	ServiceResponse<PrepareWorkloadResponse> prepareWorkload(Workload workload, WorkloadRequest workloadRequest, Map opts) {
 		ServiceResponse<PrepareWorkloadResponse> resp = new ServiceResponse<>()
 		resp.data = new PrepareWorkloadResponse(workload: workload, options: [sendIp: false])
 		ComputeServer server = workload.server
@@ -316,14 +319,18 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 			}
 		}
 
+		if(server.platform == "linux") {
+			resp.data.disableCloudInit = false
+			resp.data.disableAutoUpdates = true
+		}
+
 		//build config
 		AmazonEC2 amazonClient = plugin.getAmazonClient(workload.server.cloud,false, workload.server.resourcePool.regionCode)
 		//lets figure out what image we are deploying
 		def imageType = workload.getConfigMap().imageType ?: 'default' //amazon generic instance type has a radio button for this
 		def virtualImage = getWorkloadImage(amazonClient,server.resourcePool.regionCode,workload, opts)
 		if(virtualImage) {
-			if(virtualImage.imageType != ImageType.ami || imageType == 'local')
-			{
+			if(virtualImage.imageType != ImageType.ami || imageType == 'local') {
 				//we have to upload TODO: upload OVF Import from old importImage Method
 			} else {
 				//this ensures the image is set correctly for provisioning as it enters runWorkload
@@ -337,66 +344,66 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 			resp.msg = "Virtual Image not found"
 		}
 
-		 // restore/clone from snapshot
-		 def backupSetId = opts.backupSetId
-		 def cloneContainerId = opts.cloneContainerId
-		 if(backupSetId && cloneContainerId) {
-			 Map rootSnapshot
-			 def snapshots = new AWSSnapshotBackupProvider(plugin, morpheus).getSnapshotsForBackupResult(backupSetId, cloneContainerId)
-			 log.debug("Snapshots: ${snapshots}")
-			 if(snapshots) {
-				 rootSnapshot = snapshots.find{it.diskType == "root"}
-				 log.debug("rootSnapshot: ${rootSnapshot}")
-				 if(rootSnapshot) {
-					 //this is a clone/restore so use the snapshot image
-					 assignSnapshotsToStorageVolumes(workload, snapshots)
-				 }
-			 }
+		// restore/clone from snapshot
+		def backupSetId = opts.backupSetId
+		def cloneContainerId = opts.cloneContainerId
+		if(backupSetId && cloneContainerId) {
+			Map rootSnapshot
+			def snapshots = new AWSSnapshotBackupProvider(plugin, morpheus).getSnapshotsForBackupResult(backupSetId, cloneContainerId)
+			log.debug("Snapshots: ${snapshots}")
+			if(snapshots) {
+				rootSnapshot = snapshots.find{it.diskType == "root"}
+				log.debug("rootSnapshot: ${rootSnapshot}")
+				if(rootSnapshot) {
+					//this is a clone/restore so use the snapshot image
+					assignSnapshotsToStorageVolumes(workload, snapshots)
+				}
+			}
 
-			 def snapshotOpts = [:]
-			 if(rootSnapshot) {
-				 log.info("Performing restore operation with : ${rootSnapshot.snapshotId}")
-				 //this is a clone/restore so register the image from the snapshot
-				 snapshotOpts = rootSnapshot.clone()
-				 snapshotOpts.amazonClient = amazonClient
-				 try {
-					 AmazonComputeUtility.waitForSnapshot([snapshotId: rootSnapshot.snapshotId, amazonClient: amazonClient])
-				 } catch (Exception ex) {
-					 log.error("Snapshot ${rootSnapshot.snapshotId} never completed", ex)
-				 }
-				 log.debug("rootSnapshot: ${rootSnapshot}")
-				 if(rootSnapshot.zoneId != null && server.cloud && rootSnapshot.usageAccountId != null && server.cloud.externalId != rootSnapshot.usageAccountId && server.cloud.regionCode == rootSnapshot.regionCode) {
-					 Cloud snapshotCloud = morpheus.services.cloud.get((Long) rootSnapshot.zoneId)
-					 if(snapshotCloud) {
-						 snapshotOpts.amazonClient = plugin.getAmazonClient(snapshotCloud,false, rootSnapshot.regionCode)
-						 snapshotOpts.shareUserId = server.cloud.externalId //accountID
-					 }
-					 //we can share this AMI in theory for access by the other account
-				 }
+			def snapshotOpts = [:]
+			if(rootSnapshot) {
+				log.info("Performing restore operation with : ${rootSnapshot.snapshotId}")
+				//this is a clone/restore so register the image from the snapshot
+				snapshotOpts = rootSnapshot.clone()
+				snapshotOpts.amazonClient = amazonClient
+				try {
+					AmazonComputeUtility.waitForSnapshot([snapshotId: rootSnapshot.snapshotId, amazonClient: amazonClient])
+				} catch (Exception ex) {
+					log.error("Snapshot ${rootSnapshot.snapshotId} never completed", ex)
+				}
+				log.debug("rootSnapshot: ${rootSnapshot}")
+				if(rootSnapshot.zoneId != null && server.cloud && rootSnapshot.usageAccountId != null && server.cloud.externalId != rootSnapshot.usageAccountId && server.cloud.regionCode == rootSnapshot.regionCode) {
+					Cloud snapshotCloud = morpheus.services.cloud.get((Long) rootSnapshot.zoneId)
+					if(snapshotCloud) {
+						snapshotOpts.amazonClient = plugin.getAmazonClient(snapshotCloud,false, rootSnapshot.regionCode)
+						snapshotOpts.shareUserId = server.cloud.externalId //accountID
+					}
+					//we can share this AMI in theory for access by the other account
+				}
 
-				 def imageUploadResults = AmazonComputeUtility.insertSnapshotImage(snapshotOpts)
-				 log.debug("insertSnapshotImage results: ${imageUploadResults}")
+				def imageUploadResults = AmazonComputeUtility.insertSnapshotImage(snapshotOpts)
+				log.debug("insertSnapshotImage results: ${imageUploadResults}")
 
-				 try {
-					 log.debug("imageUploadTask complete: ${imageUploadResults}")
-					 if(imageUploadResults.success == true && imageUploadResults.imageId) {
-						 //this is a clone/restore so use the snapshot image
-						 log.info("Creating server from snapshot ${rootSnapshot.snapshotId} image ${imageUploadResults.imageId}")
-						 opts.rootSnapshotId = rootSnapshot.snapshotId
-						 opts.snapshotImageRef = imageUploadResults.imageId
-					 } else {
-						 resp.success = false
-						 resp.msg = imageUploadResults.message
-					 }
-				 } catch(ie) {
-					 log.error("image acquire error: ${ie.message}",ie)
-					 resp.success = false
-					 resp.msg = 'failed to acquire additional virtual image information'
-				 }
-			 }
-		 }
+				try {
+					log.debug("imageUploadTask complete: ${imageUploadResults}")
+					if(imageUploadResults.success == true && imageUploadResults.imageId) {
+						//this is a clone/restore so use the snapshot image
+						log.info("Creating server from snapshot ${rootSnapshot.snapshotId} image ${imageUploadResults.imageId}")
+						opts.rootSnapshotId = rootSnapshot.snapshotId
+						opts.snapshotImageRef = imageUploadResults.imageId
+					} else {
+						resp.success = false
+						resp.msg = imageUploadResults.message
+					}
+				} catch(ie) {
+					log.error("image acquire error: ${ie.message}",ie)
+					resp.success = false
+					resp.msg = 'failed to acquire additional virtual image information'
+				}
+			}
+		}
 
-		 return resp
+		return resp
 	}
 
 
@@ -687,6 +694,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		log.debug("insertVm runConfig: {}", runConfig)
 		def taskResults = [success:false]
 		ComputeServer server = runConfig.server
+		Account account = server.account
 		//def instance = Instance.get(runConfig.instanceId)
 		//def containerConfig = runConfig.container.getConfigProperties()
 		//user config
@@ -713,8 +721,14 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		//save server
 		runConfig.server = saveAndGet(server)
 		def imageResults = AmazonComputeUtility.loadImage([amazonClient:opts.amazonClient, imageId:runConfig.imageRef])
+
 		//user key - TODO
-		//ensureAmazonKeyPair(runConfig, opts.amazonClient, opts.account, server.zone, runConfig.userConfig.primaryKey)
+		def keyPairResults = ensureAmazonKeyPair(opts.amazonClient, account, server.cloud, runConfig.userConfig.primaryKey)
+		if(keyPairResults.success) {
+			runConfig.publicKeyName = keyPairResults.data.keyName
+			runConfig.primaryKey = keyPairResults.data.key
+		}
+
 		//root volume
 		def blockDeviceMap = imageResults.image.getBlockDeviceMappings()
 		def blockDeviceDisks = blockDeviceMap.findAll{it.getEbs() != null && it.getEbs().getSnapshotId() != null}
@@ -1450,6 +1464,32 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 			}
 			rtn = new VirtualImageLocation([externalId:virtualImage.externalId, externalDiskId:virtualImage.externalDiskId])
 		}
+		return rtn
+	}
+
+	protected ensureAmazonKeyPair(AmazonEC2Client amazonClient, Account account, Cloud cloud, KeyPair primaryKey) {
+		ServiceResponse rtn = ServiceResponse.prepare([key: primaryKey])
+		if(primaryKey) {
+			def keyLocationId = 'amazon-' + cloud.id
+			def publicKeyName = cloud.getConfigProperty(keyLocationId)
+			def accountKey = morpheus.async.keyPair.findOrGenerateByAccount(account.id).blockingGet()
+			log.debug('checking for keypair')
+			def keyResults = AmazonComputeUtility.uploadKeypair([key:primaryKey, account:account, zone:cloud, keyName:publicKeyName, amazonClient:amazonClient])
+			log.debug("key results : {}", keyResults)
+			if(keyResults.success == true) {
+				if(keyResults.uploaded == true) {
+					if(primaryKey.id == accountKey?.id) {
+						//this is the account wide key
+						morpheus.async.keyPair.addZoneKeyPairLocation(cloud.id, keyLocationId, keyResults.keyName)
+					} else {
+						morpheus.async.keyPair.addKeyPairLocation(primaryKey.id, keyLocationId, keyResults.keyName)
+					}
+				}
+				rtn.data.keyName = keyResults.keyName
+				rtn.success = true
+			}
+		}
+
 		return rtn
 	}
 
