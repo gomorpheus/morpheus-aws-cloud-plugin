@@ -4361,7 +4361,7 @@ class AmazonComputeUtility {
 	}
 
 	//sts calls
-	static getClientIdentity(AWSSecurityTokenServiceClient amazonClient, Map opts) {
+	static getClientIdentity(AWSSecurityTokenService amazonClient, Map opts) {
 		def rtn = [success:false, results:null]
 		try {
 			def identityRequest = new GetCallerIdentityRequest()
@@ -5317,6 +5317,41 @@ class AmazonComputeUtility {
 		return amazonClient
 	}
 
+	static getAmazonSecurityClient(zone, Boolean fresh = false, String region = null) {
+		def rtn = [:]
+		def creds
+		def clientExpires
+		def credsProvider
+		def clientInfo = getCachedClientInfo("zone:${zone.id}:${region}",'stsClient')
+		if(!fresh && clientInfo.client) {
+			return [amazonClient: clientInfo.client, securityProvider: clientInfo.credsProvider]
+		} else if(!fresh) {
+			creds = clientInfo.credentials
+			credsProvider = clientInfo.credentialsProvider
+		}
+		ClientConfiguration clientConfiguration = getClientConfiguration(zone)
+		
+		if(!creds) {
+			def credsInfo = getAmazonCredentials(zone,clientConfiguration)
+			creds = credsInfo.credentials
+			clientExpires = credsInfo.clientExpires
+			credsProvider = credsInfo.credsProvider
+		}
+		def builder = AWSSecurityTokenServiceClientBuilder.standard()
+		if(region) {
+			builder.setRegion(region)
+		} else {
+			String endpoint = getAmazonEndpoint(zone)
+			String zoneRegion = getAmazonEndpointRegion(endpoint)
+			builder.setRegion(zoneRegion)
+		}
+		def amazonClient = builder.withCredentials(credsProvider).withClientConfiguration(clientConfiguration).build()
+		setCachedClientInfo("zone:${zone.id}:${region}", amazonClient, creds, credsProvider, clientExpires, 'stsClient', fresh)
+		rtn.amazonClient = amazonClient
+		rtn.securityProvider = credsProvider
+		return rtn
+	}
+
 	static getAmazonElbClassicClient(zone, Boolean fresh = false, String region = null) {
 		def creds
 		def credsProvider
@@ -5476,7 +5511,7 @@ class AmazonComputeUtility {
 		return rtn
 	}
 
-	static getAmazonCostingSecurityClient(Cloud zone) {
+	static AWSSecurityTokenService getAmazonCostingSecurityClient(Cloud zone) {
 		def rtn
 		def authConfig = [:]
 		//access / secret key and region
@@ -5500,7 +5535,7 @@ class AmazonComputeUtility {
 			authConfig.apiProxy.proxyWorkstation = zone.apiProxy.proxyWorkstation
 		}
 		rtn = AmazonComputeUtility.getAmazonSecurityClient(authConfig)
-		return rtn.amazonClient
+		return rtn.amazonClient as AWSSecurityTokenService
 	}
 
 	static getAmazonPricingClient(Cloud zone) {
