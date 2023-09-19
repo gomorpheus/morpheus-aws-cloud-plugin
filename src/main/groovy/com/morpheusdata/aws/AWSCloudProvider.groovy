@@ -584,7 +584,7 @@ class AWSCloudProvider implements CloudProvider {
 		//nothing daily
 	}
 
-	
+
 
 	@Override
 	ServiceResponse deleteCloud(Cloud cloudInfo) {

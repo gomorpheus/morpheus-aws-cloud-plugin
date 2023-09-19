@@ -178,7 +178,7 @@ class VirtualMachineSync {
 
 	def updateMatchedVirtualMachines(List<SyncTask.UpdateItem<ComputeServer, Instance>> updateList, CloudRegionIdentity region, Map<String, Volume> volumeMap, Map usageLists, String inventoryLevel) {
 		def statsData = []
-		recordsToSave = []
+		def recordsToSave = []
 		def managedServerIds = updateList.findAll { it.existingItem.computeServerType?.managed }.collect{it.existingItem.id}
 		def workloads = managedServerIds ? morpheusContext.async.cloud.listCloudWorkloadProjections(cloud.id).filter { workload ->
 			workload.serverId in managedServerIds
