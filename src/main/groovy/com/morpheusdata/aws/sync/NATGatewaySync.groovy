@@ -7,9 +7,9 @@ import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.AccountResource
 import com.morpheusdata.model.AccountResourceType
 import com.morpheusdata.model.Cloud
-import com.morpheusdata.model.ComputeZoneRegion
+import com.morpheusdata.model.CloudRegion
 import com.morpheusdata.model.projection.AccountResourceIdentityProjection
-import com.morpheusdata.model.projection.ComputeZoneRegionIdentityProjection
+import com.morpheusdata.model.projection.CloudRegionIdentity
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable
 import io.reactivex.Single
@@ -53,7 +53,7 @@ class NATGatewaySync extends InternalResourceSync {
 		return "amazon.ec2.nat.gateway.${cloud.id}"
 	}
 
-	protected void addMissingNATGateway(Collection<NatGateway> addList, ComputeZoneRegionIdentityProjection region) {
+	protected void addMissingNATGateway(Collection<NatGateway> addList, CloudRegionIdentity region) {
 		def adds = []
 
 		for(NatGateway cloudItem in addList) {
@@ -61,13 +61,13 @@ class NATGatewaySync extends InternalResourceSync {
 			adds << new AccountResource(
 				owner:cloud.account, category:getCategory(), code:(getCategory() + '.' + cloudItem.natGatewayId),
 				externalId:cloudItem.natGatewayId, cloudId:cloud.id, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.natGateway'), resourceType:'NatGateway',
-				cloudName: cloud.name, name: name, displayName: name, region: new ComputeZoneRegion(id: region.id)
+				cloudName: cloud.name, name: name, displayName: name, region: new CloudRegion(id: region.id)
 			)
 		}
-		morpheusContext.async.cloud.resource.create(adds).blockingGet()
+		morpheusContext.async.cloud.resource.bulkCreate(adds).blockingGet()
 	}
 
-	protected void updateMatchedNATGateways(List<SyncTask.UpdateItem<AccountResource, NatGateway>> updateList, ComputeZoneRegionIdentityProjection region) {
+	protected void updateMatchedNATGateways(List<SyncTask.UpdateItem<AccountResource, NatGateway>> updateList, CloudRegionIdentity region) {
 		def updates = []
 		for(update in updateList) {
 			def masterItem = update.masterItem
@@ -81,7 +81,7 @@ class NATGatewaySync extends InternalResourceSync {
 				save = true
 			}
 			if(existingItem.region?.id != region.id) {
-				existingItem.region = new ComputeZoneRegion(id: region.id)
+				existingItem.region = new CloudRegion(id: region.id)
 				save = true
 			}
 			if(save) {

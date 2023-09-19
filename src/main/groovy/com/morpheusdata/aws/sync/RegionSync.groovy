@@ -5,12 +5,9 @@ import com.morpheusdata.aws.AWSPlugin
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.util.SyncTask
-import com.morpheusdata.model.Account
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.CloudRegion
-import com.morpheusdata.model.ComputeZoneRegion
 import com.morpheusdata.model.projection.CloudRegionIdentity
-import com.morpheusdata.model.projection.ComputeZoneRegionIdentityProjection
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable
 
@@ -45,7 +42,7 @@ class RegionSync {
 			}.onUpdate { List<SyncTask.UpdateItem<CloudRegion, Region>> updateItems ->
 				// Nothing to do
 			}.onAdd { itemsToAdd ->
-				addMissingRegions(itemsToAdd, this.@cloud.account)
+				addMissingRegions(itemsToAdd)
 			}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<CloudRegionIdentity, Region>> updateItems ->
 				morpheusContext.async.cloud.region.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 			}.start()
@@ -55,15 +52,15 @@ class RegionSync {
 		}
 	}
 
-	protected void addMissingRegions(Collection<Region> addList, Account account) {
+	protected void addMissingRegions(Collection<Region> addList) {
 		def adds = []
 		for(cloudItem in addList) {
 			def name = cloudItem.getRegionName()
-			def add = new CloudRegion(cloud: cloud, account:account, code: name, name: name, externalId: name, regionCode: name,zoneCode: name,internalId: cloudItem.getEndpoint())
+			def add = new CloudRegion(cloud: cloud, account: cloud.account, code: name, name: name, externalId: name, regionCode: name,zoneCode: name,internalId: cloudItem.getEndpoint())
 			adds << add
 		}
 		if(adds) {
-			morpheusContext.async.cloud.region.create(adds).blockingGet()
+			morpheusContext.async.cloud.region.bulkCreate(adds).blockingGet()
 		}
 	}
 

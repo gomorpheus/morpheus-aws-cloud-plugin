@@ -57,7 +57,7 @@ class AWSSecurityGroupProvider implements SecurityGroupProvider {
 
 	@Override
 	ServiceResponse<SecurityGroup> prepareSecurityGroup(SecurityGroup securityGroup, Map opts) {
-		def vpcId = opts.vpc ?: opts.vpcId ?: opts.config?.vpc ?: opts.config?.vpcId
+		def vpcId = opts.vpc ?: opts.vpcId ?: opts.config?.vpc ?: opts.config?.vpcId ?: opts.customOptions?.vpc
 		securityGroup.setConfigProperty("vpcId", vpcId)
 
 		return ServiceResponse.success(securityGroup)
@@ -332,9 +332,8 @@ class AWSSecurityGroupProvider implements SecurityGroupProvider {
 
 	static String getGroupRuleHash(AWSSecurityGroup cloudItem) {
 		MessageDigest digest = MessageDigest.getInstance("MD5")
-		digest.update(getGroupRules(cloudItem).toString().bytes)
-		byte[] checksum = digest.digest()
-		checksum.encodeHex().toString()
+		digest.update([name: cloudItem.groupName, id: cloudItem.groupId, rules: getGroupRules(cloudItem)].toString().bytes)
+		digest.digest().encodeHex().toString()
 	}
 
 	static List getGroupRules(AWSSecurityGroup cloudItem) {

@@ -7,7 +7,7 @@ import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
-import com.morpheusdata.model.ComputeZonePool
+import com.morpheusdata.model.CloudPool
 import com.morpheusdata.model.NetworkRoute
 import com.morpheusdata.model.NetworkRouteTable
 import com.morpheusdata.model.NetworkRouter
@@ -65,7 +65,7 @@ class RouteTableSync {
 				code: "aws.route.table.${cloud.id}.${cloudItem.routeTableId}",
 				category: "aws.route.table.${cloud.id}",
 				externalId: cloudItem.routeTableId,
-				zonePool: new ComputeZonePool(id: zonePool.id)
+				zonePool: new CloudPool(id: zonePool.id)
 			)
 		}
 

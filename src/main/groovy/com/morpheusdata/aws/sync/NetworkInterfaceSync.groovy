@@ -7,9 +7,9 @@ import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.AccountResource
 import com.morpheusdata.model.AccountResourceType
 import com.morpheusdata.model.Cloud
-import com.morpheusdata.model.ComputeZoneRegion
+import com.morpheusdata.model.CloudRegion
 import com.morpheusdata.model.projection.AccountResourceIdentityProjection
-import com.morpheusdata.model.projection.ComputeZoneRegionIdentityProjection
+import com.morpheusdata.model.projection.CloudRegionIdentity
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable
 import io.reactivex.Single
@@ -53,7 +53,7 @@ class NetworkInterfaceSync extends InternalResourceSync {
 		return "amazon.ec2.network.interfaces.${cloud.id}"
 	}
 
-	protected void addMissingNetworkInterface(Collection<NetworkInterface> addList, ComputeZoneRegionIdentityProjection region) {
+	protected void addMissingNetworkInterface(Collection<NetworkInterface> addList, CloudRegionIdentity region) {
 		def adds = []
 		for(NetworkInterface cloudItem in addList) {
 			def name = cloudItem.networkInterfaceId
@@ -61,20 +61,20 @@ class NetworkInterfaceSync extends InternalResourceSync {
 				owner:cloud.account, category:getCategory(), code:(getCategory() + '.' + cloudItem.networkInterfaceId),
 				externalId:cloudItem.networkInterfaceId, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.networkInterface'),
 				resourceType:'NetworkInterface', name: name, displayName: name, cloudId: cloud.id, cloudName: cloud.name,
-				region: new ComputeZoneRegion(id: region.id)
+				region: new CloudRegion(id: region.id)
 			)
 		}
 		morpheusContext.async.cloud.resource.create(adds).blockingGet()
 	}
 
-	protected void updateMatchedNetworkInterfaces(List<SyncTask.UpdateItem<AccountResource, NetworkInterface>> updateList, ComputeZoneRegionIdentityProjection region) {
+	protected void updateMatchedNetworkInterfaces(List<SyncTask.UpdateItem<AccountResource, NetworkInterface>> updateList, CloudRegionIdentity region) {
 		def updates = []
 		for(update in updateList) {
 			def existingItem = update.existingItem
 			Boolean save = false
 
 			if(existingItem.region?.id != region.id) {
-				existingItem.region = new ComputeZoneRegion(id: region.id)
+				existingItem.region = new CloudRegion(id: region.id)
 				save = true
 			}
 

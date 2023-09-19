@@ -8,7 +8,7 @@ import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.InstanceScale
 import com.morpheusdata.model.InstanceThreshold
-import com.morpheusdata.model.projection.ComputeZoneRegionIdentityProjection
+import com.morpheusdata.model.projection.CloudRegionIdentity
 import com.morpheusdata.model.projection.InstanceScaleIdentityProjection
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable
@@ -53,7 +53,7 @@ class ScaleGroupSync {
 		}
 	}
 
-	private addMissingInstanceScales(Collection<AutoScalingGroup> addList, ComputeZoneRegionIdentityProjection region) {
+	private addMissingInstanceScales(Collection<AutoScalingGroup> addList, CloudRegionIdentity region) {
 		log.debug "addMissingInstanceScales: ${cloud} ${region.externalId} ${addList.size()}"
 		def adds = []
 
@@ -84,7 +84,7 @@ class ScaleGroupSync {
 		}
 	}
 
-	private updateMatchedInstanceScales(List<SyncTask.UpdateItem<InstanceScale, AutoScalingGroup>> updateList, ComputeZoneRegionIdentityProjection region) {
+	private updateMatchedInstanceScales(List<SyncTask.UpdateItem<InstanceScale, AutoScalingGroup>> updateList, CloudRegionIdentity region) {
 		log.debug "updateMatchedInstanceScales: ${cloud} ${region.externalId} ${updateList.size()}"
 		def saveList = []
 

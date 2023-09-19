@@ -7,9 +7,9 @@ import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.AccountResource
 import com.morpheusdata.model.AccountResourceType
 import com.morpheusdata.model.Cloud
-import com.morpheusdata.model.ComputeZoneRegion
+import com.morpheusdata.model.CloudRegion
 import com.morpheusdata.model.projection.AccountResourceIdentityProjection
-import com.morpheusdata.model.projection.ComputeZoneRegionIdentityProjection
+import com.morpheusdata.model.projection.CloudRegionIdentity
 import groovy.json.JsonOutput
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable
@@ -54,15 +54,15 @@ class TransitGatewayVpcAttachmentSync extends InternalResourceSync {
 		return "amazon.ec2.transit.gateway.attachments.${cloud.id}"
 	}
 
-	protected void addMissingTransitGatewayVpcAttachment(Collection<TransitGatewayVpcAttachment> addList, ComputeZoneRegionIdentityProjection region) {
+	protected void addMissingTransitGatewayVpcAttachment(Collection<TransitGatewayVpcAttachment> addList, CloudRegionIdentity region) {
 		def adds = []
 
 		for(TransitGatewayVpcAttachment cloudItem in addList) {
 			def name = cloudItem.tags?.find { it.key == 'Name' }?.value ?: cloudItem.transitGatewayAttachmentId
 			adds << new AccountResource(
 				owner: cloud.account, category:getCategory(), code:(getCategory() + '.' + cloudItem.transitGatewayAttachmentId),
-				externalId:cloudItem.transitGatewayAttachmentId, zoneId:cloud.id, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.transitGatewayAttachment'), resourceType:'TransitGatewayAttachment',
-				zoneName: cloud.name, name: name, displayName: name, region: new ComputeZoneRegion(id: region.id),
+				externalId:cloudItem.transitGatewayAttachmentId, cloudId:cloud.id, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.transitGatewayAttachment'), resourceType:'TransitGatewayAttachment',
+				cloudName: cloud.name, name: name, displayName: name, region: new CloudRegion(id: region.id),
 				rawData: JsonOutput.toJson([vpcId: cloudItem.vpcId, state: cloudItem.state])
 			)
 		}
@@ -71,7 +71,7 @@ class TransitGatewayVpcAttachmentSync extends InternalResourceSync {
 		}
 	}
 
-	protected void updateMatchedTransitGatewayVpcAttachments(List<SyncTask.UpdateItem<AccountResource, TransitGatewayVpcAttachment>> updateList, ComputeZoneRegionIdentityProjection region) {
+	protected void updateMatchedTransitGatewayVpcAttachments(List<SyncTask.UpdateItem<AccountResource, TransitGatewayVpcAttachment>> updateList, CloudRegionIdentity region) {
 		def updates = []
 		for(update in updateList) {
 			def masterItem = update.masterItem
@@ -90,7 +90,7 @@ class TransitGatewayVpcAttachmentSync extends InternalResourceSync {
 				save = true
 			}
 			if(existingItem.region?.id != region.id) {
-				existingItem.region = new ComputeZoneRegion(id: region.id)
+				existingItem.region = new CloudRegion(id: region.id)
 				save = true
 			}
 			if(save) {

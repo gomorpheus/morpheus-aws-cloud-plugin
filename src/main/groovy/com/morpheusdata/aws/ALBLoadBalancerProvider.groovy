@@ -52,8 +52,8 @@ import com.morpheusdata.core.Plugin
 import com.morpheusdata.core.network.loadbalancer.LoadBalancerProvider
 import com.morpheusdata.model.AccountCertificate
 import com.morpheusdata.model.Cloud
+import com.morpheusdata.model.CloudPool
 import com.morpheusdata.model.CloudType
-import com.morpheusdata.model.ComputeZonePool
 import com.morpheusdata.model.Icon
 import com.morpheusdata.model.Instance
 import com.morpheusdata.model.Network
@@ -951,7 +951,7 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
             String regionCode = loadBalancer.region?.regionCode
             if(!regionCode) {
                 if(vpcId) {
-                    ComputeZonePool pool
+                    CloudPool pool
                     zonePoolService.listByCloudAndExternalIdIn(cloud.id, [vpcId]).blockingSubscribe { zonePool ->
                         pool = zonePool
                     }

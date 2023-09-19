@@ -7,9 +7,9 @@ import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.AccountResource
 import com.morpheusdata.model.AccountResourceType
 import com.morpheusdata.model.Cloud
-import com.morpheusdata.model.ComputeZoneRegion
+import com.morpheusdata.model.CloudRegion
 import com.morpheusdata.model.projection.AccountResourceIdentityProjection
-import com.morpheusdata.model.projection.ComputeZoneRegionIdentityProjection
+import com.morpheusdata.model.projection.CloudRegionIdentity
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable
 import io.reactivex.Single
@@ -52,14 +52,14 @@ class VpnGatewaySync extends InternalResourceSync {
 		return "amazon.ec2.vpn.gateway.${cloud.id}"
 	}
 
-	protected void addMissingVpnGateways(Collection<VpnGateway> addList, ComputeZoneRegionIdentityProjection region) {
+	protected void addMissingVpnGateways(Collection<VpnGateway> addList, CloudRegionIdentity region) {
 		def adds = []
 		for(VpnGateway cloudItem in addList) {
 			def name = cloudItem.tags?.find{it.key == 'Name'}?.value ?: cloudItem.vpnGatewayId
 			AccountResource add = new AccountResource(
 				owner:cloud.account, category:category, code: category + '.' + cloudItem.vpnGatewayId,
 				externalId:cloudItem.vpnGatewayId, cloudId:cloud.id, type: new AccountResourceType(code: 'aws.cloudFormation.ec2.vpnGateway'),
-				resourceType:'VPNGateway', cloudName: cloud.name, name: name, displayName: name, region: new ComputeZoneRegion(id: region.id)
+				resourceType:'VPNGateway', cloudName: cloud.name, name: name, displayName: name, region: new CloudRegion(id: region.id)
 			)
 			add.configMap = [amazonSideAsn: cloudItem.amazonSideAsn, availabilityZone: cloudItem.availabilityZone]
 			adds << add
@@ -67,7 +67,7 @@ class VpnGatewaySync extends InternalResourceSync {
 		morpheusContext.async.cloud.resource.create(adds).blockingGet()
 	}
 
-	protected void updateMatchedVpnGateways(List<SyncTask.UpdateItem<AccountResource, VpnGateway>> updateList, ComputeZoneRegionIdentityProjection region) {
+	protected void updateMatchedVpnGateways(List<SyncTask.UpdateItem<AccountResource, VpnGateway>> updateList, CloudRegionIdentity region) {
 		def updates = []
 		for(update in updateList) {
 			def masterItem = update.masterItem
@@ -80,7 +80,7 @@ class VpnGatewaySync extends InternalResourceSync {
 				save = true
 			}
 			if(existingItem.region?.id != region.id) {
-				existingItem.region = new ComputeZoneRegion(id: region.id)
+				existingItem.region = new CloudRegion(id: region.id)
 				save = true
 			}
 			if(save) {

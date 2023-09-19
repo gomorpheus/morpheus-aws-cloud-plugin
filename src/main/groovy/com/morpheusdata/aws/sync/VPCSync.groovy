@@ -7,11 +7,7 @@ import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.CloudPool
-import com.morpheusdata.model.ComputeZonePool
-import com.morpheusdata.model.NetworkRouter
-import com.morpheusdata.model.NetworkRouterType
 import com.morpheusdata.model.projection.CloudPoolIdentity
-import com.morpheusdata.model.projection.ComputeZonePoolIdentityProjection
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable
 import io.reactivex.Single
@@ -64,7 +60,7 @@ class VPCSync {
 			def tags = cloudItem.getTags()
 			def nameTag = tags.find{ it.getKey() == 'Name' }
 			def name = nameTag?.value ?: cloudItem.getVpcId()
-			def poolConfig = [owner:[id:cloud.owner.id], type:'vpc', name: "${name} (${region})", description:"${name} - ${cloudItem.getVpcId()} - ${cloudItem.getCidrBlock()}",
+			def poolConfig = [owner:[id:cloud.owner.id], type:'vpc', name:name, displayName:"${name} (${region})", description:"${name} - ${cloudItem.getVpcId()} - ${cloudItem.getCidrBlock()}",
 							  externalId:cloudItem.getVpcId(), refType:'ComputeZone', regionCode: region, refId:cloud.id, cloud:[id:cloud.id], category:"aws.vpc.${cloud.id}",
 							  code:"aws.vpc.${cloud.id}.${cloudItem.getVpcId()}"]
 			def add = new CloudPool(poolConfig)
@@ -74,7 +70,7 @@ class VPCSync {
 
 		}
 		if(adds) {
-			morpheusContext.async.cloud.pool.create(adds).blockingGet()
+			morpheusContext.async.cloud.pool.bulkCreate(adds).blockingGet()
 		}
 	}
 
@@ -88,7 +84,7 @@ class VPCSync {
 
 			def tags = masterItem.getTags()
 			def nameTag = tags.find { it.getKey() == 'Name' }
-			def name = "${nameTag?.value ?: masterItem.getVpcId()} (${region})"
+			def name = nameTag?.value ?: masterItem.getVpcId()
 			def cidr = masterItem.getCidrBlock()
 			def tenancy = masterItem.getInstanceTenancy()
 			def description = "${name} - ${masterItem.getVpcId()} - ${masterItem.getCidrBlock()}"

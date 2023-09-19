@@ -7,11 +7,11 @@ import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
-import com.morpheusdata.model.ComputeZoneRegion
+import com.morpheusdata.model.CloudRegion
 import com.morpheusdata.model.Snapshot as SnapshotModel
 import com.morpheusdata.model.StorageVolume
 import com.morpheusdata.model.StorageVolumeType
-import com.morpheusdata.model.projection.ComputeZoneRegionIdentityProjection
+import com.morpheusdata.model.projection.CloudRegionIdentity
 import com.morpheusdata.model.projection.SnapshotIdentityProjection
 import com.morpheusdata.model.projection.StorageVolumeIdentityProjection
 import groovy.util.logging.Slf4j
@@ -61,7 +61,7 @@ class SnapshotSync {
 		}
 	}
 
-	private List<String> addMissingSnapshots(Collection<Snapshot> addList, ComputeZoneRegionIdentityProjection region, Map<String, StorageVolumeIdentityProjection> volumes) {
+	private List<String> addMissingSnapshots(Collection<Snapshot> addList, CloudRegionIdentity region, Map<String, StorageVolumeIdentityProjection> volumes) {
 		log.debug "addMissingSnapshots: ${cloud} ${region.externalId} ${addList.size()}"
 		def adds = []
 
@@ -74,7 +74,7 @@ class SnapshotSync {
 					name: cloudItem.snapshotId,
 					externalId: cloudItem.snapshotId,
 					snapshotCreated: cloudItem.startTime,
-					region: new ComputeZoneRegion(id: region.id),
+					region: new CloudRegion(id: region.id),
 					volume: new StorageVolume(id: volume.id),
 					volumeType: allVolumeTypes['s3Object'],
 					maxStorage: (cloudItem.volumeSize ?: 0) * ComputeUtility.ONE_GIGABYTE
@@ -90,7 +90,7 @@ class SnapshotSync {
 		adds.collect { it.externalId }
 	}
 
-	private updateMatchedSnapshots(List<SyncTask.UpdateItem<SnapshotModel, Snapshot>> updateList, ComputeZoneRegionIdentityProjection region) {
+	private updateMatchedSnapshots(List<SyncTask.UpdateItem<SnapshotModel, Snapshot>> updateList, CloudRegionIdentity region) {
 		log.debug "updateMatchedSnapshots: ${cloud} ${region.externalId} ${updateList.size()}"
 		def saveList = []
 

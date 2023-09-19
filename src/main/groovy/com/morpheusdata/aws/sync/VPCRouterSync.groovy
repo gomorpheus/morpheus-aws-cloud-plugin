@@ -1,9 +1,7 @@
 package com.morpheusdata.aws.sync
 
 import com.amazonaws.services.ec2.model.Region
-import com.amazonaws.services.ec2.model.Vpc
 import com.morpheusdata.aws.AWSPlugin
-import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
@@ -15,7 +13,6 @@ import com.morpheusdata.model.projection.CloudPoolIdentity
 import com.morpheusdata.model.projection.NetworkRouterIdentityProjection
 import groovy.util.logging.Slf4j
 import io.reactivex.Observable
-import io.reactivex.Single
 
 /**
  * Sync class for syncing VPCs within an AWS Cloud account

@@ -11,11 +11,11 @@ import com.morpheusdata.core.util.SyncList
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.core.util.SyncTask.UpdateItemDto
 import com.morpheusdata.model.Cloud
+import com.morpheusdata.model.CloudPool
+import com.morpheusdata.model.CloudRegion
 import com.morpheusdata.model.ComputeServer
 import com.morpheusdata.model.ComputeServerInterface
 import com.morpheusdata.model.ComputeServerType
-import com.morpheusdata.model.ComputeZonePool
-import com.morpheusdata.model.ComputeZoneRegion
 import com.morpheusdata.model.MetadataTag
 import com.morpheusdata.model.Network
 import com.morpheusdata.model.OsType
@@ -24,9 +24,9 @@ import com.morpheusdata.model.ServicePlan
 import com.morpheusdata.model.StorageVolume
 import com.morpheusdata.model.StorageVolumeType
 import com.morpheusdata.model.Workload
+import com.morpheusdata.model.projection.CloudPoolIdentity
+import com.morpheusdata.model.projection.CloudRegionIdentity
 import com.morpheusdata.model.projection.ComputeServerIdentityProjection
-import com.morpheusdata.model.projection.ComputeZonePoolIdentityProjection
-import com.morpheusdata.model.projection.ComputeZoneRegionIdentityProjection
 import com.morpheusdata.model.projection.SecurityGroupLocationIdentityProjection
 import com.morpheusdata.model.projection.ServicePlanIdentityProjection
 import com.morpheusdata.model.projection.WorkloadIdentityProjection
@@ -40,7 +40,7 @@ class VirtualMachineSync {
 	private AWSPlugin plugin
 	private Map<String, ComputeServerType> computeServerTypes
 	private Map<String, ServicePlanIdentityProjection> servicePlans
-	private Map<String, ComputeZonePoolIdentityProjection> zonePools
+	private Map<String, CloudPoolIdentity> zonePools
 	private Map<String, OsType> osTypes
 	private Map<String, StorageVolumeType> storageVolumeTypes
 
@@ -92,18 +92,19 @@ class VirtualMachineSync {
 		}
 	}
 
-	def addMissingVirtualMachines(List<Instance> addList, ComputeZoneRegionIdentityProjection region, Map<String, Volume> volumeMap, Map usageLists = null, String defaultServerType = null) {
+	def addMissingVirtualMachines(List<Instance> addList, CloudRegionIdentity region, Map<String, Volume> volumeMap, Map usageLists = null, String defaultServerType = null) {
 		while (addList?.size() > 0) {
+			List<ComputeServer> saves = []
 			addList.take(50).each { cloudItem ->
 				def zonePool = allZonePools[cloudItem.vpcId]
 				if ((!cloudItem.getVpcId() || zonePool?.inventory != false) && cloudItem.getState()?.getCode() != 0) {
 					// get service plan
 					def servicePlan = cloudItem.instanceType ? getServicePlan("amazon-${cloudItem.instanceType}") : null
 					def osType = cloudItem.platform?.toLowerCase()?.contains('windows') ? 'windows' : 'linux'
-					def vmConfig = [
+					ComputeServer add = new ComputeServer(
 						account          : cloud.account,
 						externalId       : cloudItem.instanceId,
-						resourcePool     : zonePool ? new ComputeZonePool(id:zonePool.id) : null,
+						resourcePool     : zonePool ? new CloudPool(id:zonePool.id) : null,
 						name             : cloudItem.tags?.find { it.key == 'Name' }?.value ?: cloudItem.instanceId,
 						externalIp       : cloudItem.publicIpAddress,
 						internalIp       : cloudItem.privateIpAddress,
@@ -123,12 +124,27 @@ class VirtualMachineSync {
 						powerState       : cloudItem.getState()?.getCode() == 16 ? ComputeServer.PowerState.on : ComputeServer.PowerState.off,
 						osType           : osType,
 						serverOs         : allOsTypes[osType] ?: new OsType(code: 'unknown'),
-						region           : new ComputeZoneRegion(id: region.id),
+						region           : new CloudRegion(id: region.id),
 						computeServerType: allComputeServerTypes[defaultServerType ?: (osType == 'windows' ? 'amazonWindowsVm' : 'amazonUnmanaged')],
-						maxMemory        : servicePlan?.maxMemory
-					]
-
-					ComputeServer add = new ComputeServer(vmConfig)
+						maxMemory        : servicePlan?.maxMemory,
+						configMap		 : [
+							blockDevices: cloudItem.blockDeviceMappings?.collect{[name:it.deviceName, ebs:it.ebs]} ?: [],
+							imageId: cloudItem.imageId,
+							instanceType: cloudItem.instanceType,
+							keyName: cloudItem.keyName,
+							launchTime: cloudItem.launchTime,
+							privateDnsName: cloudItem.privateDnsName,
+							publicDnsName: cloudItem.publicDnsName,
+							securityGroups: cloudItem.securityGroups?.collect{[id:it.groupId, name:it.groupName]} ?: [],
+							subnetId: cloudItem.subnetId,
+							tags: cloudItem.tags?.collect{[key:it.key, value:it.value]} ?: [],
+							vpcId: cloudItem.vpcId,
+							vpc: cloudItem.vpcId,
+							architecture: cloudItem.architecture,
+							clientToken: cloudItem.clientToken,
+							ebsOptimized: cloudItem.ebsOptimized
+						]
+					)
 					if (servicePlan) {
 						applyServicePlan(add, servicePlan)
 					}
@@ -138,12 +154,12 @@ class VirtualMachineSync {
 					} else {
 						def postSaveResults = performPostSaveSync(cloudItem, savedServer, volumeMap)
 						if (postSaveResults.saveRequired) {
-							morpheusContext.async.computeServer.save([savedServer]).blockingGet()
+							saves << savedServer
 						}
 					}
 
 					if(usageLists) {
-						if (vmConfig.powerState == ComputeServer.PowerState.on) {
+						if (savedServer.powerState == ComputeServer.PowerState.on) {
 							usageLists.startUsageIds << savedServer.id
 						} else {
 							usageLists.stopUsageIds << savedServer.id
@@ -153,11 +169,14 @@ class VirtualMachineSync {
 					log.info("skipping: {}", cloudItem)
 				}
 			}
+			if(saves) {
+				morpheusContext.async.computeServer.bulkSave(saves).blockingGet()
+			}
 			addList = addList.drop(50)
 		}
 	}
 
-	def updateMatchedVirtualMachines(List<SyncTask.UpdateItem<ComputeServer, Instance>> updateList, ComputeZoneRegionIdentityProjection region, Map<String, Volume> volumeMap, Map usageLists, String inventoryLevel) {
+	def updateMatchedVirtualMachines(List<SyncTask.UpdateItem<ComputeServer, Instance>> updateList, CloudRegionIdentity region, Map<String, Volume> volumeMap, Map usageLists, String inventoryLevel) {
 		def statsData = []
 		def managedServerIds = updateList.findAll { it.existingItem.computeServerType?.managed }.collect{it.existingItem.id}
 		def workloads = managedServerIds ? morpheusContext.async.cloud.listCloudWorkloadProjections(cloud.id).filter { workload ->
@@ -180,7 +199,7 @@ class VirtualMachineSync {
 						save = true
 					}
 					if(currentServer.region?.externalId != region.externalId) {
-						currentServer.region = new ComputeZoneRegion(id: region.id)
+						currentServer.region = new CloudRegion(id: region.id)
 						save = true
 					}
 					if(name != currentServer.name) {
@@ -188,7 +207,7 @@ class VirtualMachineSync {
 						save = true
 					}
 					if(currentServer.resourcePool?.id != zonePool?.id) {
-						currentServer.resourcePool = zonePool?.id ? new ComputeZonePool(id:zonePool.id) : null
+						currentServer.resourcePool = zonePool?.id ? new CloudPool(id:zonePool.id) : null
 						save = true
 					}
 
@@ -733,7 +752,7 @@ class VirtualMachineSync {
 		osTypes ?: (osTypes = morpheusContext.async.osType.listAll().toMap {it.code}.blockingGet())
 	}
 
-	private Map<String, ComputeZonePoolIdentityProjection> getAllZonePools() {
+	private Map<String, CloudPoolIdentity> getAllZonePools() {
 		zonePools ?: (zonePools = morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id, '', null).toMap {it.externalId}.blockingGet())
 	}
 
