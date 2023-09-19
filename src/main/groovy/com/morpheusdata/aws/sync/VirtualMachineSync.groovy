@@ -178,6 +178,7 @@ class VirtualMachineSync {
 
 	def updateMatchedVirtualMachines(List<SyncTask.UpdateItem<ComputeServer, Instance>> updateList, CloudRegionIdentity region, Map<String, Volume> volumeMap, Map usageLists, String inventoryLevel) {
 		def statsData = []
+		recordsToSave = []
 		def managedServerIds = updateList.findAll { it.existingItem.computeServerType?.managed }.collect{it.existingItem.id}
 		def workloads = managedServerIds ? morpheusContext.async.cloud.listCloudWorkloadProjections(cloud.id).filter { workload ->
 			workload.serverId in managedServerIds
@@ -267,12 +268,15 @@ class VirtualMachineSync {
 					}
 
 					if (save) {
-						morpheusContext.async.computeServer.save([currentServer]).blockingGet()
+						recordsToSave << currentServer
 					}
 				} catch(e) {
 					log.warn("Error Updating Virtual Machine ${currentServer?.name} - ${currentServer.externalId} - ${e}", e)
 				}
 			}
+		}
+		if(recordsToSave) {
+			morpheusContext.async.computeServer.bulkSave(recordsToSave).blockingGet()
 		}
 		if(statsData) {
 			for(statData in statsData) {
