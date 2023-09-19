@@ -98,7 +98,7 @@ class KeyPairSync {
 
 		if(saveList) {
 			log.debug "About to update ${saveList.size()} keypairs"
-			morpheusContext.async.keyPair.save(saveList)
+			morpheusContext.async.keyPair.save(saveList).blockingGet()
 		}
 	}
 
