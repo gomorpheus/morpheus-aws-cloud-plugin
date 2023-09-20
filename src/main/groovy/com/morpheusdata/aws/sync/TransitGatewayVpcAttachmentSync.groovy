@@ -84,7 +84,7 @@ class TransitGatewayVpcAttachmentSync extends InternalResourceSync {
 				existingItem.name = name
 				save = true
 			}
-			String rawData = JsonOutput.toJson([vpcId: cloudItem.getVpcId(), state: cloudItem.getState()])
+			String rawData = JsonOutput.toJson([vpcId: masterItem.getVpcId(), state: masterItem.getState()])
 			if(existingItem.rawData != rawData) {
 				existingItem.rawData = rawData
 				save = true
