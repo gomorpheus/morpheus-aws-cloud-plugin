@@ -54,7 +54,7 @@ class KeyPairSync {
 		List adds = []
 		for (KeyPairInfo cloudItem in addList) {
 			adds << new KeyPair(
-				account: new Account(id: cloud.account.id),
+				accountId: cloud.account.id,
 				name: cloudItem.keyName,
 				internalId: cloudItem.keyFingerprint,
 				externalId: cloudItem.keyPairId,
@@ -68,7 +68,7 @@ class KeyPairSync {
 		}
 
 		log.debug "About to create ${adds.size()} keypairs"
-		morpheusContext.async.keyPair.create(adds).blockingGet()
+		morpheusContext.async.keyPair.bulkCreate(adds).blockingGet()
 	}
 
 	private updateMatchedKeyPairs(List<SyncTask.UpdateItem<KeyPair, KeyPairInfo>> updateList, CloudRegionIdentity region) {
@@ -98,12 +98,12 @@ class KeyPairSync {
 
 		if(saveList) {
 			log.debug "About to update ${saveList.size()} keypairs"
-			morpheusContext.async.keyPair.save(saveList)
+			morpheusContext.async.keyPair.bulkSave(saveList).blockingGet()
 		}
 	}
 
-	private removeMissingKeyPairs(Collection<KeyPairIdentityProjection> removeList) {
+	private removeMissingKeyPairs(List<KeyPairIdentityProjection> removeList) {
 		log.debug "removeMissingKeyPairs: ${cloud} ${removeList.size()}"
-		morpheusContext.async.keyPair.remove(removeList).blockingGet()
+		morpheusContext.async.keyPair.bulkRemove(removeList).blockingGet()
 	}
 }
