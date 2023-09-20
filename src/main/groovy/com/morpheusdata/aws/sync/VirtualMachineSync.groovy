@@ -6,6 +6,7 @@ import com.amazonaws.services.ec2.model.Volume
 import com.morpheusdata.aws.AWSPlugin
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
+import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.core.util.SyncList
 import com.morpheusdata.core.util.SyncTask
@@ -19,7 +20,6 @@ import com.morpheusdata.model.ComputeServerType
 import com.morpheusdata.model.MetadataTag
 import com.morpheusdata.model.Network
 import com.morpheusdata.model.OsType
-import com.morpheusdata.model.ProvisionType
 import com.morpheusdata.model.ServicePlan
 import com.morpheusdata.model.StorageVolume
 import com.morpheusdata.model.StorageVolumeType
@@ -93,84 +93,88 @@ class VirtualMachineSync {
 	}
 
 	def addMissingVirtualMachines(List<Instance> addList, CloudRegionIdentity region, Map<String, Volume> volumeMap, Map usageLists = null, String defaultServerType = null) {
-		while (addList?.size() > 0) {
-			List<ComputeServer> saves = []
-			addList.take(50).each { cloudItem ->
+		while (addList) {
+			Map<String, Instance> cloudItems = [:]
+			List<ComputeServer> adds = []
+			for(Instance cloudItem : addList.take(50)) {
+				cloudItems[cloudItem.instanceId] = cloudItem
 				def zonePool = allZonePools[cloudItem.vpcId]
 				if ((!cloudItem.getVpcId() || zonePool?.inventory != false) && cloudItem.getState()?.getCode() != 0) {
 					// get service plan
-					def servicePlan = cloudItem.instanceType ? getServicePlan("amazon-${cloudItem.instanceType}") : null
+					def servicePlan = cloudItem.instanceType ? amazonServicePlans["amazon-${cloudItem.instanceType}".toString()] : null
 					def osType = cloudItem.platform?.toLowerCase()?.contains('windows') ? 'windows' : 'linux'
 					ComputeServer add = new ComputeServer(
-						account          : cloud.account,
-						externalId       : cloudItem.instanceId,
-						resourcePool     : zonePool ? new CloudPool(id:zonePool.id) : null,
-						name             : cloudItem.tags?.find { it.key == 'Name' }?.value ?: cloudItem.instanceId,
-						externalIp       : cloudItem.publicIpAddress,
-						internalIp       : cloudItem.privateIpAddress,
-						osDevice         : cloudItem.rootDeviceName,
-						sshHost          : cloudItem.privateIpAddress,
-						serverType       : 'vm',
-						sshUsername      : 'root',
-						apiKey           : java.util.UUID.randomUUID(),
-						provision        : false,
-						singleTenant     : true,
-						cloud            : cloud,
-						lvmEnabled       : false,
-						discovered       : true,
-						managed          : false,
-						dateCreated      : cloudItem.launchTime,
-						status           : 'provisioned',
-						powerState       : cloudItem.getState()?.getCode() == 16 ? ComputeServer.PowerState.on : ComputeServer.PowerState.off,
-						osType           : osType,
-						serverOs         : allOsTypes[osType] ?: new OsType(code: 'unknown'),
-						region           : new CloudRegion(id: region.id),
+						account: cloud.account,
+						externalId: cloudItem.instanceId,
+						resourcePool: zonePool ? new CloudPool(id: zonePool.id) : null,
+						name: cloudItem.tags?.find { it.key == 'Name' }?.value ?: cloudItem.instanceId,
+						externalIp: cloudItem.publicIpAddress,
+						internalIp: cloudItem.privateIpAddress,
+						osDevice: cloudItem.rootDeviceName,
+						sshHost: cloudItem.privateIpAddress,
+						serverType: 'vm',
+						sshUsername: 'root',
+						apiKey: java.util.UUID.randomUUID(),
+						provision: false,
+						singleTenant: true,
+						cloud: cloud,
+						lvmEnabled: false,
+						discovered: true,
+						managed: false,
+						dateCreated: cloudItem.launchTime,
+						status: 'provisioned',
+						powerState: cloudItem.getState()?.getCode() == 16 ? ComputeServer.PowerState.on : ComputeServer.PowerState.off,
+						osType: osType,
+						serverOs: allOsTypes[osType] ?: new OsType(code: 'unknown'),
+						region: new CloudRegion(id: region.id),
 						computeServerType: allComputeServerTypes[defaultServerType ?: (osType == 'windows' ? 'amazonWindowsVm' : 'amazonUnmanaged')],
-						maxMemory        : servicePlan?.maxMemory,
-						configMap		 : [
-							blockDevices: cloudItem.blockDeviceMappings?.collect{[name:it.deviceName, ebs:it.ebs]} ?: [],
-							imageId: cloudItem.imageId,
-							instanceType: cloudItem.instanceType,
-							keyName: cloudItem.keyName,
-							launchTime: cloudItem.launchTime,
+						maxMemory: servicePlan?.maxMemory,
+						configMap: [
+							blockDevices  : cloudItem.blockDeviceMappings?.collect { [name: it.deviceName, ebs: it.ebs] } ?: [],
+							imageId       : cloudItem.imageId,
+							instanceType  : cloudItem.instanceType,
+							keyName       : cloudItem.keyName,
+							launchTime    : cloudItem.launchTime,
 							privateDnsName: cloudItem.privateDnsName,
-							publicDnsName: cloudItem.publicDnsName,
-							securityGroups: cloudItem.securityGroups?.collect{[id:it.groupId, name:it.groupName]} ?: [],
-							subnetId: cloudItem.subnetId,
-							tags: cloudItem.tags?.collect{[key:it.key, value:it.value]} ?: [],
-							vpcId: cloudItem.vpcId,
-							vpc: cloudItem.vpcId,
-							architecture: cloudItem.architecture,
-							clientToken: cloudItem.clientToken,
-							ebsOptimized: cloudItem.ebsOptimized
+							publicDnsName : cloudItem.publicDnsName,
+							securityGroups: cloudItem.securityGroups?.collect { [id: it.groupId, name: it.groupName] } ?: [],
+							subnetId      : cloudItem.subnetId,
+							tags          : cloudItem.tags?.collect { [key: it.key, value: it.value] } ?: [],
+							vpcId         : cloudItem.vpcId,
+							vpc           : cloudItem.vpcId,
+							architecture  : cloudItem.architecture,
+							clientToken   : cloudItem.clientToken,
+							ebsOptimized  : cloudItem.ebsOptimized
 						]
 					)
 					if (servicePlan) {
 						applyServicePlan(add, servicePlan)
 					}
-					ComputeServer savedServer = morpheusContext.async.computeServer.create(add).blockingGet()
-					if (!savedServer) {
-						log.error "Error in creating server ${add}"
-					} else {
-						def postSaveResults = performPostSaveSync(cloudItem, savedServer, volumeMap)
-						if (postSaveResults.saveRequired) {
-							saves << savedServer
-						}
-					}
-
-					if(usageLists) {
-						if (savedServer.powerState == ComputeServer.PowerState.on) {
-							usageLists.startUsageIds << savedServer.id
-						} else {
-							usageLists.stopUsageIds << savedServer.id
-						}
-					}
+					adds << add
 				} else {
 					log.info("skipping: {}", cloudItem)
 				}
 			}
-			if(saves) {
-				morpheusContext.async.computeServer.bulkSave(saves).blockingGet()
+
+			if(adds) {
+				List<ComputeServer> saves = []
+				adds = morpheusContext.async.computeServer.bulkCreate(adds).blockingGet().getPersistedItems()
+
+				for(ComputeServer server : adds) {
+					if(performPostSaveSync(cloudItems[server.externalId], server, volumeMap).saveRequired) {
+						saves << server
+					}
+					if(usageLists) {
+						if (server.powerState == ComputeServer.PowerState.on) {
+							usageLists.startUsageIds << server.id
+						} else {
+							usageLists.stopUsageIds << server.id
+						}
+					}
+				}
+				if(saves) {
+					morpheusContext.async.computeServer.bulkSave(saves).blockingGet()
+				}
 			}
 			addList = addList.drop(50)
 		}
@@ -319,7 +323,7 @@ class VirtualMachineSync {
 
 		// Set the plan on the server
 		if(server.plan?.code != "amazon-${cloudItem.getInstanceType()}") {
-			def servicePlan = getServicePlan("amazon-${cloudItem.getInstanceType()}")
+			ServicePlan servicePlan = amazonServicePlans["amazon-${cloudItem.getInstanceType()}".toString()]
 			if(servicePlan) {
 				applyServicePlan(server, servicePlan)
 				planChanged = true
@@ -760,17 +764,8 @@ class VirtualMachineSync {
 		zonePools ?: (zonePools = morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id, '', null).toMap {it.externalId}.blockingGet())
 	}
 
-	private Map<String, ServicePlanIdentityProjection> getAllServicePlans() {
-		servicePlans ?: (servicePlans = morpheusContext.async.servicePlan.listSyncProjections(new ProvisionType(code:'amazon')).toMap { it.code }.blockingGet())
-	}
-
-	private ServicePlan getServicePlan(String code) {
-		def servicePlan = allServicePlans[code]
-		if(servicePlan && !(servicePlan instanceof ServicePlan)) {
-			servicePlan = morpheusContext.async.servicePlan.listById([servicePlan.id]).blockingFirst()
-			allServicePlans[code] = servicePlan
-		}
-		servicePlan
+	private Map<String, ServicePlan> getAmazonServicePlans() {
+		servicePlans ?: (servicePlans = morpheusContext.async.servicePlan.list(new DataQuery().withFilter('provisionTypeCode', 'amazon')).toMap{ it.code }.blockingGet())
 	}
 
 	private Map<String, StorageVolumeType> getAllStorageVolumeTypes() {
