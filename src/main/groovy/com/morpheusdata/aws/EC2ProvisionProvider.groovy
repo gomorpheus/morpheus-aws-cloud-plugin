@@ -193,11 +193,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				displayOrder: 2
 		])
 
-		volumeTypes << new StorageVolumeType([
-				code: 'amazon-standard',
-				name: 'standard',
-		])
-
 		volumeTypes
 	}
 
