@@ -26,7 +26,7 @@ import groovy.util.logging.Slf4j
 import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
 
-import com.bertramlabs.plugins.karman.StorageProvider
+import com.bertramlabs.plugins.karman.StorageProvider as KarmanProvider
 import javax.crypto.*
 import java.security.*
 import java.security.spec.*
@@ -3277,7 +3277,7 @@ class AmazonComputeUtility {
 			providerType:storageProvider.providerType,
 			bucketName:storageProvider.bucketName,
 			storageProviderId:storageProvider.id,
-			provider:StorageProvider.create(providerOptions)
+			provider:KarmanProvider.create(providerOptions)
 		]
 		insertOpts.imageFiles?.each { sourceFile ->
 			if(sourceFile.parent?.name == providerMap.bucketName) {
@@ -5693,7 +5693,6 @@ class AmazonComputeUtility {
 	}
 
 
-
 	static getAmazonS3Client(Cloud zone, region = null, Boolean fresh = false) {
 		def creds
 		def clientExpires
@@ -5710,6 +5709,27 @@ class AmazonComputeUtility {
 
 		if(region != false) {
 			amazonClient.withRegion(region ?: getAmazonEndpointRegion(getAmazonEndpoint(zone)))
+		}
+		amazonClient = amazonClient.build()
+		return amazonClient
+	}
+
+	static getAmazonS3Client(Map authConfig, region = null, Boolean fresh = false) {
+		def creds
+		def clientExpires
+		ClientConfiguration clientConfiguration = getClientConfiguration(authConfig)
+		def credsProvider
+		if(!creds) {
+			def credsInfo = getAmazonCredentials(authConfig,clientConfiguration)
+			creds = credsInfo.credentials
+			credsProvider = credsInfo.credsProvider ?: new AWSStaticCredentialsProvider(creds)
+		}
+		//build the client
+		def builder = AmazonS3ClientBuilder.standard()
+		def amazonClient = builder.withCredentials(credsProvider).withClientConfiguration(clientConfiguration)
+
+		if(region) {
+			amazonClient.withRegion(region)
 		}
 		amazonClient = amazonClient.build()
 		return amazonClient

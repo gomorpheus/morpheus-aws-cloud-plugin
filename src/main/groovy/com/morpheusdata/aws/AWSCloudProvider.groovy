@@ -709,7 +709,7 @@ class AWSCloudProvider implements CloudProvider {
 			// initialize providers for this cloud
 			plugin.getNetworkProvider().initializeProvider(cloud)
 			plugin.getDnsProvider().initializeProvider(cloud)
-			// plugin.getStorageProvider().initializeProvider(cloud)
+			plugin.getStorageProvider().initializeProvider(cloud)
 
 			refreshDaily(cloud)
 			refresh(cloud)
