@@ -41,7 +41,7 @@ configurations {
 dependencies {
 	provided "com.morpheusdata:morpheus-plugin-api:$morphPluginApiVersion"
 	provided "org.codehaus.groovy:groovy-all:$groovyVersion"
-
+        provided "org.codehaus.groovy:groovy-dateutil:$groovyVersion"
 	provided("com.bertramlabs.plugins:karman-core:${karmanVersion}") {
 		exclude module: 'groovy-all'
 	}
@@ -321,11 +321,14 @@ dependencies {
 	testImplementation "org.slf4j:slf4j-parent:$slf4jVersion"
 
 	testImplementation "org.codehaus.groovy:groovy-all:$groovyVersion"
+        testImplementation "org.codehaus.groovy:groovy-dateutil:$groovyVersion"
+
 	// optional dependencies for using Spock
 	testImplementation "org.hamcrest:hamcrest-core:2.2"   // only necessary if Hamcrest matchers are used
 	testRuntimeOnly 'net.bytebuddy:byte-buddy:1.12.17' // allows mocking of classes (in addition to interfaces)
 	testRuntimeOnly "org.objenesis:objenesis:3.3"      // allows mocking of classes without default constructor (together with ByteBuddy or CGLIB)
 	testImplementation "com.morpheusdata:morpheus-plugin-api:$morphPluginApiVersion"
+        testImplementation group: 'ch.qos.logback', name: 'logback-classic', version: '0.9.26'
 }
 
 sourceSets {
@@ -396,6 +399,12 @@ tasks.register('publishToMorpheus') {
 }
 
 tasks.register('integrationTest', Test) {
+        systemProperties System.properties
+        useJUnitPlatform()
+        testLogging {
+                events "passed", "skipped", "failed"
+        }
+
 	testClassesDirs = sourceSets.integrationTest.output.classesDirs
 	classpath = sourceSets.integrationTest.runtimeClasspath
 }

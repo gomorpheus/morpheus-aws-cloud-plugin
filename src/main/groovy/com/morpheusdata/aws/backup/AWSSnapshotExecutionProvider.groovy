@@ -138,7 +138,7 @@ Write-VolumeCache -DriveLetter C
 			}
 			def ec2InstanceId = computeServer.externalId
 			//execute snapshot
-			def result = createSnapshotsForInstance(ec2InstanceId, cloud,regionCode)
+			def result = createSnapshotsForInstance(ec2InstanceId, cloud, regionCode)
 			if(result.success) {
 				def totalSize = (result.snapshots?.volumeSize?.sum() ?: 0) * 1024
 				def targetArchive = []
@@ -153,6 +153,7 @@ Write-VolumeCache -DriveLetter C
 						kmsKeyId: computeServer.getConfigProperty('kmsKeyId')
 					]
 				}
+				rtn.data.backupResult.zoneId
 				rtn.data.backupResult.status = BackupStatusUtility.IN_PROGRESS
 				rtn.data.backupResult.resultArchive = targetArchive.join(",")
 				rtn.data.backupResult.sizeInMb = totalSize
@@ -210,6 +211,7 @@ Write-VolumeCache -DriveLetter C
 			} else {
 				error = true
 			}
+
 			if(!error && completeCount == snapshotIds?.size()) { //all complete, update status
 				rtn.data.updates = true
 				rtn.data.backupResult.status = BackupStatusUtility.SUCCEEDED
@@ -238,6 +240,9 @@ Write-VolumeCache -DriveLetter C
 						rtn.data.backupResult.durationMillis = end.time - start.time
 					}
 				}
+			} else {
+				rtn.data.updates = false
+				rtn.success = true
 			}
 		} catch (Exception e) {
 			log.error("refreshBackupResult error: {}", e, e)
@@ -248,12 +253,12 @@ Write-VolumeCache -DriveLetter C
 
 	@Override
 	ServiceResponse cancelBackup(BackupResult backupResultModel, Map opts) {
-		return null
+		return ServiceResponse.success()
 	}
 
 	@Override
 	ServiceResponse extractBackup(BackupResult backupResultModel, Map opts) {
-		return null
+		return ServiceResponse.success()
 	}
 
 	protected createSnapshotsForInstance(instanceId, Cloud cloud, String regionCode=null){
@@ -263,7 +268,7 @@ Write-VolumeCache -DriveLetter C
 		def volumes = getVolumesForInstance(instanceId, cloud,regionCode)
 		def volumeIds = volumes.collect{it.volumeId}
 		volumeIds.each { volumeId ->
-			rtn.snapshots << createSnapshot(instanceId, volumeId, cloud,regionCode)
+			rtn.snapshots << createSnapshot(instanceId, volumeId, cloud, regionCode)
 		}
 		return rtn
 	}
@@ -306,7 +311,7 @@ Write-VolumeCache -DriveLetter C
 			AmazonEC2 amazonClient = plugin.getAmazonClient(cloud, false, regionCode)
 			DeleteSnapshotRequest deleteSnapshotRequest  = new DeleteSnapshotRequest(snapshotId)
 			amazonClient.deleteSnapshot(deleteSnapshotRequest)
-			log.info("deleted snapshot ${snapshotId}")
+			log.debug("deleted snapshot ${snapshotId}")
 		} catch(AmazonEC2Exception exAws) {
 			if(exAws.getErrorCode() != 'InvalidSnapshot.NotFound') {
 				rtn.success = false

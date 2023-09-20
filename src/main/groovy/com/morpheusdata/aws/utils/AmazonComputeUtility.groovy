@@ -175,6 +175,7 @@ class AmazonComputeUtility {
 	}
 
 	static createServer(opts) {
+		log.debug("createServer opts: ${opts}")
 		def rtn = [success:false]
 		try {
 			def amazonClient = opts.amazonClient
@@ -247,10 +248,12 @@ class AmazonComputeUtility {
 			}
 			//disks
 			def diskList = new LinkedList<BlockDeviceMapping>()
+			log.debug("createServer osDiskSize: ${opts.osDiskSize}")
 			if(opts.osDiskSize) {
 				EbsBlockDevice rootDisk = new EbsBlockDevice()
 				opts += addDiskOpts(diskType, opts.osDiskSize.toInteger(), opts)
 				rootDisk.withVolumeType(diskType).withVolumeSize(opts.osDiskSize.toInteger())
+				log.debug("createServer osDiskSnapshot: ${opts.osDiskSnapshot}, imageRef: ${imageRef}")
 				if(opts.osDiskSnapshot) {
 					rootDisk.withSnapshotId(opts.osDiskSnapshot)
 				}
@@ -293,7 +296,7 @@ class AmazonComputeUtility {
 				rtn.volumes = getVmVolumes(rtn.server)
 				rtn.networks = getVmNetworks(rtn.server)
 			}
-			log.debug("got: ${rtn.results}")
+			log.debug("createServer results: ${rtn.results}")
 			// //tag it
 			// def nameTag = new Tag('Name', opts.name ?:"morpheus node")
 			// def resourceList = new LinkedList<String>()
@@ -3358,6 +3361,7 @@ class AmazonComputeUtility {
 			rtn.imageId = match.imageId
 			rtn.success = true
 		}
+		log.debug("Insert snapshot image results: ${rtn}")
 		return rtn
 	}
 
@@ -3376,7 +3380,7 @@ class AmazonComputeUtility {
 		blockDeviceMapping.setDeviceName(snapshotOpts.deviceName)
 		def ebsDevice = new EbsBlockDevice()
 		ebsDevice.setSnapshotId(snapshotOpts.snapshotId)
-		ebsDevice.setVolumeSize(snapshotOpts.volumeSize)
+		ebsDevice.setVolumeSize(snapshotOpts.volumeSize?.toInteger())
 		ebsDevice.setVolumeType(snapshotOpts.volumeType)
 		if(snapshotOpts.volumeType == "io1")
 			ebsDevice.setIops(snapshotOpts.iops)
@@ -4361,7 +4365,7 @@ class AmazonComputeUtility {
 	}
 
 	//sts calls
-	static getClientIdentity(AWSSecurityTokenServiceClient amazonClient, Map opts) {
+	static getClientIdentity(AWSSecurityTokenService amazonClient, Map opts) {
 		def rtn = [success:false, results:null]
 		try {
 			def identityRequest = new GetCallerIdentityRequest()
@@ -5317,6 +5321,41 @@ class AmazonComputeUtility {
 		return amazonClient
 	}
 
+	static getAmazonSecurityClient(zone, Boolean fresh = false, String region = null) {
+		def rtn = [:]
+		def creds
+		def clientExpires
+		def credsProvider
+		def clientInfo = getCachedClientInfo("zone:${zone.id}:${region}",'stsClient')
+		if(!fresh && clientInfo.client) {
+			return [amazonClient: clientInfo.client, securityProvider: clientInfo.credsProvider]
+		} else if(!fresh) {
+			creds = clientInfo.credentials
+			credsProvider = clientInfo.credentialsProvider
+		}
+		ClientConfiguration clientConfiguration = getClientConfiguration(zone)
+		
+		if(!creds) {
+			def credsInfo = getAmazonCredentials(zone,clientConfiguration)
+			creds = credsInfo.credentials
+			clientExpires = credsInfo.clientExpires
+			credsProvider = credsInfo.credsProvider
+		}
+		def builder = AWSSecurityTokenServiceClientBuilder.standard()
+		if(region) {
+			builder.setRegion(region)
+		} else {
+			String endpoint = getAmazonEndpoint(zone)
+			String zoneRegion = getAmazonEndpointRegion(endpoint)
+			builder.setRegion(zoneRegion)
+		}
+		def amazonClient = builder.withCredentials(credsProvider).withClientConfiguration(clientConfiguration).build()
+		setCachedClientInfo("zone:${zone.id}:${region}", amazonClient, creds, credsProvider, clientExpires, 'stsClient', fresh)
+		rtn.amazonClient = amazonClient
+		rtn.securityProvider = credsProvider
+		return rtn
+	}
+
 	static getAmazonElbClassicClient(zone, Boolean fresh = false, String region = null) {
 		def creds
 		def credsProvider
@@ -5476,7 +5515,7 @@ class AmazonComputeUtility {
 		return rtn
 	}
 
-	static getAmazonCostingSecurityClient(Cloud zone) {
+	static AWSSecurityTokenService getAmazonCostingSecurityClient(Cloud zone) {
 		def rtn
 		def authConfig = [:]
 		//access / secret key and region
@@ -5500,7 +5539,7 @@ class AmazonComputeUtility {
 			authConfig.apiProxy.proxyWorkstation = zone.apiProxy.proxyWorkstation
 		}
 		rtn = AmazonComputeUtility.getAmazonSecurityClient(authConfig)
-		return rtn.amazonClient
+		return rtn.amazonClient as AWSSecurityTokenService
 	}
 
 	static getAmazonPricingClient(Cloud zone) {

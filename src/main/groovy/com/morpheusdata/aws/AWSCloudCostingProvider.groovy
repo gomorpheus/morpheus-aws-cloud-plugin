@@ -272,90 +272,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			Integer filePosition = 0
 			Observable<String> reportObservable = Observable.fromIterable(reportKeys)
 			reportObservable.flatMap { String reportKey ->
-				Observable<Map> fileProcessor = Observable.create(new ObservableOnSubscribe<Map>() {
-					@Override
-					public void subscribe(@NonNull ObservableEmitter<Map> emitter) throws Exception {
-						File costFile
-						InputStream dataFileStream
-						try {
-							log.info("Processing File ${filePosition + 1} for Billing Period {} - File Count: {}", period, reportKeys.size())
-							filePosition++
-							CloudFile dataFile = storageProvider[costReport.bucket as String][reportKey]
-
-							if(!dataFile.exists()) {
-								log.warn("Missing Amazon Costing Report File Defined in Manifest, Continuing to next file")
-								throw new Exception("Missing Amazon Costing Report File Defined in Manifest, Continuing to next file")
-							}
-
-
-							//processing stats
-							Map batchStats = [batchCount: 0L, lineItems: 0L, newInvoice: 0L, newItem: 0L, newResource: 0L, itemUpdate: 0L, unprocessed: 0L, maxDate: null]
-							//period date
-							Integer retryCount = 0
-							//need to throw an exception to break out
-							Boolean pending = true
-							while(pending) {
-								try {
-									costFile = getTemporaryCostFile()
-									OutputStream os = costFile.newOutputStream()
-									os << dataFile.getInputStream()
-									os.flush()
-									os.close()
-									break
-								} catch(e) {
-									log.error("Error Downloading File for AWS Cost CUR Report. Trying again...")
-									retryCount++
-									sleep(30000l)
-									if(retryCount > 3) {
-										throw new Exception("Error Processing AWS Billing Report...Failed to download file ${reportKey}", e)
-									}
-								}
-							}
-							dataFileStream = new GZIPInputStream(costFile.newInputStream(), 65536)
-							BufferedReader br = new BufferedReader(new InputStreamReader(dataFileStream))
-							CsvReader csvReader = CsvReader.builder().build(br)
-							Long lineCounter = 0
-							List columnList = []
-							for(CsvRow line : csvReader) {
-								if(lineCounter == 0) {
-									//process the header
-									columnList = processBillingHeader(manifest, line)
-									log.debug("columnList: {}", columnList)
-								} else {
-									Map<String, Object> row = processBillingLine(columnList, line)
-									//check if its got a price to it - and is past the last process cutoff
-									if(row && row.lineItem && (row.lineItem as Map<String, Object>)['UnblendedCost']) {
-										row.uniqueId = getLineItemHash("${row.lineItem['UsageAccountId']}_${row.product['servicecode']}_${row.lineItem['UsageType']}_${row.lineItem['Operation']}_${row.lineItem['LineItemType']}_${row.lineItem['UnblendedRate']}_${row.lineItem['ResourceId']}_${row.savingsPlan['SavingsPlanARN']}_${row.lineItem['AvailabilityZone']}_${row.reservation['SubscriptionId']}_${row.lineItem['LineItemDescription']}")
-										emitter.onNext(row)
-									}
-
-								}
-								lineCounter++
-							}
-							emitter.onComplete();
-						} catch(Exception e) {
-							emitter.onError(e);
-						}finally {
-							if(dataFileStream) {
-								try {
-									dataFileStream.close()
-								} catch(ignore) {
-									//ignore close errors
-								}
-							}
-							try {
-								if(costFile) {
-									costFile.delete()
-								}
-							} catch(ex3) {
-								log.warn("Error Deleting Cost File Cache: ${ex3.message}")
-							}
-
-						}
-					}
-				}).subscribeOn(Schedulers.io())
-
-				return fileProcessor
+				return createCsvStreamer(storageProvider,costReport.bucket as String,reportKey,period,manifest)
 			}.buffer(billingBatchSize).map {rows ->
 				processAwsBillingBatch(cloud,period,costReport,rows,costDate,opts)
 			}.buffer(billingBatchSize * 10000).flatMapCompletable {
@@ -368,7 +285,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 
 
 
-	InvoiceProcessResult processAwsBillingBatch(Cloud cloud, String tmpPeriod, Map costReport, Collection lineItems, Date costDate, Map opts) {
+	InvoiceProcessResult processAwsBillingBatch(Cloud cloud, String tmpPeriod, Collection<Map<String,Object>> lineItems, Date costDate, Map opts) {
 		InvoiceProcessResult chunkedResult = new InvoiceProcessResult()
 		try {
 			Date startDate = DateUtility.getStartOfGmtMonth(costDate)
@@ -376,8 +293,8 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			List<String> usageAccountIds = [] as List<String>
 			List<AccountInvoiceItem> invoiceItems = [] as List<AccountInvoiceItem>
 			for(li in lineItems) {
-				usageAccountIds << li.lineItem['UsageAccountId'] as String
-				lineItemIds << li.uniqueId
+				usageAccountIds.add(li.lineItem['UsageAccountId'] as String)
+				lineItemIds.add(li.uniqueId as String)
 			}
 			//reduce size of list for repeat entries for the same item
 			usageAccountIds.unique()
@@ -2316,7 +2233,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 		return rtn
 	}
 
-	def loadAwsReservationUsage(Cloud zone, Date costDate) {
+	def loadAwsReservationUsage(Cloud cloud, Date costDate) {
 		def rtn = [success:false, items:[]]
 		try {
 			costDate = costDate ?: new Date()
@@ -2326,19 +2243,18 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			rtn.periodStart = periodStart
 			rtn.periodEnd = periodEnd
 			//get security user
-			def securityClient = amazonComputeService.getAmazonSecurityClient(zone)
+			def securityClient = AmazonComputeUtility.getAmazonSecurityClient(cloud).amazonClient
 			def identityResults = AmazonComputeUtility.getClientIdentity(securityClient, [:])
 			log.debug("identityResults: {}", identityResults.results)
-			def awsAccountId = identityResults.results?.getAccount()
+			String awsAccountId = identityResults.results?.getAccount() as String
 			def awsUserArn = identityResults.results?.getArn()
-			def awsRegion = AmazonProvisionService.getAmazonRegion(zone)
-			def awsRegions = CloudRegion.where { zone == zone}.property('externalId').list()
-
+			String awsRegion = AmazonComputeUtility.getAmazonEndpointRegion(cloud.regionCode)
+			def awsRegions = morpheusContext.async.cloud.region.list(new DataQuery().withFilter(new DataFilter<Long>("zone.id",cloud.id))).map {it.externalId}.toList().blockingGet()
 
 			def isGovAccount = awsUserArn.indexOf('-gov') > -1
 			log.debug("awsRegion: {} awsAccountId: {} awsUserArn: {} isGovAccount: {}", awsRegion, awsAccountId, awsUserArn, isGovAccount)
 			//get client
-			AWSCostExplorer amazonClient = getAmazonCostClient(zone)
+			AWSCostExplorer amazonClient = getAmazonCostClient(cloud)
 
 			//get total spend month to day
 			def reservationRequest = new GetReservationUtilizationRequest()
@@ -2425,7 +2341,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 		return rtn
 	}
 
-	def loadAwsReservationGuidance(Cloud zone, Date costDate) {
+	def loadAwsReservationGuidance(Cloud cloud, Date costDate) {
 		def rtn = [success:false, items:[], services:[:]]
 		try {
 			costDate = costDate ?: new Date()
@@ -2434,7 +2350,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			rtn.periodStart = periodStart
 			rtn.periodEnd = periodEnd
 			//get client
-			AWSCostExplorer amazonClient = getAmazonCostClient(zone)
+			AWSCostExplorer amazonClient = getAmazonCostClient(cloud)
 			//terms
 			def termList = ['ONE_YEAR', 'THREE_YEARS']
 			//options
@@ -2443,12 +2359,12 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			def serviceList = ['Amazon Elastic Compute Cloud - Compute', 'Amazon Relational Database Service', 'Amazon Redshift',
 							   'Amazon ElastiCache', 'Amazon Elasticsearch Service']
 			//get security user
-			def securityClient = amazonComputeService.getAmazonCostingSecurityClient(zone)
+			def securityClient = AmazonComputeUtility.getAmazonCostingSecurityClient(cloud)
 			def identityResults = AmazonComputeUtility.getClientIdentity(securityClient, [:])
 			log.debug("identityResults: {}", identityResults.results)
-			def awsAccountId = identityResults.results?.getAccount()
-			def awsUserArn = identityResults.results?.getArn()
-			def awsRegion = AmazonProvisionService.getAmazonRegion(zone)
+			String awsAccountId = identityResults.results?.getAccount() as String
+			String awsUserArn = identityResults.results?.getArn() as String
+			def awsRegion = AmazonComputeUtility.getAmazonEndpointRegion(cloud.regionCode)
 			def isGovAccount = awsUserArn.indexOf('-gov') > -1
 			log.debug("awsRegion: {} awsAccountId: {} awsUserArn: {} isGovAccount: {}", awsRegion, awsAccountId, awsUserArn, isGovAccount)
 			//find all combinations
@@ -2625,12 +2541,12 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			// lookback period S
 			def lookbackPeriodList = ['SEVEN_DAYS', 'THIRTY_DAYS', 'SIXTY_DAYS']
 			//get security user
-			def securityClient = amazonComputeService.getAmazonSecurityClient(zone)
+			def securityClient = AmazonComputeUtility.getAmazonSecurityClient(zone).amazonClient
 			def identityResults = AmazonComputeUtility.getClientIdentity(securityClient, [:])
 			log.debug("identityResults: {}", identityResults.results)
-			def awsAccountId = identityResults.results?.getAccount()
-			def awsUserArn = identityResults.results?.getArn()
-			def awsRegion = AmazonProvisionService.getAmazonRegion(zone)
+			String awsAccountId = identityResults.results?.getAccount() as String
+			String awsUserArn = identityResults.results?.getArn() as String
+			def awsRegion = AmazonComputeUtility.getAmazonEndpointRegion(zone.regionCode)
 			def isGovAccount = awsUserArn.indexOf('-gov') > -1
 			log.debug("awsRegion: {} awsAccountId: {} awsUserArn: {} isGovAccount: {}", awsRegion, awsAccountId, awsUserArn, isGovAccount)
 			//find all combinations

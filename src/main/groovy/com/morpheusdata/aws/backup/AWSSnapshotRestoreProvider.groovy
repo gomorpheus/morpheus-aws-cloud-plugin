@@ -61,7 +61,7 @@ class AWSSnapshotRestoreProvider implements BackupRestoreProvider{
 	@Override
 	ServiceResponse<BackupRestoreResponse> restoreBackup(BackupRestore backupRestore, BackupResult backupResult, Backup backup, Map opts) {
 		ServiceResponse<BackupRestoreResponse> rtn = ServiceResponse.prepare(new BackupRestoreResponse(backupRestore))
-		log.info("restoreBackup {}, opts {}", backupResult, opts)
+		log.debug("restoreBackup {}, opts {}", backupResult, opts)
 		try {
 			Workload workload = morpheus.async.workload.get(opts.containerId).blockingGet()
 			ComputeServer server = workload.server
@@ -69,7 +69,6 @@ class AWSSnapshotRestoreProvider implements BackupRestoreProvider{
 			def ec2InstanceId = server?.externalId
 			def backupResultConfig = backupResult.getConfigMap()
 			def snapshotIds = backupResultConfig.snapshots?.collect{ it.snapshotId }
-			log.info("snapshotIds: {}", snapshotIds)
 			// Detach existing volumes
 			def volumesDetached = stopAndDetachVolumes(ec2InstanceId, cloud, server.region?.regionCode)
 			snapshotIds.each { snapshotId ->
@@ -84,8 +83,7 @@ class AWSSnapshotRestoreProvider implements BackupRestoreProvider{
 			if(startStatus == 'running') {
 				def amazonClient = plugin.getAmazonClient(cloud, false , server.region?.regionCode)
 				volumesDetached?.each { volumeId ->
-					log.info "deleting the existing volume: ${volumeId}"
-					AmazonComputeUtility.deleteVolume([amzonClient: amazonClient, volumeId: volumeId])
+					AmazonComputeUtility.deleteVolume([amazonClient: amazonClient, volumeId: volumeId])
 				}
 			}
 			updateInstanceIp(server.id, ec2InstanceId, cloud)
@@ -108,7 +106,7 @@ class AWSSnapshotRestoreProvider implements BackupRestoreProvider{
 	}
 
 	protected restoreSnapshotToInstance(instanceId, snapshotConfig, Cloud cloud, String regionCode=null) {
-		log.info("restoreSnapshotToInstance: instanceId {}, snapshotConfig {}", instanceId, snapshotConfig)
+		log.debug("restoreSnapshotToInstance: instanceId {}, snapshotConfig {}", instanceId, snapshotConfig)
 		def snapshotId = snapshotConfig.snapshotId
 		def deviceName = snapshotConfig.deviceName
 		def availabilityZone = snapshotConfig.availabilityZone
@@ -125,13 +123,13 @@ class AWSSnapshotRestoreProvider implements BackupRestoreProvider{
 
 	protected stopAndDetachVolumes(instanceId, Cloud cloud, String regionCode = null) {
 		def volumesDetached = []
-		log.info("stopAndDetachVolumes: instanceId {}", instanceId)
-		def ec2Client =  getAmazonClient(cloud, false, regionCode)
+		log.debug("stopAndDetachVolumes: instanceId {}", instanceId)
+		def ec2Client = plugin.getAmazonClient(cloud, false, regionCode)
 		stopInstance(instanceId, cloud,regionCode)
 		def existingVolumes = getVolumesForInstance(instanceId, cloud,regionCode)
 		existingVolumes?.each { existingVolume ->
 			def existingVolumeId = existingVolume.volumeId
-			log.info("detaching volume {} from instance {}", existingVolumeId, instanceId)
+			log.debug("detaching volume {} from instance {}", existingVolumeId, instanceId)
 			AmazonComputeUtility.detachVolume([volumeId:existingVolumeId, instanceId:instanceId, amazonClient:ec2Client])
 			volumesDetached << existingVolumeId
 		}
@@ -167,7 +165,7 @@ class AWSSnapshotRestoreProvider implements BackupRestoreProvider{
 
 	protected waitForInstanceState(instanceId, requestedState, Cloud cloud, String regionCode=null){
 		AmazonEC2 amazonClient = plugin.getAmazonClient(cloud, false, regionCode)
-		log.info("waiting for instance ${instanceId} to go to state: ${requestedState}")
+		log.debug("waiting for instance ${instanceId} to go to state: ${requestedState}")
 		def status = ""
 		while(!(requestedState).equals(status)){
 			sleep(15000)
@@ -179,27 +177,30 @@ class AWSSnapshotRestoreProvider implements BackupRestoreProvider{
 		return status
 	}
 
-	def updateInstanceIp(Long serverId, String instanceId, Cloud cloud) {
-		log.debug("updateInstanceIp: {}, {}", serverId, instanceId)
+	def updateInstanceIp(Long morphServerId, String ec2InstanceId, Cloud cloud) {
+		log.debug("updateInstanceIp: {}, {}", morphServerId, ec2InstanceId)
 		try {
-			def morphServer = morpheus.async.computeServer.get(serverId).blockingGet()
+			def morphServer = morpheus.async.computeServer.get(morphServerId).blockingGet()
 			AmazonEC2 amazonClient = plugin.getAmazonClient(cloud, false, morphServer.region.regionCode)
-			def ec2InstanceResults = AmazonComputeUtility.getServerDetail([amazonClient: amazonClient, externalId: instanceId])
-			def ec2Instance = ec2InstanceResults.server
-			String publicIp = ec2Instance.getPublicIpAddress()
-			log.debug("publicIp is {}", publicIp)
-			if(publicIp) {
-				def networkInterface = morphServer.interfaces?.find {
-					it.ipAddress == morphServer.internalIp || it.publicIpAddress == morphServer.externalIp
-				}
-				if(networkInterface) {
-					log.info("refreshing instance public ip from: {} to: {}", networkInterface.publicIpAddress, publicIp)
-					if(morphServer.sshHost == networkInterface.publicIpAddress || morphServer.sshHost == morphServer.externalIp) {
-						morphServer.sshHost = publicIp
+			def ec2InstanceResults = AmazonComputeUtility.getServerDetail([amazonClient: amazonClient, serverId: ec2InstanceId])
+			log.debug("ec2InstanceResults: $ec2InstanceResults")
+			if(ec2InstanceResults.success) {
+				def ec2Instance = ec2InstanceResults.server
+				String publicIp = ec2Instance.getPublicIpAddress()
+				log.debug("publicIp is {}", publicIp)
+				if(publicIp) {
+					def networkInterface = morphServer.interfaces?.find {
+						it.addresses.find { it.address == morphServer.internalIp } || it.publicIpAddress == morphServer.externalIp
 					}
-					networkInterface.publicIpAddress = publicIp
-					morphServer.setExternalIp(publicIp)
-					morpheus.async.computeServer.save(morphServer)
+					if(networkInterface) {
+						log.debug("refreshing instance public ip from: {} to: {}", networkInterface.publicIpAddress, publicIp)
+						if(morphServer.sshHost == networkInterface.publicIpAddress || morphServer.sshHost == morphServer.externalIp) {
+							morphServer.sshHost = publicIp
+						}
+						networkInterface.publicIpAddress = publicIp
+						morphServer.setExternalIp(publicIp)
+						morpheus.async.computeServer.save(morphServer).blockingGet()
+					}
 				}
 			}
 		} catch(e)  {

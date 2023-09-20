@@ -5,7 +5,6 @@ import com.morpheusdata.aws.AWSPlugin
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.util.SyncTask
-import com.morpheusdata.model.Account
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.KeyPair
 import com.morpheusdata.model.projection.CloudRegionIdentity
