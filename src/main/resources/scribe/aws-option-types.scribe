@@ -1,0 +1,56 @@
+resource "option-type" "aws-image-type" {
+  name = "virtual image"
+  code = "containerType.amazon.imageType"
+  fieldName = "imageId"
+  fieldContext = "config"
+  fieldLabel = "Image"
+  type = "radio"
+  displayOrder = 2
+  required = true
+  config = jsonencode({radioOptions:[{key:'private', value:'Private Image', class:'', checked:true},{key:'public', value:'Public Image', class:''}, {key:'local', value:'Local Image'}]})
+  
+}
+
+
+resource "option-type" "aws-local-image-id" {
+  name = "virtual image"
+  code = "containerType.amazon.localImageId"
+  fieldName = "localImageId"
+  fieldContext = "config"
+  fieldCode = "gomorpheus.optiontype.image"
+  fieldLabel = "Image"
+  type = "select"
+  displayOrder = 3
+  required = false
+  optionSource = "localImage"
+  dependsOnCode = "containerType.amazon.imageType:local"
+}
+
+resource "option-type" "aws-image-id" {
+  name = "virtual image"
+  code = "containerType.amazon.imageId"
+  fieldName = "imageId"
+  fieldContext = "config"
+  fieldCode = "gomorpheus.optiontype.image"
+  fieldLabel = "Image"
+  type = "select"
+  displayOrder = 3
+  required = false
+  optionSource = "amazonImage"
+  dependsOnCode = "containerType.amazon.imageType:private"
+}
+
+
+resource "option-type" "aws-public-image-id" {
+  name = "virtual image"
+  code = "containerType.amazon.publicImageId"
+  fieldName = "publicImageId"
+  fieldContext = "config"
+  fieldCode = "gomorpheus.optiontype.image"
+  fieldLabel = "Image"
+  type = "text"
+  placeHolder = "Public Image Id"
+  displayOrder = 4
+  required = false
+  dependsOnCode = "containerType.amazon.imageType:public"
+}

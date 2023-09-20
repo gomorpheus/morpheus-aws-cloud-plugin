@@ -86,6 +86,23 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 
 		])
 
+		options << new OptionType([
+				name:'skip agent install',
+		        code: 'provisionType.general.noAgent',
+				fieldName: 'noAgent',
+				fieldCode: 'gomorpheus.optiontype.SkipAgentInstall',
+				fieldLabel: 'Skip Agent Install',
+				fieldContext: 'config',
+				fieldGroup: "Advanced Options",
+				required: false,
+				enabled: true,
+				editable: false,
+				global: false,
+				displayOrder: 4,
+				inputType: OptionType.InputType.CHECKBOX,
+				helpBlock: 'Skipping Agent installation will result in a lack of logging and guest operating system statistics. Automation scripts may also be adversely affected.'
+		])
+
 		return options
 	}
 
@@ -270,6 +287,16 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	 * @return Boolean
 	 */
 	Boolean supportsCustomServicePlans() {
+		return false;
+	}
+
+
+	/**
+	 * For most provision types, a default instance type is created upon plugin registration.  Override this method if
+	 * you do NOT want to create a default instance type for your provision provider
+	 * @return defaults to true
+	 */
+	Boolean createDefaultInstanceType() {
 		return false;
 	}
 

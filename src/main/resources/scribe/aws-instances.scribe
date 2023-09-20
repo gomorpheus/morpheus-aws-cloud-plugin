@@ -1,0 +1,71 @@
+resource "instance-type" "amazon" {
+	name = "EC2 Instance""
+	code = "amazon"
+	description = "Easily provision any Amazon AMI tied to your Amazon cloud account just as if it were any other instance type."
+	category = "cloud"
+	active = true
+	enabled = true
+	hasConfig = false
+	hasSettings = false
+	hasDeployment = false
+	optionTypes = [
+		option-type.aws-image-type,
+		option-type.aws-image-id,
+		option-type.aws-public-image-id,
+		option-type.aws-local-image-id,
+
+	]
+	
+	pluginIconPath = "amazon.svg"
+	pluginIconHidpiPath= "amazon.svg"
+	pluginIconDarkPath = "amazon-dark.svg"
+	pluginIconDarkHidpiPath = "amazon-dark.svg"
+}
+
+resource "workload-type" "amazon-1_0" {
+	code = "amazon-1.0"
+	shortName = "amazon"
+	name = "Amazon 1.0"
+	ports = []
+	containerVersion = "1.0"
+	serverType = "vm"
+	showServerLogs = true
+	statTypeCode = "vm"
+	logTypeCode = "amazon"
+	category = "cloud"
+	provisionType = "amazon"
+	backupType = "amazonSnapshot"
+	commType = "SSH"
+	commPort = 22
+
+}
+
+resource "workload-type-set" "amazon-1_0-set" {
+	code = "amazon-1.0-set"
+	workloadType = workload-type.amazon-1_0
+	priorityOrder = 0
+	dynamicCount = true
+	containerCount = 1
+}
+
+resource "instance-type-layout" "amazon-1_0-single" {
+ 	code = "amazon-1.0-single"
+	name = "Amazon VM"
+	sortOrder = 0
+	instanceVersion = "1.0"
+	description = "This will provision a single vm"
+	instanceType = instance-type.amazon
+	serverCount = 1
+	portCount = 1
+	enabled = true
+	creatable = true
+	hasAutoScale = true
+	workloads = [
+		workload-type-set.amazon-1_0-set
+	]
+	provisionType = "amazon"
+	optionTypes = [
+		option-type.nutanix-prism-provision-uefi,
+		option-type.nutanix-prism-provision-secure-boot
+	]
+}

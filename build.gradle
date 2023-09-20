@@ -10,6 +10,7 @@ buildscript {
 	dependencies {
 		classpath "com.github.jengelman.gradle.plugins:shadow:6.0.0"
 		classpath "io.github.gradle-nexus:publish-plugin:1.0.0"
+		classpath "com.morpheusdata:morpheus-plugin-gradle:0.14.3-SNAPSHOT"
 		classpath "com.bertramlabs.plugins:asset-pipeline-gradle:$assetPipelineVersion"
 	}
 }
@@ -19,6 +20,7 @@ apply plugin: 'groovy'
 apply plugin: 'idea'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'asset-pipeline'
+apply plugin: 'com.morpheusdata.morpheus-plugin-gradle'
 
 group = 'com.morpheusdata'
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
