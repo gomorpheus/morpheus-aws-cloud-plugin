@@ -135,6 +135,11 @@ class ServicePlanSync {
 				save = true
 			}
 
+			if(existingItem.deleted) {
+				existingItem.deleted = false
+				save = true
+			}
+
 			def externalId = cloudItem.instanceType
 			def parts = externalId?.tokenize('.')
 			def serverClass = parts[0]
