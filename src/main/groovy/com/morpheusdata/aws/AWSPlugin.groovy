@@ -16,6 +16,7 @@ class AWSPlugin extends Plugin {
 	private String cloudProviderCode
 	private String networkProviderCode
 	private String dnsProviderCode
+	private String storageProviderCode
 
 	@Override
 	String getCode() {
@@ -33,6 +34,7 @@ class AWSPlugin extends Plugin {
 		def dnsProvider = new Route53DnsProvider(this, this.morpheus)
 		def scaleProvider = new AWSScaleProvider(this, this.morpheus)
 		def backupProvider = new AWSBackupProvider(this, this.morpheus)
+		def s3StorageProvider = new S3StorageProvider(this, this.morpheus)
 		// load balancer providers
 		def albProvider = new ALBLoadBalancerProvider(this, this.morpheus)
 		def elbProvider = new ELBLoadBalancerProvider(this, this.morpheus)
@@ -41,12 +43,13 @@ class AWSPlugin extends Plugin {
 		registerProviders(
 			albProvider, elbProvider, provisionProvider, cloudFormationProvisionProvider, cloudProvider,
 			lbOptionSourceProvider, optionSourceProvider, networkProvider, dnsProvider, scaleProvider,
-			backupProvider
+			backupProvider, s3StorageProvider
 		)
 
 		cloudProviderCode = cloudProvider.code
 		networkProviderCode = networkProvider.code
 		dnsProviderCode = dnsProvider.code
+		storageProviderCode = s3StorageProvider.code
 	}
 
 	@Override
@@ -68,6 +71,10 @@ class AWSPlugin extends Plugin {
 
 	def Route53DnsProvider getDnsProvider() {
 		this.getProviderByCode(dnsProviderCode)
+	}
+
+	def S3StorageProvider getStorageProvider() {
+		this.getProviderByCode(storageProviderCode)
 	}
 
 	def getAmazonClient(Cloud cloud, Boolean fresh = false, String region = null) {
