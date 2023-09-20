@@ -266,6 +266,14 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	}
 
 	/**
+	 * Custom service plans can be created for this provider
+	 * @return Boolean
+	 */
+	Boolean supportsCustomServicePlans() {
+		return false;
+	}
+
+	/**
 	 * Validates the provided provisioning options of a workload. A return of success = false will halt the
 	 * creation and display errors
 	 * @param opts options
