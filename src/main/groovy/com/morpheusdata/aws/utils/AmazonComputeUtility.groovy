@@ -5693,33 +5693,6 @@ class AmazonComputeUtility {
 	}
 
 
-	/*
-	def authConfig = [:]
-		if(cloud) {
-			clientConfiguration = getClientConfiguration(cloud)
-			authConfig.accessKey = accountIntegration.credentialData?.username ?: accountIntegration.serviceUsername ?: getAmazonAccessKey(cloud)
-			authConfig.secretKey = accountIntegration.credentialData?.password ?: accountIntegration.servicePassword ?: getAmazonSecretKey(cloud)
-			authConfig.useHostCredentials = getAmazonUseHostCredentials(cloud)
-			authConfig.stsAssumeRole = cloud.getConfigProperty('stsAssumeRole')
-			// authConfig.endpoint =  getAmazonCostingEndpoint(cloud)
-			// authConfig.region = getAmazonEndpointRegion(authConfig.endpoint)
-		} else {
-			authConfig.accessKey = accountIntegration.credentialData?.username ?: accountIntegration.serviceUsername
-			authConfig.secretKey = accountIntegration.credentialData?.password ?: accountIntegration.servicePassword
-			// authConfig.region = region
-			// if(proxySettings) {
-			// 	authConfig.apiProxy = proxySettings
-			// }
-			clientConfiguration = getClientConfiguration(authConfig)
-			//global proxy? should we use it on a standalone
-		}
-		if(!creds) {
-			def credsInfo = getAmazonCredentials(authConfig,clientConfiguration)
-			creds = credsInfo.credentials
-			clientExpires = credsInfo.clientExpires
-			credsProvider = credsInfo.credsProvider
-		}
-	*/
 	static getAmazonS3Client(Cloud zone, region = null, Boolean fresh = false) {
 		def creds
 		def clientExpires
