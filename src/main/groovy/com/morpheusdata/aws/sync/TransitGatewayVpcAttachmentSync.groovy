@@ -24,9 +24,9 @@ class TransitGatewayVpcAttachmentSync extends InternalResourceSync {
 	}
 
 	def execute() {
-		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap {
-			final String regionCode = it.externalId
-			def amazonClient = plugin.getAmazonClient(cloud,false,it.externalId)
+		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap {CloudRegionIdentity cloudRegion ->
+			final String regionCode = cloudRegion.externalId
+			def amazonClient = plugin.getAmazonClient(cloud,false,cloudRegion.externalId)
 			def apiList = AmazonComputeUtility.listTransitGatewayVpcAttachments([amazonClient: amazonClient],[:])
 			if(apiList.success) {
 				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.async.cloud.resource.listIdentityProjections(cloud.id,'aws.cloudFormation.ec2.transitGatewayAttachment',regionCode)
@@ -36,9 +36,9 @@ class TransitGatewayVpcAttachmentSync extends InternalResourceSync {
 				}.onDelete { removeItems ->
 					removeMissingResources(removeItems)
 				}.onUpdate { List<SyncTask.UpdateItem<AccountResource, TransitGatewayVpcAttachment>> updateItems ->
-					updateMatchedTransitGatewayVpcAttachments(updateItems,regionCode)
+					updateMatchedTransitGatewayVpcAttachments(updateItems,cloudRegion)
 				}.onAdd { itemsToAdd ->
-					addMissingTransitGatewayVpcAttachment(itemsToAdd, regionCode)
+					addMissingTransitGatewayVpcAttachment(itemsToAdd, cloudRegion)
 
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<AccountResourceIdentityProjection, TransitGatewayVpcAttachment>> updateItems ->
 					return morpheusContext.async.cloud.resource.listById(updateItems.collect { it.existingItem.id } as List<Long>)
