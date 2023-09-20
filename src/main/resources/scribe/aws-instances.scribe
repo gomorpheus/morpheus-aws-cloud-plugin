@@ -1,5 +1,5 @@
 resource "instance-type" "amazon" {
-	name = "EC2 Instance""
+	name = "EC2 Instance"
 	code = "amazon"
 	description = "Easily provision any Amazon AMI tied to your Amazon cloud account just as if it were any other instance type."
 	category = "cloud"
