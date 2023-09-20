@@ -161,7 +161,7 @@ class ServicePlanSync {
 
 		if(saveList) {
 			log.debug "About to update ${saveList.size()} service plans"
-			morpheusContext.async.servicePlan.save(saveList)
+			morpheusContext.async.servicePlan.save(saveList).blockingGet()
 		}
 	}
 
