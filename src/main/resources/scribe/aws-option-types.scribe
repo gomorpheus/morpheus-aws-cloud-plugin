@@ -7,7 +7,7 @@ resource "option-type" "aws-image-type" {
   type = "radio"
   displayOrder = 2
   required = true
-  config = jsonencode({radioOptions:[{key:"private", value:"Private Image", checked:true},{key:"public", value:"Public Image"}, {key:"local", value:"Local Image"}]})
+  config = {radioOptions:[{key:"private", value:"Private Image", checked:true},{key:"public", value:"Public Image"}, {key:"local", value:"Local Image"}]}
   
 }
 
