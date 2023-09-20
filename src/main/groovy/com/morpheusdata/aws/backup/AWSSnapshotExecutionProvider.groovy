@@ -190,7 +190,6 @@ Write-VolumeCache -DriveLetter C
 				amazonClient = plugin.getAmazonClient(cloud, false, server.region?.regionCode)
 			}
 
-
 			def snapshotIds = backupResult?.configMap?.snapshots?.collect{it.snapshotId}
 			def completeCount = 0
 			Boolean error = false
