@@ -2695,7 +2695,6 @@ class AmazonComputeUtility {
 	static validateRdsServerConfig(Map opts=[:]) {
 		def rtn = [success:false, errors: []]
 		try {
-			def zone = Cloud.read(opts.zoneId)
 			// Validate enough Elastic IPs left
 			if(!opts.securityId) {
 				if(opts.securityGroups) {

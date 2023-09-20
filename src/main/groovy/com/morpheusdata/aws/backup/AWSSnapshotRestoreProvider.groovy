@@ -87,12 +87,14 @@ class AWSSnapshotRestoreProvider implements BackupRestoreProvider{
 				}
 			}
 			updateInstanceIp(server.id, ec2InstanceId, cloud)
+			rtn.data.updates = true
 			rtn.success = true
 			rtn.data.backupRestore.status = BackupStatusUtility.SUCCEEDED
 		} catch(e) {
 			log.error("restoreBackup: ${e}", e)
 			rtn.success = false
 			rtn.msg = e.getMessage()
+			rtn.data.updates = true
 			rtn.data.backupRestore.errorMessage = e.getMessage()
 			rtn.data.backupRestore.status = BackupStatusUtility.FAILED
 		}
@@ -102,7 +104,10 @@ class AWSSnapshotRestoreProvider implements BackupRestoreProvider{
 
 	@Override
 	ServiceResponse refreshBackupRestoreResult(BackupRestore backupRestore, BackupResult backupResult) {
-		return null
+		ServiceResponse<BackupRestoreResponse> rtn = ServiceResponse.prepare(new BackupRestoreResponse(backupRestore))
+		rtn.success = true
+		
+		return rtn
 	}
 
 	protected restoreSnapshotToInstance(instanceId, snapshotConfig, Cloud cloud, String regionCode=null) {

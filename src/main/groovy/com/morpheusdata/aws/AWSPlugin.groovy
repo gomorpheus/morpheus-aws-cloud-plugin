@@ -27,6 +27,7 @@ class AWSPlugin extends Plugin {
 	void initialize() {
 		this.setName(PLUGIN_NAME)
 		def provisionProvider = new EC2ProvisionProvider(this, this.morpheus)
+		def rdsProvisionProvider = new RDSProvisionProvider(this, this.morpheus)
 		def cloudFormationProvisionProvider = new CloudFormationProvisionProvider(this, this.morpheus)
 		def cloudProvider = new AWSCloudProvider(this, this.morpheus)
 		def optionSourceProvider = new AWSOptionSourceProvider(this, this.morpheus)
@@ -42,7 +43,7 @@ class AWSPlugin extends Plugin {
 		registerProviders(
 			albProvider, elbProvider, provisionProvider, cloudFormationProvisionProvider, cloudProvider,
 			lbOptionSourceProvider, optionSourceProvider, networkProvider, dnsProvider, scaleProvider,
-			backupProvider
+			backupProvider, rdsProvisionProvider
 		)
 
 		cloudProviderCode = cloudProvider.code
@@ -90,6 +91,10 @@ class AWSPlugin extends Plugin {
 
 	def getAmazonCloudFormationClient(cloud, Boolean fresh = false, String region = null) {
 		AmazonComputeUtility.getAmazonCloudFormationClient(checkCloudCredentials(cloud), fresh, region)
+	}
+
+	def getAmazonRdsClient(Cloud cloud, Boolean fresh = false, String region = null) {
+		return AmazonComputeUtility.getAmazonRdsClient(checkCloudCredentials(cloud), fresh, region)
 	}
 
 	protected Cloud checkCloudCredentials(Cloud cloud) {
