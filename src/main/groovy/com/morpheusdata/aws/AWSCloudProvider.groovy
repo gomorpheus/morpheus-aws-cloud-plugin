@@ -175,6 +175,21 @@ class AWSCloudProvider implements CloudProvider {
 
 	@Override
 	Collection<ComputeServerType> getComputeServerTypes() {
+		def options = []
+		options << new OptionType([
+				name : 'publicIP',
+				code : 'amazon-ec2-provision-public-id',
+				fieldName : 'publicIpType',
+				fieldContext : 'config',
+				fieldLabel : 'Public IP',
+				required : false,
+				defaultValue: 'subnet',
+				noBlank: true,
+				inputType : OptionType.InputType.SELECT,
+				displayOrder : 101,
+				optionSource: 'amazonEc2PublicIpType'
+
+		])
 		ComputeServerType unmanaged = new ComputeServerType()
 		unmanaged.name = 'Amazon Instance'
 		unmanaged.code = 'amazonUnmanaged'
@@ -196,6 +211,7 @@ class AWSCloudProvider implements CloudProvider {
 		dockerType.platform = PlatformType.linux
 		dockerType.managed = true
 		dockerType.provisionTypeCode = 'amazon'
+		dockerType.optionTypes = options
 
 		ComputeServerType vmType = new ComputeServerType()
 		vmType.name = 'Amazon Instance'
@@ -207,6 +223,7 @@ class AWSCloudProvider implements CloudProvider {
 		vmType.platform = PlatformType.linux
 		vmType.managed = true
 		vmType.provisionTypeCode = 'amazon'
+		vmType.optionTypes = options
 
 		ComputeServerType windwsVmType = new ComputeServerType()
 		windwsVmType.name = 'Amazon Windows Instance'
@@ -218,6 +235,7 @@ class AWSCloudProvider implements CloudProvider {
 		windwsVmType.platform = PlatformType.windows
 		windwsVmType.managed = true
 		windwsVmType.provisionTypeCode = 'amazon'
+		windwsVmType.optionTypes = options
 
 		[unmanaged, dockerType, vmType, windwsVmType] //TODO: More types for RDS and K8s
 	}
