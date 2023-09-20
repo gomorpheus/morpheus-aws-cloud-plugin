@@ -248,6 +248,15 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	}
 
 	/**
+	 * Indicates if volumes may be added during provisioning
+	 * @return Boolean
+	 */
+	@Override
+	Boolean canAddVolumes() {
+		return true
+	}
+
+	/**
 	 * Determines if this provision type allows the user to add data volumes.
 	 * @return Boolean representation of whether or not this provision type allows the user to add data volumes
 	 */
