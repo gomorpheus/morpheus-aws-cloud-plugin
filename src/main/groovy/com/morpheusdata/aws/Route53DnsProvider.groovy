@@ -438,7 +438,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 		ServiceResponse rtn = new ServiceResponse()
         Cloud cloud = getIntegrationCloud(integration)
         def config = integration.getConfigMap()
-        log.info("verifyAccountIntegration - Validating integration: ${integration.name}")
+        log.debug("verifyAccountIntegration - Validating integration: ${integration.name}")
         try {
             // Validate Form options
             rtn.errors = [:]
@@ -494,7 +494,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
                 rtn.success = false
                 return rtn
             }
-            log.info("verifyAccountIntegration - Integration: ${integration.name} DNS Services validated OK")
+            log.debug("verifyAccountIntegration - Integration: ${integration.name} DNS Services validated OK")
             return ServiceResponse.success("DNS Integration validated OK")
 
         } catch(e) {
