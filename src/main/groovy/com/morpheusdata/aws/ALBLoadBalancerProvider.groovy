@@ -207,7 +207,7 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
     Collection<NetworkLoadBalancerType> getLoadBalancerTypes() {
         NetworkLoadBalancerType type = new NetworkLoadBalancerType(
             code:getLoadBalancerTypeCode(),
-            name:'Amazon ALB - Plugin', // will change after testing
+            name:'Amazon ALB', // will change after testing
             internal:false,
             enabled:true,
             createType:'multi',
