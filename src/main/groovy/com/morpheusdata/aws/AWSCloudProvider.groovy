@@ -134,7 +134,7 @@ class AWSCloudProvider implements CloudProvider {
 			fieldContext: 'config',
 			fieldLabel: 'Role ARN',
 			fieldName: 'stsAssumeRole',
-			inputType: OptionType.InputType.CHECKBOX,
+			inputType: OptionType.InputType.TEXT,
 		)
 		OptionType importExisting = new OptionType(
 			name: 'Import Existing',
