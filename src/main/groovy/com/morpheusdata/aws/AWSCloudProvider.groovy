@@ -194,7 +194,7 @@ class AWSCloudProvider implements CloudProvider {
 		unmanaged.name = 'Amazon Instance'
 		unmanaged.code = 'amazonUnmanaged'
 		unmanaged.description = 'Amazon Instance'
-		unmanaged.reconfigureSupported = true
+		unmanaged.reconfigureSupported = false
 		unmanaged.hasAutomation = false
 		unmanaged.supportsConsoleKeymap = false
 		unmanaged.platform = PlatformType.none
