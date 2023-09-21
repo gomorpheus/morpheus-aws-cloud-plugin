@@ -7,6 +7,7 @@ import com.morpheusdata.core.Plugin
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.core.util.NetworkUtility
 import com.morpheusdata.aws.utils.AmazonComputeUtility
+import com.morpheusdata.model.AccountCredential
 import com.morpheusdata.model.AccountIntegration
 import com.morpheusdata.model.AccountIntegrationType
 import com.morpheusdata.model.Cloud
@@ -437,7 +438,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 		ServiceResponse rtn = new ServiceResponse()
         Cloud cloud = getIntegrationCloud(integration)
         def config = integration.getConfigMap()
-        log.info("verifyAccountIntegration - Validating integration: ${integration.name}")
+        log.debug("verifyAccountIntegration - Validating integration: ${integration.name}")
         try {
             // Validate Form options
             rtn.errors = [:]
@@ -493,7 +494,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
                 rtn.success = false
                 return rtn
             }
-            log.info("verifyAccountIntegration - Integration: ${integration.name} DNS Services validated OK")
+            log.debug("verifyAccountIntegration - Integration: ${integration.name} DNS Services validated OK")
             return ServiceResponse.success("DNS Integration validated OK")
 
         } catch(e) {
@@ -502,14 +503,29 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
         }
 	}
 
-	Cloud getIntegrationCloud(AccountIntegration integration) {
+	protected Cloud getIntegrationCloud(AccountIntegration integration) {
 		if(integration.refType == 'ComputeZone' || integration.refType == 'Cloud') {
 			// this could return null too if refId is missing
-			return morpheus.cloud.getCloudById(integration.refId).blockingGet();
+			Cloud cloud = morpheus.cloud.getCloudById(integration.refId).blockingGet();
+			return checkCloudCredentials(cloud)
 		} else {
 			return null
 		}
 	}
 
+	protected Cloud checkCloudCredentials(Cloud cloud) {
+		if(!cloud.accountCredentialLoaded) {
+			AccountCredential accountCredential
+			try {
+				accountCredential = this.morpheus.async.cloud.loadCredentials(cloud.id).blockingGet()
+			} catch(e) {
+				// If there is no credential on the cloud, then this will error
+				// TODO: Change to using 'maybe' rather than 'blockingGet'?
+			}
+			cloud.accountCredentialLoaded = true
+			cloud.accountCredentialData = accountCredential?.data
+		}
+		return cloud
+	}
 
 }
