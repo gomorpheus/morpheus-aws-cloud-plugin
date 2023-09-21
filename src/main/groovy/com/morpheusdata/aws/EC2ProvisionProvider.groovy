@@ -1575,7 +1575,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				if(index >= blockDeviceDataDiskCount - 1) {
 					def deviceName = AmazonComputeUtility.getFreeVolumeName(blockDeviceDisks, index)
 					rtn << [diskType:dataVolume?.type?.name ?: 'gp2', diskSize:dataVolume.maxStorage.div(ComputeUtility.ONE_GIGABYTE),
-							deviceName:deviceName.deviceName, iops: volume.maxIOPS] //iops
+							deviceName:deviceName.deviceName, iops: dataVolume.maxIOPS] //iops
 					dataVolume.deviceName = deviceName.deviceName
 					dataVolume.deviceDisplayName = extractDiskDisplayName(deviceName.deviceName)
 					volumeUpdates << dataVolume
