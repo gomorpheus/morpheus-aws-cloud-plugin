@@ -1570,23 +1570,19 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 			def blockDeviceMap = imageResults.image.getBlockDeviceMappings()
 			def blockDeviceDisks = blockDeviceMap.findAll{it.getEbs() != null && it.getEbs().getSnapshotId() != null}
 			def blockDeviceDataDiskCount = blockDeviceDisks?.size() - 1 //root volume already handled
-			server.dataDevice = null
+			def volumeUpdates = []
 			dataDisks?.eachWithIndex { dataVolume, index ->
-				def volume = StorageVolume.get(dataVolume.id)
 				if(index >= blockDeviceDataDiskCount - 1) {
 					def deviceName = AmazonComputeUtility.getFreeVolumeName(blockDeviceDisks, index)
-					rtn << [diskType:volume?.type?.name ?: 'gp2', diskSize:volume.maxStorage.div(ComputeUtility.ONE_GIGABYTE),
+					rtn << [diskType:dataVolume?.type?.name ?: 'gp2', diskSize:dataVolume.maxStorage.div(ComputeUtility.ONE_GIGABYTE),
 							deviceName:deviceName.deviceName, iops: volume.maxIOPS] //iops
 					dataVolume.deviceName = deviceName.deviceName
 					dataVolume.deviceDisplayName = extractDiskDisplayName(deviceName.deviceName)
-					volume.deviceName = deviceName.deviceName
-					volume.deviceDisplayName = extractDiskDisplayName(deviceName.deviceName)
-					if(server.dataDevice == null)
-						server.dataDevice = changeDiskDisplayName(volume.deviceName)
-					volume.save(flush:true)
+					volumeUpdates << dataVolume
+
 				}
 			}
-			server.save(flush:true)
+			morpheusContext.async.storageVolume.bulkSave(volumeUpdates).blockingGet()
 		}
 		return rtn
 	}
