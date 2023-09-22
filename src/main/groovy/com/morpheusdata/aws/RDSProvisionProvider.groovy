@@ -79,7 +79,8 @@ class RDSProvisionProvider extends AbstractProvisionProvider implements Workload
             inputType:OptionType.InputType.CHECKBOX,
             global:false,
             fieldContext:'config',
-            category:'provisionType.rds'
+            category:'provisionType.rds',
+            defaultValue:'on'
         )
         options << new OptionType(
             name:'RDS db subnet group',
@@ -111,7 +112,8 @@ class RDSProvisionProvider extends AbstractProvisionProvider implements Workload
             inputType:OptionType.InputType.TEXT,
             global:false,
             fieldContext:'config',
-            category:'provisionType.rds'
+            category:'provisionType.rds',
+            defaultValue: 0
         )
         options << new OptionType(
             name:'RDS security group',
