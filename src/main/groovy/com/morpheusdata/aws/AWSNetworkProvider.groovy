@@ -90,7 +90,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 					ownerEditable:true, tenantEditable:false),
 				new OptionType(code:'network.amazon.availabilityZone', inputType: OptionType.InputType.SELECT, name:'availabilityZone',
 					category:'network.amazon', fieldName:'availabilityZone', fieldLabel:'Availability Zone', fieldContext:'domain', required:false,
-					enabled:true, optionSource:'amazonAvailabilityZones', optionSourceType:'amazon', editable:false, global:false, placeHolder:null, helpBlock:'',
+					enabled:true, optionSource:'awsPluginAvailabilityZones', optionSourceType:'amazon', editable:false, global:false, placeHolder:null, helpBlock:'',
 					defaultValue:null, custom:false, displayOrder:32, fieldClass:null, showOnEdit: true,
 					wrapperClass:null, dependsOnCode:'network.zone.id, network.amazon.zonePool', fieldCode:'gomorpheus.label.availabilityZone',
 					ownerEditable:true, tenantEditable:false),

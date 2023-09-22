@@ -4,10 +4,10 @@ import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.AbstractOptionSourceProvider
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
+import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.NetworkRouteTable
-import com.morpheusdata.model.ReferenceData;
-import com.morpheusdata.core.util.MorpheusUtils;
+import com.morpheusdata.core.util.MorpheusUtils
 import groovy.util.logging.Slf4j
 
 @Slf4j
@@ -44,8 +44,9 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 	@Override
 	List<String> getMethodNames() {
 		return new ArrayList<String>([
-			'awsPluginVpc', 'awsPluginRegions', 'amazonAvailabilityZones', 'awsRouteTable', 'awsRouteDestinationType',
-			'awsRouteDestination', 'amazonEc2SecurityGroup', 'amazonEc2PublicIpType'
+			'awsPluginVpc', 'awsPluginRegions', 'awsPluginAvailabilityZones', 'awsRouteTable', 'awsRouteDestinationType',
+			'awsRouteDestination', 'awsPluginEc2SecurityGroup', 'awsPluginEc2PublicIpType', 'awsPluginInventoryLevels',
+			'awsPluginStorageProvider', 'awsPluginEbsEncryption'
 		])
 	}
 
@@ -68,17 +69,10 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		if(!cloud) {
 			cloud = new Cloud()
 		}
-		if(args.credential) {
-			def credentialDataResponse = morpheusContext.async.accountCredential.loadCredentialConfig(args.credential, args.config).blockingGet()
-			if(credentialDataResponse.success) {
-				cloud.accountCredentialData = credentialDataResponse.data
-				cloud.accountCredentialLoaded = true
-			}
-		}
 
 		def config = [
-			accessKey: args.accessKey ?: args.config?.accessKey ?: cloud.getConfigProperty('accessKey'),
-			secretKey: args.secretKey ?: args.config?.secretKey ?: cloud.getConfigProperty('secretKey'),
+			accessKey: args.accessKey ?: args.config?.accessKey ?: cloud.getConfigProperty('accessKey') ?: cloud.accountCredentialData?.username,
+			secretKey: args.secretKey ?: args.config?.secretKey ?: cloud.getConfigProperty('secretKey') ?: cloud.accountCredentialData?.password,
 			stsAssumeRole: (args.stsAssumeRole ?: args.config?.stsAssumeRole ?: cloud.getConfigProperty('stsAssumeRole')) in [true, 'true', 'on'],
 			useHostCredentials: (args.useHostCredentials ?: cloud.getConfigProperty('useHostCredentials')) in [true, 'true', 'on'],
 			endpoint: args.endpoint ?: args.config?.endpoint ?: cloud.getConfigProperty('endpoint')
@@ -91,18 +85,28 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		def proxy = args.apiProxy ? morpheusContext.async.network.networkProxy.getById(args.long('apiProxy')).blockingGet() : null
 		cloud.apiProxy = proxy
 
-		def rtn
+		def rtn = [[name:'All', value:'']]
 		if(AmazonComputeUtility.testConnection(cloud).success) {
 			def amazonClient = plugin.getAmazonClient(cloud, true)
 			def vpcResult = AmazonComputeUtility.listVpcs([amazonClient:amazonClient])
 			if(vpcResult.success) {
-				rtn = vpcResult.vpcList.collect {[name:"${it.vpcId} - ${it.tags?.find { tag -> tag.key == 'Name' }?.value ?: 'default'}", value:it.vpcId]}
+				vpcResult.vpcList.each {
+					rtn << [name:"${it.vpcId} - ${it.tags?.find { tag -> tag.key == 'Name' }?.value ?: 'default'}", value:it.vpcId]
+				}
 			}
 		}
-		return rtn ?: []
+		rtn
 	}
 
-	def amazonAvailabilityZones(args) {
+	def awsPluginInventoryLevels(args) {
+		[
+			[name:'Off', value:'off'],
+			[name:'Basic', value:'basic'],
+			[name:'Full', value:'full']
+		]
+	}
+
+	def awsPluginAvailabilityZones(args) {
 		args = args instanceof Object[] ? args.getAt(0) : args
 		def rtn = []
 		def zoneId = MorpheusUtils.getZoneId(args)
@@ -225,7 +229,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		return rtn
 	}
 
-	def amazonEc2SecurityGroup(args) {
+	def awsPluginEc2SecurityGroup(args) {
 		//AC - TODO - Overhaul security group location fetch to allow multiple zone pools and filter based on id rather than category?
 		def cloudId = getCloudId(args)
 		if(cloudId) {
@@ -251,10 +255,32 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		}
 	}
 
-	def amazonEc2PublicIpType(args) {
+	def awsPluginEc2PublicIpType(args) {
 		return [
 				[name:'Subnet Default', value:'subnet'],
 				[name:'Assign EIP', value:'elasticIp']
+		]
+	}
+
+	def awsPluginStorageProvider(args) {
+		args = args instanceof Object[] ? args.getAt(0) : args
+		def rtn = []
+		Cloud cloud = args.zoneId ? morpheusContext.async.cloud.getCloudById(args.zoneId.toLong()).blockingGet() : null
+
+		if(cloud) {
+			morpheusContext.async.storageBucket.list(
+				new DataQuery().withFilter('account.id', cloud.account.id).withFilter('providerType', 's3')
+			).toList().blockingGet().sort { it.name }.each {
+				rtn << [name: it.name, value: it.id]
+			}
+		}
+		rtn
+	}
+
+	def awsPluginEbsEncryption(args) {
+		[
+			[name:'Off',value:'off'],
+			[name:'On', value:'on']
 		]
 	}
 

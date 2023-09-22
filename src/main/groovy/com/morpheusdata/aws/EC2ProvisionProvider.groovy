@@ -68,7 +68,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				required : false,
 				inputType : OptionType.InputType.MULTI_SELECT,
 				displayOrder : 100,
-				optionSource: 'amazonEc2SecurityGroup'
+				optionSource: 'awsPluginEc2SecurityGroup'
 
 		])
 		options << new OptionType([
@@ -82,7 +82,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				noBlank: true,
 				inputType : OptionType.InputType.SELECT,
 				displayOrder : 101,
-				optionSource: 'amazonEc2PublicIpType'
+				optionSource: 'awsPluginEc2PublicIpType'
 
 		])
 

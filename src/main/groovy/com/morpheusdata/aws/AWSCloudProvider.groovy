@@ -130,47 +130,98 @@ class AWSCloudProvider implements CloudProvider {
 		OptionType roleArn = new OptionType(
 			name: 'Role ARN',
 			code: 'aws-plugin-role-arn',
-			displayOrder: 40,
+			displayOrder: 50,
 			fieldContext: 'config',
 			fieldLabel: 'Role ARN',
 			fieldName: 'stsAssumeRole',
 			inputType: OptionType.InputType.TEXT,
 		)
-		OptionType importExisting = new OptionType(
-			name: 'Import Existing',
-			code: 'aws-plugin-import-existing',
-			defaultValue: 'off',
-			displayOrder: 50,
-			fieldContext: 'config',
-			fieldLabel: 'Import Existing Instances',
-			fieldName: 'importExisting',
-			helpBlock: 'Turn this feature on to import existing virtual machines from Amazon.',
-			inputType: OptionType.InputType.CHECKBOX,
-			required: true
-		)
-		OptionType isVpc = new OptionType(
-			name: 'Use VPC Existing Instances',
-			code: 'aws-plugin-is-vpc',
+		OptionType externalId = new OptionType(
+			name: 'External ID',
+			code: 'aws-plugin-external-id',
 			displayOrder: 60,
 			fieldContext: 'config',
-			fieldLabel: 'Use VPC Existing Instances',
-			fieldName: 'isVpc',
-			inputType: OptionType.InputType.CHECKBOX,
-			required: true
+			fieldLabel: 'External ID',
+			fieldName: 'stsExternalId',
+			inputType: OptionType.InputType.TEXT,
+		)
+		OptionType inventoryLevel = new OptionType(
+			name: 'Inventory Level',
+			code: 'aws-plugin-inventory-level',
+			displayOrder: 70,
+			fieldContext: 'config',
+			fieldLabel: 'Inventory Level',
+			fieldName: 'inventoryLevel',
+			inputType: OptionType.InputType.SELECT,
+			optionSource:'awsPluginInventoryLevels',
+			defaultValue: 'off'
 		)
 		OptionType vpc = new OptionType(
 			name: 'VPC',
 			code: 'aws-plugin-vpc',
-			displayOrder: 70,
+			displayOrder: 80,
 			fieldContext: 'config',
 			fieldLabel: 'VPC',
 			fieldName: 'vpc',
 			inputType: OptionType.InputType.SELECT,
 			optionSource: 'awsPluginVpc',
-			visibleOnCode: 'matchAny::config.isVpc:true,config.isVpc:on',
-			dependsOnCode:"config.endpoint, endpoint, config.accessKey, accessKey, config.secretKey, secretKey, credential, credential.type"
+			dependsOnCode: 'config.endpoint, endpoint, config.accessKey, accessKey, config.secretKey, secretKey, credential, credential.type'
 		)
-		[apiUrl, credentials, accessKey, secretKey, useHostCreds, roleArn, importExisting, isVpc, vpc]
+		OptionType imageTransferStore = new OptionType(
+			name: 'Image Transfer Store',
+			code: 'aws-plugin-image-xfer-store',
+			displayOrder: 10,
+			fieldContext: 'config',
+			fieldLabel: 'Image Transfer Store',
+			fieldName: 'imageStoreId',
+			fieldGroup: 'Advanced',
+			inputType: OptionType.InputType.SELECT,
+			optionSource: 'awsPluginStorageProvider'
+		)
+		OptionType ebsEncrytion = new OptionType(
+			name: 'EBS Encryption',
+			code: 'aws-plugin-ebs-encryption',
+			displayOrder: 20,
+			fieldContext: 'config',
+			fieldLabel: 'EBS Encryption',
+			fieldName: 'ebsEncryption',
+			fieldGroup: 'Advanced',
+			inputType: OptionType.InputType.SELECT,
+			optionSource: 'awsPluginEbsEncryption'
+		)
+		OptionType costingKey = new OptionType(
+			name: 'Costing Key',
+			code: 'aws-plugin-costing-key',
+			displayOrder: 30,
+			fieldContext: 'config',
+			fieldLabel: 'Costing Key',
+			fieldName: 'costingAccessKey',
+			fieldGroup: 'Advanced',
+			inputType: OptionType.InputType.TEXT
+		)
+		OptionType costingSecret = new OptionType(
+			name: 'Costing Secret',
+			code: 'aws-plugin-costing-secret',
+			displayOrder: 40,
+			fieldContext: 'config',
+			fieldLabel: 'Costing Secret',
+			fieldName: 'costingSecretKey',
+			fieldGroup: 'Advanced',
+			inputType: OptionType.InputType.PASSWORD
+		)
+		OptionType linkedAccount = new OptionType(
+			name: 'Linked Account ID',
+			code: 'aws-plugin-linked-account',
+			displayOrder: 50,
+			fieldLabel: 'Linked Account ID',
+			fieldName: 'linkedAccountId',
+			fieldGroup: 'Advanced',
+			inputType: OptionType.InputType.TEXT
+		)
+		[
+			apiUrl, credentials, accessKey, secretKey, useHostCreds, roleArn, externalId, inventoryLevel,
+			vpc, imageTransferStore, ebsEncrytion, costingKey, costingSecret, linkedAccount
+		]
 	}
 
 	@Override
@@ -187,7 +238,7 @@ class AWSCloudProvider implements CloudProvider {
 				noBlank: true,
 				inputType : OptionType.InputType.SELECT,
 				displayOrder : 101,
-				optionSource: 'amazonEc2PublicIpType'
+				optionSource: 'awsPluginEc2PublicIpType'
 
 		])
 		ComputeServerType unmanaged = new ComputeServerType()
