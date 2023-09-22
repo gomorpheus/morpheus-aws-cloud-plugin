@@ -245,7 +245,7 @@ class AWSCloudProvider implements CloudProvider {
 		unmanaged.name = 'Amazon Instance'
 		unmanaged.code = 'amazonUnmanaged'
 		unmanaged.description = 'Amazon Instance'
-		unmanaged.reconfigureSupported = true
+		unmanaged.reconfigureSupported = false
 		unmanaged.hasAutomation = false
 		unmanaged.supportsConsoleKeymap = false
 		unmanaged.platform = PlatformType.none
@@ -256,6 +256,7 @@ class AWSCloudProvider implements CloudProvider {
 		dockerType.name = 'Amazon Docker Host'
 		dockerType.code = 'amazonLinux'
 		dockerType.description = 'Amazon Docker Host'
+		dockerType.nodeType = 'morpheus-node'
 		dockerType.reconfigureSupported = true
 		dockerType.hasAutomation = true
 		dockerType.supportsConsoleKeymap = false
@@ -267,6 +268,7 @@ class AWSCloudProvider implements CloudProvider {
 		ComputeServerType vmType = new ComputeServerType()
 		vmType.name = 'Amazon Instance'
 		vmType.code = 'amazonVm'
+		vmType.nodeType = 'morpheus-vm-node'
 		vmType.description = 'Amazon Instance'
 		vmType.reconfigureSupported = true
 		vmType.hasAutomation = true
@@ -279,6 +281,7 @@ class AWSCloudProvider implements CloudProvider {
 		ComputeServerType windwsVmType = new ComputeServerType()
 		windwsVmType.name = 'Amazon Windows Instance'
 		windwsVmType.code = 'amazonWindowsVm'
+		windwsVmType.nodeType = 'morpheus-windows-vm-node'
 		windwsVmType.description = 'Amazon Windows Instance'
 		windwsVmType.reconfigureSupported = true
 		windwsVmType.hasAutomation = true
