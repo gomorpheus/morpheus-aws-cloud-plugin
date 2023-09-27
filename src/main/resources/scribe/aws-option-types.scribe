@@ -3,7 +3,7 @@ resource "option-type" "aws-image-type" {
   code = "containerType.amazon.imageType"
   fieldName = "imageId"
   fieldContext = "config"
-  fieldLabel = "Image"
+  fieldLabel = "Image Type"
   type = "radio"
   displayOrder = 2
   required = true
