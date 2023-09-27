@@ -718,7 +718,7 @@ class AWSCloudProvider implements CloudProvider {
 
 	@Override
 	String getDescription() {
-		return 'AWS Cloud'
+		return 'Amazon Cloud'
 	}
 
 	@Override
