@@ -7,6 +7,7 @@ import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.AbstractProvisionProvider
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.providers.HostProvisionProvider
+import com.morpheusdata.core.providers.ProvisionProvider
 import com.morpheusdata.core.providers.VmProvisionProvider
 import com.morpheusdata.core.providers.WorkloadProvisionProvider
 import com.morpheusdata.core.util.ComputeUtility
@@ -43,7 +44,7 @@ import com.morpheusdata.response.ProvisionResponse
 import groovy.util.logging.Slf4j
 
 @Slf4j
-class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvisionProvider, WorkloadProvisionProvider.ResizeFacet, HostProvisionProvider.ResizeFacet {
+class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvisionProvider, WorkloadProvisionProvider.ResizeFacet, HostProvisionProvider.ResizeFacet, ProvisionProvider.BlockDeviceNameFacet {
 	AWSPlugin plugin
 	MorpheusContext morpheusContext
 
@@ -1200,6 +1201,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 								status: 'provisioned',
 								rootVolume: ['/dev/sda1','/dev/xvda','xvda','sda1','sda'].contains(deviceName)
 						)
+
 						morpheusContext.async.storageVolume.create([newVolume], server).blockingGet()
 						server = morpheusContext.async.computeServer.get(server.id).blockingGet()
 						newCounter++
@@ -1770,5 +1772,10 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	@Override
 	String getNodeFormat() {
 		return "vm"
+	}
+
+	@Override
+	String[] getDiskNameList() {
+		return ['xvda', 'xvdb', 'xvdc', 'xvdd', 'xvde', 'xvdf', 'xvdg', 'xvdh', 'xvdi', 'xvdj', 'xvdk', 'xvdl'] as String[]
 	}
 }
