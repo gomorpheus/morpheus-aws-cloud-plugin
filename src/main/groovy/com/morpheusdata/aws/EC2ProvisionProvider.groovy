@@ -1606,7 +1606,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 						}
 					}
 				}
-				morpheusContext.async.computeServer.computeServerInterface.save(serverInterfaces)
+				morpheusContext.async.computeServer.computeServerInterface.save(serverInterfaces).blockingGet()
 			}
 		} catch(e) {
 			log.error("setNetworkInfo error: ${e}", e)
@@ -1618,12 +1618,13 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		if(rootVolume && awsInstance) {
 			def rootDeviceName = awsInstance?.getRootDeviceName()
 			def awsRootDisk = awsInstance?.getBlockDeviceMappings()?.find { it.getDeviceName() == rootDeviceName }
+			log.info("Assigning External ID to root Volume we hope ${awsRootDisk} - ${rootDeviceName} - ${rootVolume?.id}")
 			if(awsRootDisk) {
 				rootVolume.externalId = awsRootDisk.getEbs().getVolumeId()
 				rootVolume.deviceName = rootDeviceName
 				rootVolume.deviceDisplayName = extractDiskDisplayName(rootDeviceName)
 			}
-			morpheusContext.async.storageVolume.save([rootVolume])
+			morpheusContext.async.storageVolume.save([rootVolume]).blockingGet()
 		}
 	}
 
@@ -1645,7 +1646,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 					}
 				}
 			}
-			morpheusContext.async.storageVolume.save(serverVolumes)
+			morpheusContext.async.storageVolume.save(serverVolumes).blockingGet()
 		} catch(e) {
 			log.error("setVolumeInfo error: ${e}", e)
 		}
