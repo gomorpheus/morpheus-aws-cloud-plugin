@@ -1906,8 +1906,8 @@ class AmazonComputeUtility {
 		def rtn = [success:false, serverList:[], volumeList: [:], snapshotList: [:]]
 		try {
 			AmazonEC2Client amazonClient = opts.amazonClient
-			def vpcId = opts.zone.getConfigProperty('vpc')
-			def isVpc = opts.zone.getConfigProperty('isVpc')
+			def vpcId = opts.cloud.getConfigProperty('vpc')
+			def isVpc = opts.cloud.getConfigProperty('isVpc')
 			def serverRequest = new DescribeInstancesRequest().withFilters(new LinkedList<Filter>())
 			if(!opts.includeAllVPCs && vpcId) {
 				serverRequest.getFilters().add(new Filter().withName("vpc-id").withValues(vpcId))
@@ -3764,44 +3764,6 @@ class AmazonComputeUtility {
 		} catch(e) {
 			rtn.msg = e.message
 			log.error("createCloudFormationStack error: ${e}")
-		}
-		return rtn
-	}
-
-	static waitForCloudFormationStack(amazonClient, stackName) {
-		def rtn = [success:false]
-		try {
-			def pending = true
-			def attempts = 0
-			while(pending) {
-				def stackDetail = getCloudFormationStack(amazonClient, stackName)
-				if(stackDetail.success == true) {
-					def stackStatus = stackDetail?.stack?.getStackStatus()
-					//update every 50 seconds or so?
-					if((attempts % 5) == 0)
-						log.info("${stackName} is ${stackStatus}")
-					rtn.results = stackDetail.stack
-					if(stackStatus in ['CREATE_COMPLETE', 'UPDATE_COMPLETE']) {
-						log.info("${stackName} completed as ${stackStatus}")
-						rtn.success = true
-						pending = false
-					} else if(stackStatus == 'ROLLBACK_COMPLETE' || stackStatus.contains('FAILED')) {
-						log.info("${stackName} failed with ${stackStatus}")
-						rtn.success = false
-						pending = false
-					}
-				}
-				attempts ++
-				if(attempts > 360) {
-					pending = false
-				} else {
-					if(pending) {
-						sleep(1000l * 10l)
-					}
-				}
-			}
-		} catch(e) {
-			log.error(e)
 		}
 		return rtn
 	}

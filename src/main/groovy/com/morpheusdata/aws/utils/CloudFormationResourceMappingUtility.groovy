@@ -1,14 +1,35 @@
 package com.morpheusdata.aws.utils
 
+import com.morpheusdata.aws.EC2ProvisionProvider
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.data.DataFilter
 import com.morpheusdata.core.data.DataQuery
-import com.morpheusdata.core.util.MorpheusUtils
 import com.morpheusdata.model.AccountResource
 import com.morpheusdata.model.AccountResourceType
+import com.morpheusdata.model.App
+import com.morpheusdata.model.AppInstance
+import com.morpheusdata.model.Cloud
+import com.morpheusdata.model.CloudPool
+import com.morpheusdata.model.CloudType
+import com.morpheusdata.model.ComputeServer
+import com.morpheusdata.model.ComputeServerType
+import com.morpheusdata.model.ContainerType
 import com.morpheusdata.model.Instance
+import com.morpheusdata.model.InstanceScale
+import com.morpheusdata.model.InstanceScaleType
+import com.morpheusdata.model.InstanceType
+import com.morpheusdata.model.Network
+import com.morpheusdata.model.NetworkType
+import com.morpheusdata.model.OsType
+import com.morpheusdata.model.SecurityGroup
+import com.morpheusdata.model.SecurityGroupLocation
+import com.morpheusdata.model.ServicePlan
+import com.morpheusdata.model.Workload
+import com.morpheusdata.model.WorkloadType
 import com.morpheusdata.response.ServiceResponse
 import groovy.util.logging.Slf4j
+
+import java.awt.Container
 
 @Slf4j
 class CloudFormationResourceMappingUtility  {
@@ -19,86 +40,8 @@ class CloudFormationResourceMappingUtility  {
 
 	def amazonComputeService
 
-
-	static ServiceResponse parseResource(Instance instance, String content, Map scriptConfig, Map opts, MorpheusContext morpheusContext) {
-		def appConfig = [name:instance.name, createdBy:instance.createdBy, account:instance.account,
-						 serverGroup:instance.serverGroup, resourcePool:instance.resourcePool, site:instance.site,
-						 plan:instance.plan, layout:instance.layout, instanceId:instance.id, instanceName:instance.name,
-						 user:instance.createdBy, refType:'instance', refId:instance.id, refObj:instance,
-						 refConfig:instance.getConfigMap()
-		]
-		//set the zone
-		applyResourceCloud(appConfig, morpheusContext)
-		//parse it
-		return parseResource(appConfig, content, scriptConfig, opts, morpheusContext)
-	}
-
-	static def applyResourceCloud(Map appConfig, morpheusContext) {
-		applyResourceCloud(appConfig, null, morpheusContext)
-	}
-
-	static def applyResourceCloud(Map appConfig, Map resource, MorpheusContext morpheusContext) {
-		//set the default cloud
-		if(appConfig.refObj) {
-			if(appConfig.refType == 'instance') {
-				//set the zone
-				appConfig.defaultCloud = appConfig.refObj.provisionZoneId ? morpheusContext.async.cloud.getCloudById(appConfig.refObj.provisionZoneId).blockingGet() : null
-			} else if(appConfig.refType == 'container') {
-				//set the zone
-				appConfig.defaultCloud = appConfig.refObj.resourcePool?.serverGroup?.zone ?: null
-			} else if(appConfig.refType == 'app') {
-				//get the cloud out of the config map inside the config map (odd i know)
-				try {
-					//check the ref config
-					def baseConfig = appConfig.refConfig
-					def userConfig = MorpheusUtils.getJson(baseConfig.config)
-					if(userConfig.defaultCloud?.id) {
-						appConfig.defaultCloud = morpheusContext.async.cloud.getCloudById(userConfig.defaultCloud.id.toLong()).blockingGet()
-					} else {
-						//check the ref objs config
-						baseConfig = appConfig.refObj.getConfigMap()
-						userConfig	= MorpheusUtils.getJson(baseConfig.config)
-						if(userConfig.defaultCloud?.id)
-							appConfig.defaultCloud = morpheusContext.async.cloud.getCloudById(userConfig.defaultCloud.id.toLong()).blockingGet()
-					}
-				} catch(e) {
-					log.warn("error parsing default cloud from resource")
-				}
-			}
-		}
-		//assign it
-		def resourceZone
-		//if we have a resource
-		if(resource) {
-			if(resource.mapping) {
-				//already mapped -
-				resourceZone = resource.mapping.zone ?:
-						appConfig.serverGroup?.zone ?:
-								resource.mapping.provider?.computeZone ?:
-										resource.zone ?:
-												appConfig.defaultCloud
-			} else {
-				//not mapped
-				resourceZone = appConfig.serverGroup?.zone ?:
-						resource.zone ?:
-								appConfig.defaultCloud
-			}
-		} else {
-			//no resource
-			resourceZone = appConfig.serverGroup?.zone ?:
-					appConfig.defaultCloud
-		}
-		//pick one off the site?
-		if(!resourceZone) {
-			resourceZone = appConfig.site?.zones?.size() > 0 ? appConfig.site.zones.first() : null
-		}
-		//set it to the app config
-		appConfig.zone = resourceZone
-		//done
-	}
-
 	//splits a spec up into multiple resources and matches each up with a resource type
-	static ServiceResponse parseResource(Map appConfig, String content, Map scriptConfig, Map opts, MorpheusContext morpheusContext) {
+	static ServiceResponse parseResource(String content, Map scriptConfig, MorpheusContext morpheusContext) {
 		def rtn = [success:false, data:[resources:[]]]
 		try {
 			//apply the script config
@@ -109,11 +52,9 @@ class CloudFormationResourceMappingUtility  {
 			rtn.data.spec = processedSpec
 			//convert the content to json
 			def resourceConfig = loadYamlOrJsonMap(processedSpec)
+
 			//get the important stuff
-			def resourceParams = resourceConfig['Parameters']
-			def resourceMappings = resourceConfig['Mappings']
 			def resourceList = resourceConfig['Resources']
-			def resourceOutputs = resourceConfig['Outputs']
 			//iterate and apply the config
 			resourceList?.each { key, value ->
 				def type = value['Type']
@@ -137,8 +78,88 @@ class CloudFormationResourceMappingUtility  {
 		return ServiceResponse.create(rtn)
 	}
 
+	static ServiceResponse mapResource(Instance instance, Map resource, Map opts, MorpheusContext morpheusContext) {
+		def appConfig = [name:instance.name, createdBy:instance.createdBy, account:instance.account,
+						 serverGroup:instance.serverGroup, resourcePool:instance.resourcePool, site:instance.site,
+						 plan:instance.plan, layout:instance.layout, instanceId:instance.id, instanceName:instance.name,
+						 user:instance.createdBy, refType:'instance', refId:instance.id, refObj:instance,
+						 refConfig:instance.getConfigMap(), region: opts.cloud.regionCode
+		]
+		appConfig.defaultCloud = opts.cloud
+		//map it
+		return mapResource(appConfig, resource, opts, morpheusContext)
+	}
+
+	//app resource mapping for a list of specs
+	static ServiceResponse mapResource(Map appConfig, Map resource, Map opts, MorpheusContext morpheusContext) {
+		def rtn = [success:false, data:[resource:null]]
+		try {
+			log.debug("map resource: {}", resource)
+			//parse the spec
+			//format: [type, apiType, apiPath, namespace, enabled, spec, specMap, morpheusType]
+			//matching output - state, stateMap
+			def buildResults = buildAccountResource(appConfig, resource, opts)
+			log.debug("buildResults: {}", buildResults)
+			if(buildResults.success == true) {
+				def mapResult = buildResults.data
+				if(mapResult) {
+					resource.key = mapResult.key ?: mapResult.name
+					rtn.data.resource = [input:resource, mapping:mapResult]
+				}
+				if(resource.morpheusType && resource.morpheusType != 'accountResource') {
+					//set the results on the input to map a morpheus type
+					resource.accountResource = mapResult
+					//build the morpheus resource - switch on case
+					def morpheusResults
+					switch(resource.morpheusType) {
+						case 'instance':
+							log.debug("mapping instance: {}", appConfig.refType)
+							if(appConfig.refType == 'instance') { //if this is an instance - create a container to add to it
+								resource.morpheusType = 'container'
+								morpheusResults = mapContainer(appConfig, resource, opts, morpheusContext)
+							} else if(appConfig.refType == 'app')  { //if this is an app - create an instance
+								morpheusResults = mapInstance(appConfig, resource, opts, morpheusContext)
+							}
+							break
+						default:
+							break
+					}
+					//add to response
+					if(morpheusResults) {
+						rtn.data.resource.morpheusResource = morpheusResults.data.resource
+					}
+					//done
+				}
+				rtn.success = true
+			}
+		} catch(e) {
+			rtn.msg = "error parsing cf resource: ${e}"
+			log.error(rtn.msg, e)
+		}
+		return ServiceResponse.create(rtn)
+	}
+
+	static ServiceResponse resolveResource(Instance instance, Map resource, Collection resourceResults, Map opts, MorpheusContext morpheusContext) {
+		def appConfig = [name:instance.name, createdBy:instance.createdBy, account:instance.account,
+						 serverGroup:instance.serverGroup, resourcePool:instance.resourcePool, site:instance.site,
+						 plan:instance.plan, layout:instance.layout, instanceId:instance.id, instanceName:instance.name,
+						 user:instance.createdBy, refType:'instance', refId:instance.id, refObj:instance,
+						 refConfig:instance.getConfigMap()
+		]
+		return resolveResource(appConfig, resource, resourceResults, opts, morpheusContext)
+	}
+
+	static ServiceResponse resolveResource(App app, Map resource, Collection resourceResults, Map opts, MorpheusContext morpheusContext) {
+		def appConfig = [name:app.name, createdBy:app.createdBy, account:app.account,
+						 serverGroup:app.serverGroup, resourcePool:app.resourcePool, site:app.site,
+						 appId:app.id, appName:app.name, user:app.createdBy, refType:'app', refId:app.id, refObj:app,
+						 refConfig:app.getConfigMap()
+		]
+		return resolveResource(appConfig, resource, resourceResults, opts, morpheusContext)
+	}
+
 	//adds provision info to resources
-	ServiceResponse resolveResource(Map appConfig, Map resource, Collection resourceResults, Map opts) {
+	static ServiceResponse resolveResource(Map appConfig, Map resource, Collection resourceResults, Map opts, MorpheusContext morpheusContext) {
 		def rtn = [success:false, data:[:]]
 		//resource: [id, morpheusType:'accountResource', type, name, resource]
 		try {
@@ -154,14 +175,15 @@ class CloudFormationResourceMappingUtility  {
 				rtn.success = true
 				resource.resource.externalId = rtn.data.externalId
 				resource.resource.internalId = rtn.data.internalId
-				resource.resource.save(flush:true)
+				morpheusContext.async.cloud.resource.save(resource.resource as AccountResource).blockingGet()
 				if(resource.resource.refType && resource.resource.refId) {
 					switch(resource.resource.refType) {
 						case 'instance':
-							resolveInstance(appConfig, resource, matchResource, opts)
+							if(resource.resource.refId && resource.resource.externalId)
+								appConfig.refObj.externalId = resource.resource.externalId
 							break
 						case 'container':
-							resolveContainer(appConfig, resource, matchResource, opts)
+							resolveContainer(appConfig, resource, matchResource, opts, morpheusContext)
 							break
 						default:
 							break
@@ -174,45 +196,28 @@ class CloudFormationResourceMappingUtility  {
 		return ServiceResponse.create(rtn)
 	}
 
-	ServiceResponse resolveInstance(Map appConfig, Map resource, Object resourceResult, Map opts) {
+	static ServiceResponse resolveContainer(Map appConfig, Map resource, Object resourceResult, Map opts, MorpheusContext morpheusContext) {
 		def rtn = [success:false, data:[:]]
 		//resource: [id, morpheusType:'accountResource', type, name, resource]
 		try {
 			if(resource.resource.refId && resource.resource.externalId) {
-				def instance = Instance.get(resource.resource.refId) 
-				if(instance) {
-					instance.externalId = resource.resource.externalId
-					instance.save(flush:true)
-				}
-			}
-		} catch(e) {
-			log.error("error resolving instance: ${e}", e)
-		}
-		return ServiceResponse.create(rtn)
-	}
-
-	ServiceResponse resolveContainer(Map appConfig, Map resource, Object resourceResult, Map opts) {
-		def rtn = [success:false, data:[:]]
-		//resource: [id, morpheusType:'accountResource', type, name, resource]
-		try {
-			if(resource.resource.refId && resource.resource.externalId) {
-				def container = Container.get(resource.resource.refId)
-				if(container) {
-					container.externalId = resource.resource.externalId
-					if(container.server) {
-						container.server.externalId = resource.resource.externalId
+				def workload = morpheusContext.async.workload.get(resource.resource.refId?.toLong()).blockingGet()
+				if(workload) {
+					workload.externalId = resource.resource.externalId
+					if(workload.server) {
+						workload.server.externalId = resource.resource.externalId
 
 						// Fetch the ec2 instance and see if the tag name is set
-						def serverResults = AmazonComputeUtility.getServerDetail([amazonClient: amazonComputeService.getAmazonClient(container.server.zone, false, container.server?.resourcePool?.regionCode ?: opts.regionCode), serverId: resource.resource.externalId])
+						def serverResults = AmazonComputeUtility.getServerDetail([amazonClient: opts.amazonClient, serverId: resource.resource.externalId])
 						def nameTag = serverResults.success && serverResults.server ? serverResults.server.getTags()?.find { it.getKey()?.toLowerCase() == 'name' }?.getValue() : null
-						if(nameTag && container.server.name != nameTag) {
+						if(nameTag && workload.server.name != nameTag) {
 							resource.resource.name = nameTag
-							resource.resource.save()
-							container.server.name = nameTag
-							container.server.save()
+							morpheusContext.async.cloud.resource.save(resource.resource as AccountResource).blockingGet()
+							workload.server.name = nameTag
+							morpheusContext.async.computeServer.save(workload.server).blockingGet()
 						}
 					}
-					container.save(flush:true)
+					morpheusContext.async.workload.save(workload).blockingGet()
 				}
 			}
 		} catch(e) {
@@ -222,7 +227,7 @@ class CloudFormationResourceMappingUtility  {
 	}
 
 	//set details from the cloud obj to the resources
-	ServiceResponse updateResource(Map appConfig, Map resource, Map opts) {
+	static ServiceResponse updateResource(Map resource, Map opts, MorpheusContext morpheusContext) {
 		def rtn = [success:false, data:[:]]
 		//resource: [id, morpheusType:'accountResource', type, name, resource, state]
 		try {
@@ -240,7 +245,7 @@ class CloudFormationResourceMappingUtility  {
 			}
 			if(doSave == true) {
 				resource.resource.statusDate = new Date()
-				resource.resource.save(flush:true)
+				morpheusContext.async.cloud.resource.save(resource.resource as AccountResource).blockingGet()
 				rtn.success = true
 			}
 		} catch(e) {
@@ -275,69 +280,939 @@ class CloudFormationResourceMappingUtility  {
 		return ServiceResponse.create(rtn)
 	}
 
-	//app resource mapping for a list of specs
-	static ServiceResponse mapResource(Map appConfig, Map resource, Map opts) {
-		def rtn = [success:false, data:[resource:null]]
-		try {
-			log.debug("map resource: {}", resource)
-			//parse the spec
-			//format: [type, apiType, apiPath, namespace, enabled, spec, specMap, morpheusType]
-			//matching output - state, stateMap
-			def buildResults = buildAccountResource(appConfig, resource, opts)
-			log.debug("buildResults: {}", buildResults)
-			if(buildResults.success == true) {
-				def mapResult = buildResults.data
-				if(mapResult) {
-					resource.key = mapResult.key ?: mapResult.name
-					rtn.data.resource = [input:resource, mapping:mapResult]
-				}
-				if(resource.morpheusType && resource.morpheusType != 'accountResource') {
-					//set the results on the input to map a morpheus type
-					resource.accountResource = mapResult
-					//build the morpheus resource - switch on case
-					def morpheusResults
-					switch(resource.morpheusType) {
-						case 'instance':
-							log.debug("mapping instance: {}", appConfig.refType)
-							if(appConfig.refType == 'instance') { //if this is an instance - create a container to add to it
-								resource.morpheusType = 'container'
-								morpheusResults = mapContainer(appConfig, resource, opts)
-							} else if(appConfig.refType == 'app')  { //if this is an app - create an instance
-								morpheusResults = mapInstance(appConfig, resource, opts)
-							}
-							break
-						default:
-							break
-					}
-					//add to response
-					if(morpheusResults) {
-						rtn.data.resource.morpheusResource = morpheusResults.data.resource
-					}
-					//done
-				}
-				rtn.success = true
+	//creating
+	static ServiceResponse createResource(Instance instance, Map resource, Map opts, MorpheusContext morpheusContext) {
+		//resource [input:[type, apiType, apiPath, namespace, enabled, spec, specMap, morpheusType],
+		//  mapping[:], spec:ResourceSpec]
+		def rtn = [success:false, data:resource]
+		rtn.data.newResource = false
+		rtn.data.userData = resource.mapping?.config?.userData ?: [found:false]
+		//configure it from the mapping
+		def configResults = configureResource(instance, resource, opts, morpheusContext)
+		log.debug("config results: {}", configResults)
+		if(configResults.success == true && configResults.data) {
+			rtn.data += configResults.data
+			rtn.success = true
+		}
+		//save
+		return ServiceResponse.create(rtn)
+	}
+
+	static ServiceResponse createResource(App app, Map resource, Map opts, MorpheusContext morpheusContext) {
+		//resource [input:[type, apiType, apiPath, namespace, enabled, spec, specMap, morpheusType],
+		//  mapping[:], spec:ResourceSpec]
+		def rtn = [success:false, data:resource]
+		rtn.data.newResource = false
+		rtn.data.userData = resource.mapping?.config?.userData ?: [found:false]
+		//configure it from the mapping
+		def configResults = configureResource(app, resource, opts, morpheusContext)
+		log.debug("config results: {}", configResults)
+		if(configResults.success == true && configResults.data) {
+			rtn.data += configResults.data
+			rtn.success = true
+		}
+		//save
+		return ServiceResponse.create(rtn)
+	}
+
+	static ServiceResponse configureResource(Instance instance, Map resource, Map opts, MorpheusContext morpheusContext) {
+		def rtn = [success:false, data:[newResource:false]]
+		def appConfig = [name:instance.name, createdBy:instance.createdBy, account:instance.account,
+						 serverGroup:instance.serverGroup, resourcePool:instance.resourcePool, site:instance.site,
+						 plan:instance.plan, layout:instance.layout, instanceId:instance.id, instanceName:instance.name,
+						 user:instance.createdBy, refType:'instance', refId:instance.id, refObj:instance,
+						 refConfig:instance.getConfigMap()
+		]
+		//build an iacId
+		appConfig.iacId = 'instance.' + instance.id + '.' + resource.input.type + '.' + resource.input.key
+		//set the zone
+		appConfig.defaultCloud = opts.cloud
+		//build layout config
+		appConfig.layoutConfig = resource.layoutConfig ?: appConfig.layoutConfig
+		//configure it
+		rtn = configureResource(appConfig, resource, opts, morpheusContext)
+		//done
+		return ServiceResponse.create(rtn)
+	}
+
+	static ServiceResponse configureResource(App app, Map resource, Map opts, MorpheusContext morpheusContext) {
+		def rtn = [success:false, data:[newResource:false]]
+		def appConfig = [name:app.name, createdBy:app.createdBy, account:app.account,
+						 serverGroup:app.serverGroup, resourcePool:app.resourcePool, site:app.site,
+						 appId:app.id, appName:app.name, user:app.createdBy, refType:'app', refId:app.id, refObj:app,
+						 refConfig:app.getConfigMap()
+		]
+		//build an iacId
+		appConfig.iacId = 'app.' + app.id + '.' + resource.input.type + '.' + resource.input.key
+		//set the zone
+		appConfig.defaultCloud = opts.cloud
+		//build layout config
+		appConfig.layoutConfig = resource.layoutConfig ?: appConfig.layoutConfig
+		//configure it
+		rtn = configureResource(appConfig, resource, opts, morpheusContext)
+		//if this is instance - add to app
+		if(rtn.data.type == 'instance' && rtn.data.output && rtn.data.newResource) {
+			def existingMatch = app.instances?.find{ it.id == rtn.data.output.id }
+			if(existingMatch == null) {
+				def appInstance = new AppInstance(app:app, instance:rtn.data.output)
+				app.instances += appInstance
+				morpheusContext.async.app.save(app).blockingGet()
 			}
-		} catch(e) {
-			rtn.msg = "error parsing cf resource: ${e}"
-			log.error(rtn.msg, e)
+		}
+		//done
+		return ServiceResponse.create(rtn)
+	}
+
+
+	static ServiceResponse configureResource(Map appConfig, Map resource, Map opts, MorpheusContext morpheusContext) {
+		def rtn = [success:false, data:[newResource:false]]
+		//resource [input:[type, key, apiType, apiPath, namespace, enabled, spec, specMap, morpheusType], mapping[:]]
+
+		//get the type
+		def morpheusType = resource.mapping.morpheusType
+		//configure the resource from the mapping
+		switch(morpheusType) {
+			case 'instance':
+				rtn = configureInstance(appConfig, resource, opts, morpheusContext)
+				break
+			case 'container':
+				rtn = configureContainer(appConfig, resource, opts, morpheusContext)
+				break
+			case 'accountResource':
+				rtn = configureAccountResource(appConfig, resource, morpheusContext)
+				break
+//			case 'zone':
+//			case 'computeZone':
+//				rtn = configureComputeZone(appConfig, resource, opts)
+//				break
+//			case 'service':
+//			case 'serviceEntry':
+//				rtn = configureServiceEntry(appConfig, resource, opts)
+//				break
+		}
+		//add a morpheus resource?
+		def morpheusResource = resource.morpheusResource
+		if(morpheusResource) {
+			//add the just the spec
+			morpheusResource.spec = resource.spec
+			//map this
+			log.debug("configuring morpheus resource: {}", morpheusResource.mapping)
+			def morpheusResults = configureResource(appConfig, morpheusResource, opts, morpheusContext)
+			if(morpheusResults && morpheusResults.success == true)
+				rtn.data.morpheusResource = morpheusResults
+		}
+
+		return ServiceResponse.create(rtn)
+	}
+
+	static ServiceResponse configureInstance(Map appConfig, Map resource, Map opts, MorpheusContext morpheusContext) {
+		def rtn = [success:false, data:[newResource:false]]
+		//resource [input:[type, key, apiType, apiPath, namespace, enabled, spec, specMap, morpheusType], mapping[:]]
+//		def morpheusType = resource.input.morpheusType
+//		//iac id
+//		def iacId = resource.iacId ?: (resource.mapping.iacId ?: appConfig.iacId)
+//		//find a match so it isn't duplicated
+//		def instanceMatch = Instance.findByIacId(iacId)
+//		def containerMatchList = Container.findAllByIacId(iacId)
+//		def serverMatchList = ComputeServer.findAllByIacId(iacId)
+//		//add in any manually specified servers
+//		if(opts.serverMatchList)
+//			serverMatchList += opts.serverMatchList
+//		//config
+//		def objConfig = [account:appConfig.account, site:appConfig.site]
+//		objConfig += resource.mapping
+//		objConfig.iacId = iacId
+//		//user data
+//		def userData = objConfig.userData ?: objConfig.config?.userData
+//		if(userData)
+//			rtn.data.userData = userData
+//		//default cloud
+//		objConfig.zone = appConfig.zone
+//		//plan and layouts
+//		objConfig.plan = ServicePlan.findByCode('container-unmanaged') //figure out container vs vm?
+//		def layoutConfig = resource.layoutConfig ?: appConfig.layoutConfig
+//		objConfig.instanceType = layoutConfig.type
+//		objConfig.layout = layoutConfig.layout
+//		objConfig.workloadType = layoutConfig.workloadType
+//		objConfig.provisionType = objConfig.layout?.provisionType
+//		objConfig.platform = 'unknown'
+//		objConfig.osType = OsType.findByCode('other.64')
+//		objConfig.osType = getOsType(appConfig, resource)
+//		if(layoutConfig.name) {
+//			objConfig.name = layoutConfig.name
+//		}
+//		//get compute server type
+//		objConfig.computeServerType = getCloudUnmanagedServerType(objConfig.zone)
+//		//sizing & status
+//
+//		objConfig.maxMemory = objConfig?.maxMemory ?: objConfig.plan?.maxMemory
+//		objConfig.maxCpu = objConfig?.maxCpu ?: objConfig.plan?.maxCpu ?: 1
+//		objConfig.maxCores = objConfig?.maxCores ?: objConfig.plan?.maxCores ?: 1
+//		objConfig.maxStorage = objConfig?.maxStorage ?: objConfig.plan?.maxStorage
+//		objConfig.status = Instance.Status.provisioning
+//		//get container list
+//		def specContainers = objConfig.remove('containers')
+//		//figure out if we will create
+//		def createServer = objConfig.provisionType.createServer == true ? (objConfig.zone != null && objConfig.computeServerType != null) : false
+//		def createInstance = (objConfig.layout != null && objConfig.containerType != null) && (createServer == true || objConfig.serverId != null)
+//		//backup
+//		def backupConfig = backupService.getDefaultBackupConfig(appConfig.account, appConfig.site, objConfig.zone,
+//				[instanceType:objConfig.instanceType, layout:objConfig.layout, containerType:objConfig.containerType])
+//		//count
+//		def instanceCount = objConfig.count ?: 1
+//		//instance
+//		def newObj
+//		def newServers = []
+//		def newContainers = []
+//		log.debug("instanceMatch: {} - createInstance: {}", instanceMatch, createInstance)
+//		//if a match don't create
+//		if(instanceMatch) {
+//			newObj = instanceMatch
+//			rtn.data.newResource = false
+//		} else if(createInstance == true) {
+//			//create it
+//			def instanceName = getUniqueInstanceName(objConfig.name, objConfig.site.account)
+//			def displayName = objConfig.name ?: instanceName
+//			if(objConfig.createdBy instanceof String) {
+//				objConfig.remove('createdBy')
+//			}
+//			newObj = new Instance(objConfig)
+//			newObj.networkLevel = 'container'
+//			if(objConfig.createdById) {
+//				newObj.createdBy = User.get(objConfig.createdById.toLong())
+//			} else {
+//				newObj.createdBy = objConfig.createdBy ?: appConfig.createdBy
+//			}
+//			newObj.setConfigProperty('backup', backupConfig)
+//			newObj.setConfigProperty('createBackup', backupConfig.createBackup)
+//			newObj.save(failOnError:true)
+//			rtn.data.newResource = true
+//		}
+//		//create containers?
+//		//for each counter...
+//		for(int i = 0; i < instanceCount; i++) {
+//			//servers
+//			def newServer = (serverMatchList.size() > i) ? serverMatchList.first() : null
+//			if(newServer || createServer) {
+//				if(newServer) {
+//					serverMatchList.remove(newServer)
+//				} else if(createServer) {
+//					def serverConfig = [account:objConfig.site.account, computeServerType:objConfig.computeServerType, zone:objConfig.zone,
+//										iacId:iacId, name:objConfig.name, displayName:objConfig.displayName ?: objConfig.name, sshUsername:'root',
+//										hostname:objConfig.hostname, provisionSiteId:appConfig.site?.id, plan:objConfig.plan, serverOs:objConfig.osType,
+//										osType:objConfig.osType?.platform, serverType:objConfig.serverType, singleTenant:(objConfig.singleTenant != null ? objConfig.singleTenant : true),
+//										resourcePool:objConfig.resourcePool, externalId:objConfig.externalId, maxCpu:objConfig.maxCpu, maxCores:objConfig.maxCores,
+//										maxMemory:objConfig.maxMemory, maxStorage:objConfig.maxStorage
+//					]
+//					newServer = new ComputeServer(serverConfig)
+//					newServer.save(failOnError:true)
+//				}
+//				//update creds if creating
+//				log.debug("instance user data check: {} - username: {}", userData, newServer.sshUsername)
+//				if(newServer && userData?.found && newServer.sshUsername == 'root') {
+//					newServer.sshUsername = userData.user ?: 'root'
+//					newServer.sshPassword = userData.password ?: newServer.sshPassword
+//					if(userData.privateKey)
+//						newServer.privateKey = userData.privateKey
+//					newServer.save()
+//				}
+//				//add to list
+//				if(newServer)
+//					newServers << newServer
+//			} else if(objConfig.serverId) {
+//				newServer = ComputeServer.get(objConfig.serverId)
+//			}
+//			//container
+//			if(createInstance) {
+//				//handle multiple container
+//				if(objConfig.containerList) {
+//					objConfig.containerList?.each { row ->
+//						//create one - need to add a way to handle multiple though
+//						def serverId = row.remove('serverId')
+//						def containerConfig = row + [account:objConfig.site.account, containerType:objConfig.containerType,
+//													 instance:newObj, plan:objConfig.plan, status:Container.Status.deploying, containerCreated:true,
+//													 maxCpu:objConfig.maxCpu, maxCores:objConfig.maxCores, maxMemory:objConfig.maxMemory,
+//													 maxStorage:objConfig.maxStorage
+//						]
+//						containerConfig.resourcePool = newObj.resourcePool
+//						containerConfig.server = serverId ? ComputeServer.get(serverId) : newServer
+//						def newContainer = new Container(containerConfig)
+//						newContainer.save(failOnError:true)
+//						newObj.addToContainers(newContainer)
+//						newContainers << newContainer
+//					}
+//				} else {
+//					def newContainer
+//					if(containerMatchList.size() > i) {
+//						newContainer = containerMatchList.find{ it.server == newServer }
+//						if(!newContainer)
+//							newContainer = containerMatchList.first()
+//					}
+//					if(newContainer) {
+//						containerMatchList.remove(newContainer)
+//					} else {
+//						//create one - need to add a way to handle multiple though
+//						def containerConfig = [account:objConfig.site.account, containerType:objConfig.containerType,
+//											   hostname:objConfig.hostname, iacId:iacId, name:objConfig.name, instance:newObj, plan:objConfig.plan,
+//											   server:newServer, status:Container.Status.deploying, containerCreated:true, maxCpu:objConfig.maxCpu,
+//											   maxCores:objConfig.maxCores, maxMemory:objConfig.maxMemory, maxStorage:objConfig.maxStorage]
+//						newContainer = new Container(containerConfig)
+//						newContainer.save(failOnError:true)
+//						newObj.addToContainers(newContainer)
+//					}
+//					newContainers << newContainer
+//				}
+//			}
+//		}
+//		// newObj.addConfigProperty('evars', containerService.getInstanceEnvironmentVariables(newObj))
+//		// environmentVariableService.setInstanceUserEnvironmentVariables(newObj, [])
+//		// newObj.save()
+//		//prepare results
+//		rtn.data.output = newObj
+//		rtn.data.type = 'instance'
+//		rtn.data.id = newObj.id
+//		rtn.data.iacId = iacId
+//		rtn.data.containers = newContainers
+//		rtn.data.servers = newServers
+//		rtn.data.create = rtn.data.id != null
+//		rtn.success = true
+//		//done with instance
+		return ServiceResponse.create(rtn)
+	}
+
+	static ServiceResponse configureContainer(Map appConfig, Map resource, Map opts, MorpheusContext morpheusContext) {
+		def rtn = [success:false, data:[newResource:false]]
+		//resource [input:[type, key, apiType, apiPath, namespace, enabled, spec, specMap, morpheusType], mapping[:]]
+		def morpheusType = resource.input.morpheusType
+		//iac id
+		def iacId = resource.iacId ?: (resource.mapping.iacId ?: appConfig.iacId)
+		//find a match so it isn't duplicated
+		def containerMatchList = morpheusContext.async.workload.list(new DataQuery().withFilter('iacId', iacId)).toList().blockingGet()
+		def serverMatchList = morpheusContext.async.computeServer.list(new DataQuery().withFilter('iacId', iacId)).toList().blockingGet()
+
+		//add in any manually specified servers
+		if(opts.serverMatchList)
+			serverMatchList += opts.serverMatchList
+		//config
+		def objConfig = [account:appConfig.account, site:appConfig.site]
+		objConfig += resource.mapping
+		objConfig.iacId = iacId
+		//user data
+		def userData = objConfig.userData ?: objConfig.config?.userData
+		if(userData)
+			rtn.data.userData = userData
+		//default cloud
+		objConfig.cloud = appConfig.defaultCloud
+		//plan and layouts
+		def layoutConfig = resource.layoutConfig ?: appConfig.layoutConfig
+		objConfig.plan = layoutConfig.plan ?: new ServicePlan(code: 'container-unmanaged') //figure out container vs vm?
+		objConfig.instanceType = layoutConfig.type
+		objConfig.layout = layoutConfig.layout
+		objConfig.workloadType = layoutConfig.workloadType
+		objConfig.provisionType = objConfig.layout?.provisionType
+		objConfig.platform = 'unknown'
+		objConfig.osType = layoutConfig.osType ?: new OsType(code: 'other.64')
+		//get compute server type
+		objConfig.computeServerType = layoutConfig.computeServerType ?: new ComputeServerType(code: 'amazonUnmanaged')
+		//sizing & status
+		objConfig.maxMemory = objConfig?.maxMemory ?: objConfig.plan?.maxMemory
+		objConfig.maxCpu = objConfig?.maxCpu ?: objConfig.plan?.maxCpu ?: 1
+		objConfig.maxCores = objConfig?.maxCores ?: objConfig.plan?.maxCores ?: 1
+		objConfig.maxStorage = objConfig?.maxStorage ?: objConfig.plan?.maxStorage
+		objConfig.status = Instance.Status.provisioning
+		//figure out if we will create a server
+		def createServer = objConfig.provisionType?.createServer == true ? (objConfig.cloud != null && objConfig.computeServerType != null) : false
+		//see if the server already exists
+		log.debug("create server: {}", createServer)
+		def newServer
+		if(objConfig.serverId)
+			newServer = morpheusContext.async.computeServer.get(objConfig.serverId).blockingGet()
+		if(newServer == null)
+			newServer = serverMatchList?.size() > 0 ? serverMatchList.first() : null
+		//create it if it doesnt exist
+		if(newServer == null && createServer == true) {
+			def serverConfig = [account:objConfig.site.account, computeServerType:objConfig.computeServerType, cloud:objConfig.cloud,
+								iacId:iacId, name:objConfig.name, displayName:objConfig.displayName ?: objConfig.name, sshUsername:'root',
+								hostname:objConfig.hostname, provisionSiteId:appConfig.site?.id, plan:objConfig.plan, serverOs:objConfig.osType,
+								osType:objConfig.osType?.platform, serverType:objConfig.serverType, singleTenant:(objConfig.singleTenant != null ? objConfig.singleTenant : true),
+								resourcePool:objConfig.resourcePool, externalId:objConfig.externalId, maxCpu:objConfig.maxCpu, maxCores:objConfig.maxCores,
+								maxMemory:objConfig.maxMemory, maxStorage:objConfig.maxStorage
+			]
+			newServer = new ComputeServer(serverConfig)
+			if(resource.awsConfig) {
+				newServer.setConfigProperty('awsConfig', resource.awsConfig)
+			}
+			newServer = morpheusContext.async.computeServer.create(newServer).blockingGet()
+		}
+
+		//update creds if creating
+		log.debug("container user data check: {} - username: {}", userData, newServer.sshUsername)
+		if(newServer && userData?.found && newServer.sshUsername == 'root') {
+			if(resource.awsConfig) {
+				newServer.setConfigProperty('awsConfig', resource.awsConfig)
+			}
+			newServer.sshUsername = userData.user ?: 'root'
+			newServer.sshPassword = userData.password ?: newServer.sshPassword
+			if(userData.privateKey)
+				newServer.privateKey = userData.privateKey
+			morpheusContext.async.computeServer.save(newServer).blockingGet()
+			newServer = morpheusContext.async.computeServer.get(newServer.id).blockingGet()
+		}
+
+		//find or create the container
+		def newObj
+		if(containerMatchList.size() > 0) {
+			newObj = containerMatchList.find{ it.server == newServer }
+			if(!newObj)
+				newObj = containerMatchList.first()
+		}
+		//create it if not
+		if(newObj == null) {
+			//create one - need to add a way to handle multiple though
+			def containerConfig = [account:objConfig.site.account, workloadType:objConfig.workloadType,
+								   hostname:objConfig.hostname, iacId:iacId, displayName:objConfig.name,
+								   plan:objConfig.plan, server:newServer, status: Workload.Status.deploying,
+								   containerCreated:true, maxCpu:objConfig.maxCpu, maxCores:objConfig.maxCores,
+								   maxMemory:objConfig.maxMemory, maxStorage:objConfig.maxStorage]
+			if(appConfig.refType == 'instance')
+				containerConfig.instance = appConfig.refObj
+			//create it
+			log.debug("create container config: {}", containerConfig)
+			newObj = new Workload(containerConfig)
+			//newObj = morpheusContext.async.workload.create(newObj).blockingGet()
+			rtn.data.newResource = true
+			rtn.data.container = newObj
+		}
+		//prepare results
+		rtn.data.output = newObj
+		rtn.data.type = 'container'
+		rtn.data.id = newObj.id
+		rtn.data.iacId = iacId
+		rtn.data.create = rtn.data.id != null
+		rtn.success = true
+		log.info("create container results: {}", rtn)
+		//done with instance
+		return ServiceResponse.create(rtn)
+	}
+
+	static ServiceResponse createAppTemplateResource(App app, Cloud cloud, Map config, Map masterConfig, MorpheusContext morpheusContext, Map opts) {
+		def rtn
+		def rtnData = [config:config, newResource:true, userData:[found:false]]
+		//standard shared way to create template resources
+		def configResponse = configureAppTemplateResource(app, cloud, config, masterConfig, morpheusContext, opts)
+		def extraConfig = configResponse.data
+		log.debug("extraConfig: {}", extraConfig)
+		//create by type
+		if(extraConfig.create == true && (config.morpheusType == 'zone' || config.morpheusType == 'computeZone')) { //cloud support
+			//config
+			def iacId = extraConfig.iacId ?: 'app.' + app.id + '.' + config.type + '.' + config.key
+			def zoneConfig = [account:app.account, owner:app.account, visibility:'private', site:app.site]
+			zoneConfig += extraConfig.zone
+			def zoneOptions = extraConfig.config ?: [:]
+			def newCloud = new Cloud(zoneConfig)
+			newCloud.setConfigMap(zoneOptions)
+			//setZoneIntegrations(rtn.zone, config)
+			//def subService = getService(rtn.zone.zoneType.computeService)
+			newCloud = morpheusContext.async.cloud.create(newCloud).blockingGet()
+			rtnData.zone = newCloud
+			rtnData.resource = newCloud
+			rtnData.id = newCloud.id
+			rtnData.iacId = iacId
+			rtnData.create = true
+			config.provider.computeZone = newCloud
+			rtn = ServiceResponse.success(rtnData)
+		}	else if(config.morpheusType == 'instanceTypeLayout') { //new layout
+			//config
+			def iacId = extraConfig.iacId ?: 'app.' + app.id + '.' + config.type + '.' + config.key
+			//make a layout and container set and container type
+			rtnData.create = false
+			rtnData.iacId = iacId
+			rtn = ServiceResponse.success(rtnData)
+		} else if(extraConfig.create == true && config.morpheusType == 'computeZonePool') {
+			//config
+			def iacId = extraConfig.iacId ?: 'app.' + app.id + '.' + config.type + '.' + config.key
+			def targetZone = cloud ?: extraConfig.zone
+			def poolConfig = [owner:app.account, name:config.name, refType:'ComputeZone', refId:targetZone.id, zone:targetZone,
+							  iacId:iacId, status: CloudPool.Status.deploying]
+			poolConfig += extraConfig.computeZonePool ?: [:]
+			def poolOptions = extraConfig.config ?: [:]
+			def newPool = new CloudPool(poolConfig)
+			newPool.setConfigMap(poolOptions)
+			newPool = morpheusContext.async.cloud.pool.create(newPool).blockingGet()
+//			def resourcePerm = new ResourcePermission(morpheusResourceType:'ComputeZonePool', morpheusResourceId:newPool.id, account:targetZone.account)
+//			resourcePerm.save(flush:true)
+			rtnData.computeZonePool = newPool
+			rtnData.resource = newPool
+			rtnData.id = newPool.id
+			rtnData.iacId = iacId
+			rtnData.create = false
+			rtn = ServiceResponse.success(rtnData)
+
+		} else if(extraConfig.create == true && config.morpheusType == 'instanceScale') {
+			//config
+			def iacId = extraConfig.iacId ?: 'app.' + app.id + '.' + config.type + '.' + config.key
+			def targetZone = cloud ?: extraConfig.zone
+			def instanceScaleConfig = [owner:app.account, name:config.name, zoneId:targetZone.id, zone:targetZone, iacId: iacId, status: InstanceScale.Status.deploying]
+			instanceScaleConfig += extraConfig.instanceScale ?: [:]
+			def instanceScaleOptions = extraConfig.config ?: [:]
+			def newInstanceScale = new InstanceScale(instanceScaleConfig)
+			newInstanceScale.setConfigMap(instanceScaleOptions)
+			morpheusContext.async.instance.scale.create(newInstanceScale).blockingGet()
+
+			rtnData.instanceScale = newInstanceScale
+			rtnData.resource = newInstanceScale
+			rtnData.id = newInstanceScale.id
+			rtnData.iacId = iacId
+			rtnData.create = false
+			rtn = ServiceResponse.success(rtnData)
+
+		} else if(extraConfig.create == true && config.morpheusType == 'securityGroupLocation') {
+			//config
+			def iacId = extraConfig.iacId ?: 'app.' + app.id + '.' + config.type + '.' + config.key
+			def targetZone = cloud ?: extraConfig.zone
+
+			def securityGroupLocationConfig = [refType:'ComputeZone', refId:targetZone.id, name:config.name,
+											   iacId  : iacId, status: SecurityGroupLocation.Status.deploying, description:config.description, groupName:config.name]
+			securityGroupLocationConfig += extraConfig.securityGroupLocation ?: [:]
+
+			// Create a SecurityGroup
+			SecurityGroup securityGroup = new SecurityGroup(account:app.account, name:securityGroupLocationConfig.name, description:securityGroupLocationConfig.description)
+			securityGroup = morpheusContext.async.securityGroup.create(securityGroup).blockingGet()
+
+			// Create a SecurityGroupLocation
+			def securityGroupLocationOptions = extraConfig.config ?: [:]
+			def newSecurityGroupLocation = new SecurityGroupLocation(securityGroupLocationConfig)
+			newSecurityGroupLocation.setConfigMap(securityGroupLocationOptions)
+			newSecurityGroupLocation.securityGroup = securityGroup
+			newSecurityGroupLocation = morpheusContext.securityGroup.location.create(newSecurityGroupLocation).blockingGet()
+			securityGroup.locations += newSecurityGroupLocation
+			morpheusContext.securityGroup.save([securityGroup]).blockingGet()
+
+			rtnData.securityGroupLocation = newSecurityGroupLocation
+			rtnData.resource = newSecurityGroupLocation
+			rtnData.id = newSecurityGroupLocation.id
+			rtnData.iacId = iacId
+			rtnData.create = false
+			rtn = ServiceResponse.success(rtnData)
+
+		} else if(extraConfig.create == true && config.morpheusType == 'network') {
+			//config
+			def iacId = extraConfig.iacId ?: 'app.' + app.id + '.' + config.type + '.' + config.key
+			def targetZone = cloud ?: extraConfig.zone
+			def networkConfig = [owner: targetZone.owner, name:config.name, status: 'deploying', refType:'ComputeZone', iacId:iacId,
+								 refId:targetZone.id, active:true, dhcpServer:true, networkServer:targetZone.networkServer, zone:targetZone]
+			networkConfig += extraConfig.networkConfig ?: [:]
+			def newNetwork = new Network(networkConfig)
+			rtnData.network = newNetwork
+			rtnData.resource = newNetwork
+			rtnData.id = newNetwork.id
+			rtnData.iacId = iacId
+			rtnData.create = false
+			rtn = ServiceResponse.success(rtnData)
+		} else
+
+		if(config.morpheusType == 'instance') { //instance support
+			//config
+			def iacId = extraConfig.iacId ?: 'app.' + app.id + '.' + config.type + '.' + config.key
+			def instanceCount = config.count ?: 1
+			//find a match so it isn't duplicated
+			def instanceMatch = morpheusContext.async.instance.find(new DataQuery().withFilter('iacId', iacId)).blockingGet()
+			def workloadMatchList = morpheusContext.async.workload.list(new DataQuery().withFilter('iacId', iacId)).toList().blockingGet()
+			def serverMatchList = morpheusContext.async.computeServer.list(new DataQuery().withFilter('iacId', iacId)).toList().blockingGet()
+			//prep config
+			def instanceType = extraConfig.instanceType
+			def site = app.site
+			def layout = extraConfig.layout
+			def plan = extraConfig.plan
+			def provisionType = layout?.provisionType
+			def osType = extraConfig.osType
+			def computeServerType = extraConfig.computeServerType
+			def containerType = extraConfig.containerType
+			def targetCloud = cloud ?: extraConfig.zone
+			//credentials
+			if(config.userData)
+				rtnData.userData = config.userData
+			//size info?
+			def maxMemory = extraConfig?.maxMemory ?: plan?.maxMemory
+			def maxCpu = extraConfig?.maxCpu ?: plan?.maxCpu
+			def maxCores = extraConfig?.maxCores ?: plan?.maxCores
+			def maxStorage = extraConfig?.maxStorage ?: plan?.maxStorage
+			def createServer = provisionType.createServer == true ? (targetCloud != null && computeServerType != null) : false
+			def createInstance = (layout != null && containerType != null) && (createServer == true || config.serverId != null)
+			//backup
+//			def backupConfig = backupService.getDefaultBackupConfig(app.account, app.site, targetZone,
+//					[instanceType:instanceType, layout:layout, containerType:containerType])
+			//instance
+			def newInstance
+			def newServers = []
+			def newContainers = []
+			log.debug("instanceMatch: {} - createInstance: {}", instanceMatch, createInstance)
+			//if a match don't create
+			if(instanceMatch) {
+				newInstance = instanceMatch
+				rtnData.newResource = false
+			} else if(createInstance == true) {
+				def instanceName = getUniqueInstanceName(config.name, site.account, morpheusContext)
+				def displayName = extraConfig.name ?: instanceName
+				def instanceConfig = [account:site.account, name:instanceName, displayName:displayName, iacId:iacId,
+									  instanceTypeCode:instanceType.code, layout:layout, plan:plan,
+									  createdBy:(config.createdBy ?: app.createdBy), site:app.site, networkLevel:'container',
+									  status:Instance.Status.provisioning, maxCores:maxCores ?: 1,
+									  maxMemory:maxMemory, maxStorage:maxStorage
+				]
+				newInstance = new Instance(instanceConfig)
+				//newInstance.setConfigProperty('backup', backupConfig)
+				//newInstance.setConfigProperty('createBackup', backupConfig.createBackup)
+				newInstance = morpheusContext.async.instance.create(newInstance).blockingGet()
+			}
+			//for each counter...
+			for(int i = 0; i < instanceCount; i++) {
+				//servers
+				def newServer = (serverMatchList.size() > i) ? serverMatchList.first() : null
+				if(newServer || createServer) {
+					if(newServer) {
+						serverMatchList.remove(newServer)
+					} else if(createServer) {
+						def serverConfig = [account:site.account, computeServerType:computeServerType, cloud:targetCloud, iacId:iacId, name:config.name,
+											sshUsername:'root', hostname:config.hostname, provisionSiteId:app.site?.id, plan:plan, serverOs:osType,
+											osType:osType?.platform, serverType:config.serverType, singleTenant:(config.singleTenant != null ? config.singleTenant : true),
+											resourcePool: config.resourcePool, externalId: config.externalId,
+											maxCpu:maxCpu ?: 1, maxCores:maxCores ?: 1, maxMemory:maxMemory, maxStorage:maxStorage
+						]
+						newServer = new ComputeServer(serverConfig)
+						newServer = morpheusContext.async.computeServer.create(newServer).blockingGet()
+					}
+					//update creds if creating
+					if(newServer && rtnData.userData.found && newServer.sshUsername == 'root') {
+						newServer.sshUsername = rtnData.userData.user ?: 'root'
+						newServer.sshPassword = rtnData.userData.password ?: newServer.sshPassword
+						if(rtnData.userData.privateKey)
+							newServer.privateKey = rtnData.userData.privateKey
+						morpheusContext.async.computeServer.save(newServer).blockingGet()
+					}
+					//add to list
+					if(newServer)
+						newServers << newServer
+				} else if(config.serverId) {
+					newServer = morpheusContext.async.computeServer.get(config.serverId as Long).blockingGet()
+				}
+				//container
+				if(createInstance) {
+					//handle multiple container
+					if(config.containerList) {
+						config.containerList?.each { row ->
+							//create one - need to add a way to handle multiple though
+							def workloadConfig = [account:site.account, workloadType: containerType, hostname:row.hostname,
+												   iacId:iacId + '.' + row.iacId, name:row.name, instance:newInstance, plan:plan,
+												   status:Container.Status.deploying, containerCreated:true, maxCpu:maxCpu ?: 1, maxCores:maxCores ?: 1,
+												   maxMemory:maxMemory, maxStorage:maxStorage, displayName:row.displayName, category:row.category,
+												   repositoryImage:row.repositoryImage, containerVersion:row.containerVersion
+							]
+							workloadConfig.server = row.serverId ? new ComputeServer(id: row.serverId) : newServer
+							def newWorkload = new Workload(workloadConfig)
+							newWorkload = morpheusContext.async.workload.create(newWorkload).blockingGet()
+							newInstance.containers += newWorkload
+							newContainers << newWorkload
+						}
+					} else {
+						def newWorkload
+						if(workloadMatchList.size() > i) {
+							newWorkload = workloadMatchList.find{ it.server == newServer }
+							if(!newWorkload)
+								newWorkload = workloadMatchList.first()
+						}
+						if(newWorkload) {
+							workloadMatchList.remove(newWorkload)
+						} else {
+							//create one - need to add a way to handle multiple though
+							def workloadConfig = [account:site.account, workloadType: containerType, hostname:config.hostname, iacId:iacId,
+												   internalName:config.name, instance:newInstance, plan:plan, server:newServer, status:Workload.Status.deploying,
+												   containerCreated:true, maxCpu:maxCpu ?: 1, maxCores:maxCores ?: 1, maxMemory:maxMemory, maxStorage:maxStorage]
+							newWorkload = new Workload(workloadConfig)
+							newWorkload = morpheusContext.async.workload.create(newWorkload).blockingGet()
+							newInstance.containers += newWorkload
+						}
+						newContainers << newWorkload
+					}
+				}
+			}
+			//save it
+			if(newInstance)
+				morpheusContext.async.instance.save(newInstance).blockingGet()
+			//if its new - add it to the app
+			if(newInstance && rtnData.newResource) {
+				def existingMatch = app.instances?.find{ it.id == newInstance.id }
+				if(existingMatch == null) {
+					def appInstance = new AppInstance(app:app, instance:newInstance)
+					app.instances += appInstance
+					morpheusContext.async.app.save(app).blockingGet()
+				}
+			}
+			//build return data
+			rtnData.instance = newInstance
+			rtnData.resource = newInstance
+			rtnData.containers = newContainers
+			rtnData.servers = newServers
+			rtnData.id = newInstance?.id
+			rtnData.iacId = iacId
+			rtnData.create = rtnData.id != null
+			rtn = ServiceResponse.success(rtnData)
+		} else {
+			rtn = ServiceResponse.error('type not supported')
+		}
+
+		return rtn
+	}
+
+	static ServiceResponse configureAppTemplateResource(App app, Cloud cloud, Map config, Map masterConfig, MorpheusContext morpheusContext, Map opts) {
+		def extraConfig = [create:false]
+		if(config.morpheusType == 'zone') {
+			extraConfig.zone = [:] //map to add to zone
+			extraConfig.config = [:] //map for zone confg
+			//name it
+			def name
+			if(config.tags && config.tags['Name'])
+				name = config.tags['Name']
+			else
+				name = config.name
+			//proceed if we have a name
+			if(name) {
+				extraConfig.zone.name = name
+				extraConfig.zone.zoneType = new CloudType(code: 'amazon')
+				//keep going
+				def awsProvider = config.provider ?: masterConfig.terraformConfig.config.provider['aws']
+				log.debug("provider: {}", awsProvider)
+				if(awsProvider) {
+					def region = awsProvider.region
+					//lookup the match
+					def regionMatch = morpheusContext.async.referenceData.find(new DataQuery().withFilters([
+					 		new DataFilter('category', 'amazon.ec2.region'),
+							new DataFilter('keyValue', region)
+					])).blockingGet()
+					if(regionMatch) {
+						//set the endpoint
+						extraConfig.config.endpoint = regionMatch.value
+						//set the creds
+						extraConfig.config.accessKey = awsProvider['access_key']
+						extraConfig.config.secretKey = awsProvider['secret_key']
+						extraConfig.zone.inventoryLevel = 'full'
+						extraConfig.config.vpc = config.name
+						//say to create
+						extraConfig.create = true
+					}
+				}
+			}
+		} else
+		if(config.morpheusType == 'instance') {
+			def baseConfig = app.getConfigMap()
+			def appConfig	= baseConfig.config ? new groovy.json.JsonSlurper().parseText(baseConfig.config) : [:]
+			log.debug("baseConfig: {} appConfig: {}", baseConfig, appConfig)
+			//default cloud
+			def targetZone = opts.cloud
+			if(targetZone) {
+				def tfType = config.type
+				if(tfType == 'aws_autoscaling_group') {
+					def templateMatch
+					//find the template or config - and use it to get info
+
+
+				} else {
+					extraConfig.zone = targetZone
+					//app config
+					extraConfig.iacId = 'app.' + app.id + '.' + config.type + '.' + config.key
+					def imageId = config.ami
+					//set extra config
+					extraConfig.plan = config.instance_type ? new ServicePlan(externalId: config.instance_type) : null
+					extraConfig.instanceType = new InstanceType(code: 'amazon')
+					extraConfig.layout = morpheusContext.async.instanceTypeLayout.find(new DataQuery().withFilter('code', 'amazon-1.0-single')).blockingGet()
+					extraConfig.containerType = new WorkloadType(code: 'amazon-1.0')
+					def nameTag = config?.tags ? config.tags['Name'] : null
+					if(nameTag)
+						extraConfig.name = nameTag
+					def platform = 'linux'
+					if(imageId) {
+						def imageResults = EC2ProvisionProvider.saveAccountImage(opts.amazonClient, app.account, targetZone, imageId)
+						if (imageResults.image) {
+							extraConfig.osType = imageResults.image.osType ?: new OsType(code: 'other.64')
+							platform = extraConfig.osType?.platform ?: 'linux'
+						}
+					}
+					//cs type
+					def csTypeCode = platform == 'windows' ? 'amazonWindowsVm' : 'amazonVm'
+					extraConfig.computeServerType = new ComputeServerType(code: csTypeCode)
+					extraConfig.create = true
+				}
+			}
+		} else if(config.morpheusType == 'computeZonePool') {
+			def targetZone = opts.cloud
+			def vpcId = targetZone.getConfigProperty('vpc')
+			extraConfig.create = !vpcId
+			extraConfig.zone = targetZone
+			extraConfig.computeZonePool = [ type: 'vpc', category:"aws.vpc.${targetZone.id}"]
+		} else if(config.morpheusType == 'network') {
+			def targetZone = opts.cloud
+			extraConfig.create = true
+			extraConfig.networkConfig = [category:"amazon.ec2.subnet.${targetZone.id}", type: new NetworkType(code: 'amazonSubnet'), externalType: 'subnet']
+		} else if(config.morpheusType == 'instanceScale') {
+			extraConfig.create = true
+			extraConfig.instanceScale = [ type: new InstanceScaleType(code: 'awsscalegroup') ]
+		} else if(config.morpheusType == 'securityGroupLocation') {
+			extraConfig.create = true
+			extraConfig.securityGroupLocation = [ type: new InstanceScaleType(code: 'awsscalegroup') ]
+		}
+		return ServiceResponse.success(extraConfig)
+	}
+
+
+	static ServiceResponse configureAccountResource(Map appConfig, Map resource, MorpheusContext morpheusContext) {
+		def rtn = [success:false, data:[newResource:false]]
+		log.debug "configureAccountResource: appConfig: ${appConfig} resource: ${resource}"
+		//resource [input:[type, key, apiType, apiPath, namespace, enabled, spec, specMap, morpheusType], mapping[:]]
+		def morpheusType = resource.input.morpheusType
+		//iac id
+		def iacId = resource.iacId ?: (resource.mapping.iacId ?: appConfig.iacId)
+		//generic mapping
+		//println("resource create mapping: ${resource.mapping}")
+		def mapping = resource.mapping
+		def mappingConfig = mapping.containsKey('config') ? mapping.remove('config') : null
+
+		mapping.remove('morpheusType')
+		def resourceSpec = mapping.containsKey('spec') ? mapping.remove('spec') : null
+		mapping.resourceSpec = resourceSpec
+
+		def newObj = new AccountResource(mapping)
+		if(mappingConfig)
+			newObj.setConfigMap(mappingConfig)
+		morpheusContext.async.cloud.resource.create(newObj).blockingGet()
+		//prepare results
+		rtn.data.output = newObj
+		rtn.data.type = 'accountResource'
+		rtn.data.id = newObj.id
+		rtn.data.iacId = iacId
+		rtn.data.create = true
+		rtn.data.newResource = true
+		rtn.success = true
+		return ServiceResponse.create(rtn)
+	}
+
+	static ServiceResponse buildAccountResource(Map appConfig, Map resource, Map opts) {
+		def rtn = [success:false, data:null]
+		if(resource?.apiType) {
+			//make an account resource
+			def resourceConfig = [owner:appConfig.account, resourceSpec:resource.resourceSpec,
+								  name:resource.name, displayName:resource.name, resourceType:resource.type,
+								  iacType:resource.iacType, iacProvider:resource.iacProvider, iacId:resource.iacId,
+								  iacKey:resource.iacKey, iacName:resource.iacName, iacIndex:resource.iacIndex,
+								  morpheusType:'accountResource'
+			]
+			//set the version if found
+			if(appConfig.appVersion)
+				resourceConfig.appVersion = appConfig.appVersion
+			//type
+			if(resource.resourceType) {
+				resourceConfig.type = resource.resourceType
+				resourceConfig.resourceIcon = resource.resourceType.resourceIcon
+			}
+			//key
+			if(resource.key) {
+				resourceConfig.resourceKey = resource.key
+			}
+			//external id
+			if(resource.externalId) {
+				resourceConfig.externalId = resource.externalId
+			}
+			//resource pool
+			if(appConfig.resourcePool) {
+				resourceConfig.resourcePoolId = appConfig.resourcePool.id
+				resourceConfig.resourcePoolName = appConfig.resourcePool.name
+			}
+			//server group
+			if(appConfig.serverGroup) {
+				resourceConfig.serverGroupId = appConfig.serverGroup.id
+				resourceConfig.serverGroupName = appConfig.serverGroup.name
+			}
+			//add zone
+			if(resource.zone) {
+				resourceConfig.zoneId = resource.zone.id
+				resourceConfig.zoneName = resource.zone.name
+			}
+			//add site
+			if(appConfig.site) {
+				resourceConfig.siteId = appConfig.site.id
+				resourceConfig.siteName = appConfig.site.name
+			}
+			//plan
+			if(appConfig.plan) {
+				resourceConfig.planId = appConfig.plan.id
+				resourceConfig.planName = appConfig.plan.name
+			}
+			//layout
+			if(appConfig.layout) {
+				resourceConfig.layoutId = appConfig.layout.id
+				resourceConfig.layoutName = appConfig.layout.name
+			}
+			//instance
+			if(appConfig.instanceId) {
+				resourceConfig.instanceId = appConfig.instanceId
+				resourceConfig.instanceName = appConfig.instanceName
+			}
+			//user
+			if(appConfig.user) {
+				resourceConfig.userId = appConfig.user.id
+				resourceConfig.userName = appConfig.user.username
+				resourceConfig.createdById = resourceConfig.userId
+				resourceConfig.updatedById = resourceConfig.userId
+				resourceConfig.createdBy = resourceConfig.userName
+				resourceConfig.updatedBy = resourceConfig.userName
+			}
+			//status
+			resourceConfig.status = 'deploying'
+			//containerId, containerName, serverId, serverName, tags, code, category, resourceContext,
+			//resourceVersion, resourceSpec
+			resourceConfig.specData = resource.specData
+			resourceConfig.rawData = resource.spec
+			//done
+			rtn.data = resourceConfig
+			rtn.success = true
 		}
 		return ServiceResponse.create(rtn)
 	}
 
 	//individual mappings - takes the map of input and mapped data returned by the map methods
 	//  returns config for a morpheus object
-	ServiceResponse mapInstance(Map appConfig, Map resource, Map opts) {
-		def rtn = super.mapInstance(appConfig, resource, opts)
-		//handle custom stuff for cf
-
-		//done
+	static ServiceResponse mapInstance(Map appConfig, Map resource, Map opts, MorpheusContext morpheusContext) {
+		log.debug("mapInstance: {}, {}", appConfig, resource)
+		def rtn = [success:false, data:[resource:null]]
+		////format: [type, apiType, apiPath, namespace, enabled, spec, specMap, morpheusType, accountResource]
+		try {
+			//get the parsed resource mapping
+			def resourceConfig = resource.accountResource ?: resource.specMap
+			//domain properties
+			def mapResult = [account:appConfig.account, name:resource.name, displayName:resource.name,
+							 createdBy:appConfig.createdBy, iacKey:resource.iacKey, iacId:resource.iacId, iacName:resource.iacName,
+							 iacIndex:resource.iacIndex, morpheusType:'instance'
+			]
+			mapResult.config = resourceConfig?.config ?: [:]
+			mapResult.config.spec = (resource.resourceSpec ?: resource.spec ?: [:])
+			rtn.data.resource = [input:resource, mapping:mapResult]
+		} catch(e) {
+			log.error("error mapping instance: ${e}", e)
+		}
 		return ServiceResponse.create(rtn)
 	}
 
-	ServiceResponse mapContainer(Map appConfig, Map resource, Map opts) {
-		appConfig.zone = getResourceZone(appConfig, resource)
-		def rtn = super.mapContainer(appConfig, resource, opts)
+	static ServiceResponse mapContainer(Map appConfig, Map resource, Map opts, MorpheusContext morpheusContext) {
 		log.debug("map container: {}", resource)
+		def rtn = [success:false, data:[resource:null]]
+		def resourceConfig = resource.accountResource ?: resource.specMap
+		//domain properties
+		def mapResult = [account:appConfig.account, name:resource.name, displayName:resource.name,
+						 iacKey:resource.iacKey, iacId:resource.iacId, iacName:resource.iacName,
+						 iacIndex:resource.iacIndex, morpheusType:'container'
+		]
+		mapResult.config = resourceConfig?.config ?: [:]
+		mapResult.config.spec = (resource.resourceSpec ?: resource.spec ?: [:])
+		rtn.data.resource = [input:resource, mapping:mapResult]
 		//handle custom stuff for cf
 		def layoutConfig = [:]
 		def templateInput = getTemplateParameters(appConfig)
@@ -347,46 +1222,36 @@ class CloudFormationResourceMappingUtility  {
 		def awsKeyName = findAwsTypeValue(resource.specMap, templateInput, 'AWS::EC2::KeyPair::KeyName')
 		rtn.data.resource.awsConfig = [instanceType:awsInstanceType, imageId:awsImageId, keyName:awsKeyName]
 		//if the type is an ECS instance
-		layoutConfig.plan = awsInstanceType ? ServicePlan.where{ code == 'amazon-' + awsInstanceType }.get(([cache:true])) : null
-		layoutConfig.instanceType = InstanceType.where{ code == 'amazon' }.get([cache:true])
-		layoutConfig.layout = InstanceTypeLayout.where{ code == 'amazon-1.0-single' }.get([cache:true])
-		layoutConfig.computeServerType = ComputeServerType.where{ code == 'amazonVm' }.get([cache:true])
+
+		layoutConfig.plan = awsInstanceType ? morpheusContext.async.servicePlan.listByCode(['amazon-' + awsInstanceType]).blockingFirst() : null
+		layoutConfig.instanceType = new InstanceType(code:'amazon')
+		layoutConfig.layout = morpheusContext.async.instanceTypeLayout.find(new DataQuery().withFilter('code', 'amazon-1.0-single')).blockingGet()
+		layoutConfig.computeServerType = new ComputeServerType(code:'amazonVm')
 		layoutConfig.provisionType = layoutConfig.layout?.provisionType
-		if(layoutConfig.layout?.containers?.size() > 0)
-			layoutConfig.containerType = layoutConfig.layout.containers.first().containerType
-		//set memory and cores - let the plan do that
-		//load the aws image and get the platfrom and os?
-		//layoutConfig.platform = 'unknown'
-		//layoutConfig.osType = layoutConfig.osType ?: OsType.findByCode('other.64')
+		if(layoutConfig.layout?.workloads?.size() > 0) {
+			def workloadTypeSetRef = layoutConfig.layout.workloads.first()
+			if(workloadTypeSetRef) {
+				def workloadTypeSet = morpheusContext.async.workload.typeSet.get(workloadTypeSetRef.id).blockingGet()
+				layoutConfig.workloadType = workloadTypeSet.workloadType
+			}
+		}
 		rtn.data.resource.layoutConfig = layoutConfig
 		//done
 		return ServiceResponse.create(rtn)
 	}
 
-	ServiceResponse configureContainer(Map appConfig, Map resource, Map opts) {
-		def rtn = super.configureContainer(appConfig, resource, opts)
-		//nothing extra?
-		if(rtn.data.output?.server && resource.awsConfig) {
-			rtn.data.output.server.setConfigProperty('awsConfig', resource.awsConfig)
-			rtn.data.output.server.save()
-		}
-		return ServiceResponse.create(rtn)
-	}
-
 	//helpers
-	def getTemplateParameters(Map appConfig) {
+	static def getTemplateParameters(Map appConfig) {
 		def rtn = appConfig.refConfig?.templateParameter ?: [:]
 		rtn['AWS::StackName'] = appConfig.name
-		//add the region from the zone
-		def authConfig = appConfig.zone ? amazonComputeService.getAmazonAuthConfig(appConfig.zone) : null
-		if(authConfig) {
-			rtn['AWS::Region'] = authConfig.region
-			//other items?
+		//add the region
+		if(appConfig.region) {
+			rtn['AWS::Region'] = appConfig.region
 		}
 		return rtn
 	}
 
-	def findAwsValue(Map resourceSpec, Map itemSpec, Map templateInput, String key) {
+	static def findAwsValue(Map resourceSpec, Map itemSpec, Map templateInput, String key) {
 		def rtn
 		if(itemSpec) {
 			def awsValue = itemSpec[key]
@@ -413,7 +1278,7 @@ class CloudFormationResourceMappingUtility  {
 		return rtn
 	}
 
-	def findAwsTypeValue(Map resourceSpec, Map templateInput, String type) {
+	static def findAwsTypeValue(Map resourceSpec, Map templateInput, String type) {
 		def rtn
 		def keyParameter = resourceSpec['Parameters']?.each { key, value ->
 		if(value['Type'] == type) {
@@ -500,6 +1365,147 @@ class CloudFormationResourceMappingUtility  {
 		return rtn
 	}
 
+	static mapResources(App app, Cloud cloud, Map config, Map opts) {
+		def rtn = []
+
+		config?.Resources?.each { logicalId, v ->
+			//get type mapping
+			def cloudFormationResourceMapping = [
+					[type:'aws::ec2::instance', morpheusType:'instance', mapFunction: 'mapVirtualMachine', needsProvision: true, defaultLayout: opts.defaultLayout],
+					[type:'aws::ec2::vpc', morpheusType:'computeZonePool', mapFunction: 'mapVPC', needsProvision: true],
+					[type:'aws::ec2::subnet', morpheusType:'network', mapFunction: 'mapSubnet', needsProvision: true],
+					[type:'aws::autoscaling::autoscalinggroup', morpheusType:'instanceScale', mapFunction: 'mapScaleGroup', needsProvision: true],
+					[type:'aws::ec2::securitygroup', morpheusType:'securityGroupLocation', mapFunction: 'mapSecurityGroupLocation', needsProvision: true]
+			]
+			def resourceMap = cloudFormationResourceMapping.find{ it.type == v?.Type?.toString()?.toLowerCase() }
+			if(resourceMap) {
+				def mappedResource = "${resourceMap.mapFunction}"(app, resourceMap, cloud, logicalId, v)
+				mappedResource.type = resourceMap.type
+				mappedResource.key = mappedResource.name
+				rtn << mappedResource
+			} else {
+				def type = v['Type']
+				def typeMatch = findAwsResourceType(type)
+				if(typeMatch && typeMatch instanceof AccountResourceType) {
+					def row = [type:typeMatch.type, apiType:typeMatch.apiType, enabled:typeMatch.enabled,
+							   morpheusType:typeMatch.morpheusType, name: logicalId,
+							   input: [type: typeMatch.type, key: logicalId], mapping: [morpheusType: 'accountResource',
+																						type:typeMatch, apiType:typeMatch.apiType, enabled:typeMatch.enabled, name: logicalId,
+																						iacProvider:'cloudFormation', iacType:typeMatch.apiType, resourceSpec:v, owner: app.account,
+																						resourceType: type, zone: cloud],
+							   iacProvider:'cloudFormation', iacType:typeMatch.apiType, resourceSpec:v,
+							   resourceType: typeMatch
+					]
+					rtn << row
+				}
+			}
+		}
+
+		log.debug "mapResources: $rtn"
+		return rtn
+	}
+
+	private static mapVirtualMachine(App app, Map resourceMap, Cloud cloud, String logicalId, Object config) {
+		def appConfig = [name:app.name, createdBy:app.createdBy]
+		return mapVirtualMachine(appConfig, resourceMap, cloud, logicalId, config)
+	}
+
+	private static mapVirtualMachine(Map appConfig, Map resourceMap, Cloud cloud, String logicalId, Object config) {
+		log.debug("mapVirtualMachine: {}, {}", appConfig, resourceMap)
+		def rtn = [
+				name             : logicalId,
+				key_name         : config?.Properties?.KeyName,
+				key_id           : null, // populated during runApp
+				image_id         : config?.Properties?.ImageId,
+				hostname         : null,
+				iacId            : null,
+				serverType       : 'vm',
+				singleTenant     : true,
+				createdBy        : appConfig.createdBy,
+				instanceType     : new InstanceType(code: 'amazon'),
+				layout           : resourceMap.defaultLayout,
+				instance_type    : 't2.small',
+				osType           : new OsType(code: 'linux'),
+				computeServerType: new ComputeServerType(code: 'amazonVm'),
+				containerType    : new ContainerType(code: 'amazon-1.0' ),
+				memory           : 1,
+				cpuCount         : 1,
+				coreCount        : 1,
+				disk             : []
+		] + resourceMap
+		rtn.hostname = formatProvisionHostname(rtn.name)
+		return rtn
+	}
+
+	private static mapVPC(App app, Map resourceMap, Cloud cloud, String logicalId, Object config) {
+		def appConfig = [name:app.name, createdBy:app.createdBy]
+		return mapVPC(appConfig, resourceMap, cloud, logicalId, config)
+	}
+
+	private static mapVPC(Map appConfig, Map resourceMap, Cloud cloud, String logicalId, Object config) {
+		log.debug("mapVPC: {}, {}", appConfig, resourceMap)
+		def rtn = [
+				name : logicalId
+		] + resourceMap
+		return rtn
+	}
+
+	private static mapSubnet(App app, Map resourceMap, Cloud cloud, String logicalId, Object config) {
+		def appConfig = [name:app.name, createdBy:app.createdBy]
+		return mapSubnet(appConfig, resourceMap, cloud, logicalId, config)
+	}
+
+	private static mapSubnet(Map appConfig, Map resourceMap, Cloud cloud, String logicalId, Object config) {
+		log.debug("mapSubnet: {}, {}", appConfig, resourceMap)
+		def rtn = [
+				name: logicalId
+		] + resourceMap
+		return rtn
+	}
+
+	private static mapScaleGroup(App app, Map resourceMap, Cloud cloud, String logicalId, Object config) {
+		def appConfig = [name:app.name, createdBy:app.createdBy]
+		return mapScaleGroup(appConfig, resourceMap, cloud, logicalId, config)
+	}
+
+	private static mapScaleGroup(Map appConfig, Map resourceMap, Cloud cloud, String logicalId, Object config) {
+		log.debug("mapScaleGroup: {}, {}", appConfig, resourceMap)
+		def rtn = [
+				name: logicalId,
+		] + resourceMap
+		return rtn
+	}
+
+	private static mapSecurityGroupLocation(App app, Map resourceMap, Cloud cloud, String logicalId, Object config) {
+		def appConfig = [name:app.name, createdBy:app.createdBy]
+		return mapSecurityGroupLocation(appConfig, resourceMap, cloud, logicalId, config)
+	}
+
+	private static mapSecurityGroupLocation(Map appConfig, Map resourceMap, Cloud cloud, String logicalId, Object config) {
+		log.debug("mapSecurityGroupLocation: {}, {}", appConfig, resourceMap)
+		def rtn = [
+				name: config?.Properties?.GroupName ?: logicalId,
+				description: config?.Properties?.GroupDescription ?: ''
+		] + resourceMap
+		return rtn
+	}
+
+	static formatProvisionHostname(name) {
+		def rtn = name
+		try {
+			if(rtn.indexOf('\$') < 0) {
+				rtn = rtn.replaceAll(' ', '-')
+				rtn = rtn.replaceAll('\'', '')
+				rtn = rtn.replaceAll(',', '')
+				rtn = rtn.toLowerCase()
+			}
+		} catch(e) {
+			//ok
+		}
+		return rtn
+	}
+
+
 	//this should pull from the db - fallback to old mappings
 	static findAwsResourceType(String apiType, MorpheusContext morpheusContext) {
 		def accountResourceType = morpheusContext.async.accountResourceType.find(new DataQuery().withFilters([
@@ -524,7 +1530,7 @@ class CloudFormationResourceMappingUtility  {
 
 
 
-	def decodeResourceStatus(String status) {
+	static decodeResourceStatus(String status) {
 		def rtn = 'unknown'
 		switch(status) {
 			case 'CREATE_IN_PROGRESS':
@@ -649,6 +1655,30 @@ class CloudFormationResourceMappingUtility  {
 			}
 		}
 		return newMap
+	}
+
+	private static getUniqueInstanceName(name, account, MorpheusContext morpheusContext) {
+		def inc = 1
+		def baseName = name
+		while(!validateInstanceName(baseName, account, morpheusContext)) {
+			baseName = name + "-${inc}"
+			inc++
+		}
+		return baseName
+	}
+
+	private static validateInstanceName(instanceName, account, MorpheusContext morpheusContext) {
+		if(instanceName.contains('sequence')) {
+			return true
+		}
+		def foundInstance = morpheusContext.async.instance.find(new DataQuery().withFilters([
+		        new DataFilter('name', instanceName),
+				new DataFilter('account', account)
+		])).blockingGet()
+		if(!foundInstance) {
+			return true
+		}
+		return false
 	}
 
 

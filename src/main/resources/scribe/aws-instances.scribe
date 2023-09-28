@@ -64,8 +64,5 @@ resource "instance-type-layout" "amazon-1_0-single" {
 		workload-type-set.amazon-1_0-set
 	]
 	provisionType = "amazon"
-	optionTypes = [
-		option-type.nutanix-prism-provision-uefi,
-		option-type.nutanix-prism-provision-secure-boot
-	]
+	optionTypes = []
 }

@@ -108,7 +108,7 @@ class ScaleGroupVirtualMachinesSync {
 
 		if(!existingItem) {
 			// Must have inventory turned off and we are dealing with a managed scale set
-			def serverResults = AmazonComputeUtility.listVpcServers([zone: cloud, amazonClient: amazonClient, filterInstanceId: cloudItem.instanceId, includeAllVPCs: true])
+			def serverResults = AmazonComputeUtility.listVpcServers([cloud: cloud, amazonClient: amazonClient, filterInstanceId: cloudItem.instanceId, includeAllVPCs: true])
 			if (serverResults.success == true && serverResults.serverList?.size() == 1) {
 				vmSync.addMissingVirtualMachines(serverResults.serverList, region, serverResults.volumeList, null, 'amazonVm')
 				existingItem = morpheusContext.async.computeServer.find(new DataQuery().withFilters('cloud.id': cloud.id, 'externalId': cloudItem.instanceId)).blockingGet()
