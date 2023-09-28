@@ -748,7 +748,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		def imageResults = AmazonComputeUtility.loadImage([amazonClient:opts.amazonClient, imageId:runConfig.imageRef])
 
 		//user key - TODO
-		def keyPairResults = ensureAmazonKeyPair(opts.amazonClient, account, server.cloud, runConfig.userConfig.primaryKey)
+		def keyPairResults = ensureAmazonKeyPair([:], opts.amazonClient, account, server.cloud, runConfig.userConfig.primaryKey, morpheusContext)
 		if(keyPairResults.success) {
 			runConfig.publicKeyName = keyPairResults.data.keyName
 			runConfig.primaryKey = keyPairResults.data.key
@@ -938,7 +938,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	ServiceResponse stopServer(ComputeServer server) {
 		log.debug("stopServer: ${server}")
 		if(server?.externalId && (server.managed == true || server.computeServerType?.controlPower)) {
-			def client = plugin.getAmazonClient(server.cloud, false, server.resourcePool.regionCode)
+			def client = plugin.getAmazonClient(server.cloud, false, server.resourcePool?.regionCode)
 			def stopResult = AmazonComputeUtility.stopServer([amazonClient: client, server: server])
 
 			if (stopResult.success) {
@@ -961,7 +961,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	ServiceResponse startServer(ComputeServer server) {
 		log.debug("startServer: ${server}")
 		if(server?.externalId && (server.managed == true || server.computeServerType?.controlPower)) {
-			def client = plugin.getAmazonClient(server.cloud, false, server.resourcePool.regionCode)
+			def client = plugin.getAmazonClient(server.cloud, false, server.resourcePool?.regionCode)
 			def startResult = AmazonComputeUtility.startServer([amazonClient: client, server: server])
 
 			if (startResult.success) {
@@ -1385,21 +1385,25 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		return rtn
 	}
 
-	protected saveAccountImage(AmazonEC2 amazonClient, account, zone,String regionCode, publicImageId, sourceImage = null) {
+	protected saveAccountImage(AmazonEC2 amazonClient, account, zone, String regionCode, publicImageId, sourceImage = null) {
+	 return saveAccountImage(amazonClient, account, zone, regionCode, publicImageId, morpheusContext, sourceImage)
+	}
+
+	static saveAccountImage(AmazonEC2 amazonClient, account, zone, String regionCode, publicImageId, MorpheusContext morpheus, sourceImage = null) {
 		def rtn = [success:false]
 		try {
 			if(publicImageId?.startsWith('!')) {
 				return rtn
 			}
-			VirtualImageLocation existing = morpheus.virtualImage.location.findVirtualImageLocationByExternalIdForCloudAndType(publicImageId,zone.id,regionCode,'ami',account.id).blockingGet().get()
-
+			VirtualImageLocation existing = morpheus.async.virtualImage.location.findVirtualImageLocationByExternalIdForCloudAndType(publicImageId,zone.id,regionCode,'ami',account.id).blockingGet()?.orElse(null)
+			
 			log.info("saveAccountImage existing: ${existing}")
 			if(existing) {
 				if(!existing.externalDiskId) {
 					def imageResults = AmazonComputeUtility.loadImage([amazonClient:amazonClient, imageId:publicImageId])
 					if(imageResults.success == true && imageResults.image)	{
 						existing.externalDiskId = imageResults.image.blockDeviceMappings.find{ mapping -> mapping.deviceName == imageResults.image.rootDeviceName}?.ebs?.snapshotId
-						morpheus.virtualImage.location.save([existing]).blockingGet()
+						morpheus.aysnc.virtualImage.location.save([existing]).blockingGet()
 						rtn.awsImage = imageResults.image
 					}
 				}
@@ -1425,13 +1429,12 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 									   kernelId:imageResults.image.getKernelId(), architecture:imageResults.image.getArchitecture(),
 									   description:imageResults.image.getDescription(), minDisk:10, minRam:512 * ComputeUtility.ONE_MEGABYTE, remotePath:imageResults.image.getImageLocation(),
 									   hypervisor:imageResults.image.getHypervisor(), platform:(imageResults.image.getPlatform() == 'windows' ? 'windows' : 'linux'),
+									   hypervisor:imageResults.image.getHypervisor(), platform:(imageResults.image.getPlatform() == 'windows' ? 'windows' : 'linux'),
 									   productCode:'', externalId:imageResults.image.getImageId(), ramdiskId:imageResults.image.getRamdiskId(), isCloudInit: (imageResults.image.getPlatform() == 'windows' && imageResults.image.getImageOwnerAlias() != 'amazon' ? false : true),
 									   rootDeviceName:imageResults.image.getRootDeviceName(), rootDeviceType:imageResults.image.getRootDeviceType(),
 									   enhancedNetwork:imageResults.image.getSriovNetSupport(), status:imageResults.image.getState(),
 									   statusReason:imageResults.image.getStateReason(), virtualizationType:imageResults.image.getVirtualizationType(),
-									   isPublic:imageResults.image.isPublic(), refType:'ComputeZone', refId:"${zone.id}", owner:account, userDefined:true,
-									   sshUsername: sourceImage?.sshUsername, sshPassword: sourceImage?.sshPassword,
-									   externalDiskId:imageResults.image.blockDeviceMappings.find{ mapping -> mapping.deviceName == imageResults.image.rootDeviceName}?.ebs?.snapshotId
+									   isPublic:imageResults.image.isPublic(), refType:'ComputeZone', refId:"${zone.id}", owner:account, userDefined:true
 					]
 					log.info("Saving new image")
 					def add = new VirtualImage(imageConfig)
@@ -1446,14 +1449,14 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 //					add.productCode = productCodeConfig.encodeAsJSON().toString()
 					def locationConfig = [code:"amazon.ec2.image.${zone.id}.${imageResults.image.getImageId()}", externalId:imageResults.image.getImageId(),
 										  externalDiskId:imageResults.image.blockDeviceMappings.find{ mapping -> mapping.deviceName == imageResults.image.rootDeviceName}?.ebs?.snapshotId,
-										  refType:'ComputeZone', refId:zone.id, imageName:imageResults.image.getName(), imageRegion:getAmazonRegion(zone)]
+										  refType:'ComputeZone', refId:zone.id, imageName:imageResults.image.getName(), imageRegion:regionCode]
 					def addLocation = new VirtualImageLocation(locationConfig)
 					add.imageLocations = [addLocation]
-					VirtualImage imageResult = morpheus.virtualImage.create(add).blockingGet()
+					VirtualImage imageResult = morpheus.async.virtualImage.create(add).blockingGet()
 					rtn.awsImage = imageResults.image
 					rtn.image = imageResult
 					rtn.imageId = imageResult.id
-					log.info("saveAccountImage result: ${add.code} - ${add.errors}")
+					log.info("saveAccountImage result: ${add.code}")
 
 					rtn.success = true
 				}
@@ -1493,30 +1496,42 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		return rtn
 	}
 
-	protected ensureAmazonKeyPair(AmazonEC2Client amazonClient, Account account, Cloud cloud, KeyPair primaryKey) {
-		ServiceResponse rtn = ServiceResponse.prepare([key: primaryKey])
+
+	static protected ensureAmazonKeyPair(runConfig, AmazonEC2Client amazonClient, Account account, Cloud cloud, KeyPair primaryKey, MorpheusContext morpheus) {
 		if(primaryKey) {
 			def keyLocationId = 'amazon-' + cloud.id
-			def publicKeyName = cloud.getConfigProperty(keyLocationId)
 			def accountKey = morpheus.async.keyPair.findOrGenerateByAccount(account.id).blockingGet()
-			log.debug('checking for keypair')
-			def keyResults = AmazonComputeUtility.uploadKeypair([key:primaryKey, account:account, zone:cloud, keyName:publicKeyName, amazonClient:amazonClient])
-			log.debug("key results : {}", keyResults)
-			if(keyResults.success == true) {
-				if(keyResults.uploaded == true) {
-					if(primaryKey.id == accountKey?.id) {
-						//this is the account wide key
+			if(primaryKey.id == accountKey?.id) {
+				log.debug('checking for keypair')
+				//this is the account wide key
+				runConfig.publicKeyName = cloud.getConfigProperty(keyLocationId)
+				runConfig.primaryKey = primaryKey
+				def keyResults = AmazonComputeUtility.uploadKeypair([key:primaryKey, account:account, zone:cloud,
+																	 keyName:runConfig.publicKeyName, amazonClient:amazonClient])
+				log.debug("key results : {}", keyResults)
+				if(keyResults.success == true) {
+					runConfig.publicKeyName = keyResults.keyName
+
+					if(keyResults.uploaded == true) {
 						morpheus.async.keyPair.addZoneKeyPairLocation(cloud.id, keyLocationId, keyResults.keyName)
-					} else {
+					}
+				}
+			} else {
+				log.debug('checking for keypair2')
+				//this is a user keypair
+				runConfig.publicKeyName = primaryKey.getConfigProperty(keyLocationId)
+				runConfig.primaryKey = primaryKey
+				def keyResults = AmazonComputeUtility.uploadKeypair([key:primaryKey, account:account, zone:cloud,
+																	 keyName:runConfig.publicKeyName, amazonClient:amazonClient])
+				if(keyResults.success == true) {
+					log.debug("key results 2: {}", keyResults)
+					runConfig.publicKeyName = keyResults.keyName
+					if(keyResults.uploaded == true) {
 						morpheus.async.keyPair.addKeyPairLocation(primaryKey.id, keyLocationId, keyResults.keyName)
 					}
 				}
-				rtn.data.keyName = keyResults.keyName
-				rtn.success = true
 			}
 		}
-
-		return rtn
 	}
 
 

@@ -56,7 +56,7 @@ class VirtualMachineSync {
 		def inventoryLevel = cloud.inventoryLevel ?: (cloud.getConfigProperty('importExisting') in [true, 'true', 'on'] ? 'basic' : 'off')
 		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
 			def amazonClient = plugin.getAmazonClient(cloud,false, region.externalId)
-			def vmList = AmazonComputeUtility.listVpcServers([amazonClient: amazonClient, zone: cloud])
+			def vmList = AmazonComputeUtility.listVpcServers([amazonClient: amazonClient, cloud: cloud])
 			if(vmList.success) {
 				Observable<ComputeServerIdentityProjection> vmRecords = morpheusContext.async.computeServer.listIdentityProjections(cloud.id, region.externalId)
 				SyncTask<ComputeServerIdentityProjection, Instance, ComputeServer> syncTask = new SyncTask<>(vmRecords, vmList.serverList.findAll{ instance -> instance.state?.code != 48 } as Collection<Instance>)

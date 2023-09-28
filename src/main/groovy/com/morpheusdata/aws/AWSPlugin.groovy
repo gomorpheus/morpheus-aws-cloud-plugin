@@ -97,7 +97,11 @@ class AWSPlugin extends Plugin {
 	}
 
 	def getAmazonCloudFormationClient(cloud, Boolean fresh = false, String region = null) {
-		AmazonComputeUtility.getAmazonCloudFormationClient(checkCloudCredentials(cloud), fresh, region)
+		return AmazonComputeUtility.getAmazonCloudFormationClient(checkCloudCredentials(cloud), fresh, region)
+	}
+
+	def getAmazonSystemsManagementClient(cloud, Boolean fresh = false, String region = null) {
+		return AmazonComputeUtility.getAmazonSystemsManagementClient(checkCloudCredentials(cloud), fresh, region)
 	}
 
 	def getAmazonRdsClient(Cloud cloud, Boolean fresh = false, String region = null) {
