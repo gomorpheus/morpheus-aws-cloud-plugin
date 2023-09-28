@@ -5,6 +5,7 @@ import com.morpheusdata.core.AbstractOptionSourceProvider
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
 import com.morpheusdata.core.data.DataQuery
+import com.morpheusdata.model.AccountCredential
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.NetworkRouteTable
 import com.morpheusdata.core.util.MorpheusUtils
@@ -68,6 +69,11 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		Cloud cloud = args.zoneId ? morpheusContext.async.cloud.getCloudById(args.zoneId.toLong()).blockingGet() : null
 		if(!cloud) {
 			cloud = new Cloud()
+		} else {
+			//we need to load full creds
+			AccountCredential credentials = morpheusContext.async.accountCredential.loadCredentials(cloud).blockingGet()
+			cloud.accountCredentialData = credentials?.data
+			cloud.accountCredentialLoaded = true
 		}
 
 		def config = [

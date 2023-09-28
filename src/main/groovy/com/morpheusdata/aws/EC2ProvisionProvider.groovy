@@ -742,18 +742,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		Account account = server.account
 		opts.createUserList = runConfig.userConfig.createUsers
 
-//		if(serverUpdates.osType == 'windows') {
-//			opts.setAdminPassword = false
-//			opts.createUsers = false
-//			// opts.unattendCustomized = true
-//			def globalAdminPassword = settingsService.getProvisioningSettings(opts.account).provisioningSettings.windowsPassword?.value
-//			if(globalAdminPassword) {
-//				opts.findAdminPassword = false
-//				cloudConfigOpts.adminPassword = globalAdminPassword
-//				serverUpdates.sshPassword = globalAdminPassword
-//			}
-//		}
-
 		//save server
 		runConfig.server = saveAndGet(server)
 		def imageResults = AmazonComputeUtility.loadImage([amazonClient:opts.amazonClient, imageId:runConfig.imageRef])
@@ -805,7 +793,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 					if(opts.containerConfig?.publicIpType?.toString() == 'elasticIp' || server.getConfigMap()?.customOptions?.publicIpType?.toString() == 'elasticIp') {
 						def lock
 						try {
-							lock = morpheusContext.acquireLock("container.amazon.allocateIp.${runConfig.zone.id}".toString(), [timeout: 660l * 1000l])
+							lock = morpheusContext.acquireLock("container.amazon.allocateIp.${runConfig.zone.id}".toString(), [timeout: 660l * 1000l]).blockingGet()
 							def freeIp = AmazonComputeUtility.getFreeEIP([zone: opts.zone, amazonClient:opts.amazonClient])
 							def allocationId
 							def eipPublicIp
@@ -834,7 +822,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 							log.error("execContainer error: ${e}", e)
 						} finally {
 							if(lock) {
-								morpheusContext.releaseLock("container.amazon.allocateIp.${runConfig.zone.id}".toString(),[lock:lock])
+								morpheusContext.releaseLock("container.amazon.allocateIp.${runConfig.zone.id}".toString(),[lock:lock]).blockingGet()
 							}
 						}
 
