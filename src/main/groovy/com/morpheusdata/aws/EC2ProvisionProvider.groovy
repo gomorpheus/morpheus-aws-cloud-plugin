@@ -740,16 +740,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		def taskResults = [success:false]
 		ComputeServer server = runConfig.server
 		Account account = server.account
-		//def instance = Instance.get(runConfig.instanceId)
-		//def containerConfig = runConfig.container.getConfigProperties()
-		//user config
-
 		opts.createUserList = runConfig.userConfig.createUsers
-//		if(opts.keepServerType != true) {
-//			def newType = findVmNodeZoneType(server.cloud.type, serverUpdates.osType)
-//			if(newType && server.computeServerType != newType)
-//				serverUpdates.computeServerType = newType
-//		}
 
 //		if(serverUpdates.osType == 'windows') {
 //			opts.setAdminPassword = false
@@ -788,11 +779,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		def createResults = AmazonComputeUtility.createServer(runConfig)
 		log.debug("create server: ${createResults}")
 		if(createResults.success == true && createResults.server) {
-			if(runConfig.networkConfig.haveDhcpReservation == true) {
-				//TODO
-				//def reservationResults = reserveNetworkPoolAddresses(runConfig.server, runConfig)
-				//log.info("reservationResults: ${reservationResults}")
-			}
 			server.externalId = createResults.externalId
 			server.powerState = 'on'
 			server.region = new CloudRegion(code: server.resourcePool.regionCode)
@@ -889,10 +875,9 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 						def passwordResults = AmazonComputeUtility.checkPasswordReady(runConfig)
 						if(passwordResults.success == true) {
 							log.debug("got win password")//: ${passwordResults.password}")
-							if(opts.findAdminPassword == true)
+							if(opts.findAdminPassword == true) {
 								taskResults.newPassword = passwordResults.password
-							else
-								opts.resetPassword = true
+							}
 						}
 					}
 					taskResults.server = createResults.server
@@ -1031,9 +1016,15 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	 */
 	@Override
 	ServiceResponse restartWorkload(Workload workload) {
-		log.debug 'restartWorkload'
-		ServiceResponse stopResult = stopWorkload(workload)
-		stopResult.success ? startWorkload(workload) : stopResult
+		log.debug("restartWorkload: ${server}")
+		def client = plugin.getAmazonClient(workload.server.cloud, false, workload.server.resourcePool.regionCode)
+		AmazonComputeUtility.rebootServer([amazonClient: client, server: workload.server])
+		def waitResults = AmazonComputeUtility.waitForServerStatus([amazonClient: client, server: workload.server], 16)
+		if (waitResults.success) {
+			return ServiceResponse.success()
+		} else {
+			return ServiceResponse.error('Failed to start vm')
+		}
 	}
 
 	/**
@@ -1632,20 +1623,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		}
 	}
 
-	def applyNetworkInterfaceUpdates(networkInterface, configMap) {
-		def rtn
-		if(networkInterface) {
-			configMap.each { key, value ->
-				if(key == 'type')
-					networkInterface[key] = ComputeServerInterfaceType.findByCode(value)
-				else
-					networkInterface[key] = value
-			}
-			networkInterface.save(flush:true)
-			rtn = networkInterface
-		}
-		return rtn
-	}
 
 	def setRootVolumeInfo(StorageVolume rootVolume, awsInstance) {
 		if(rootVolume && awsInstance) {

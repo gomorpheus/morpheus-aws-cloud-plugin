@@ -59,7 +59,7 @@ class EgressOnlyInternetGatewaySync extends InternalResourceSync {
 		for(EgressOnlyInternetGateway cloudItem in addList) {
 			adds << new AccountResource(
 				owner:cloud.account, category:getCategory(), code:(getCategory() + '.' + cloudItem.egressOnlyInternetGatewayId),
-				externalId:cloudItem.egressOnlyInternetGatewayId, zoneId:cloud.id, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.egressOnlyInternetGateway'), resourceType:'EgressOnlyInternetGateway',
+				externalId:cloudItem.egressOnlyInternetGatewayId, cloudId:cloud.id, type:new AccountResourceType(code: 'aws.cloudFormation.ec2.egressOnlyInternetGateway'), resourceType:'EgressOnlyInternetGateway',
 				zoneName: cloud.name, name: cloudItem.egressOnlyInternetGatewayId, displayName: cloudItem.egressOnlyInternetGatewayId,
 				region: new CloudRegion(id: region.id)
 			)
