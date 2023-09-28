@@ -1161,7 +1161,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 							}
 						}
 					} else {
-
+						log.info("Adding New Volume")
 						//new disk add it
 						if (!updateProps.maxStorage) {
 							updateProps.maxStorage = updateProps.size ? (updateProps.size.toDouble() * ComputeUtility.ONE_GIGABYTE).toLong() : 0
@@ -1201,7 +1201,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 								status: 'provisioned',
 								rootVolume: ['/dev/sda1','/dev/xvda','xvda','sda1','sda'].contains(deviceName)
 						)
-
+						log.info("Saving Volume")
 						morpheusContext.async.storageVolume.create([newVolume], server).blockingGet()
 						server = morpheusContext.async.computeServer.get(server.id).blockingGet()
 						newCounter++
