@@ -54,7 +54,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 	def awsPluginRegions(args) {
 		def rtn = []
 		def refDataIds = morpheus.referenceData.listByCategory("amazon.ec2.region").toList().blockingGet().collect { it.id }
-		log.debug("refDataIds: ${refdataIds}")
+		log.debug("refDataIds: ${refDataIds}")
 		if(refDataIds.size() > 0) {
 			rtn = morpheus.referenceData.listById(refDataIds).toList().blockingGet().sort { it.name }.collect { [value: it.value, name: it.name] }
 		}
