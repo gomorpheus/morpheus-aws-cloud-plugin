@@ -57,7 +57,13 @@ class AWSPlugin extends Plugin {
 
 	@Override
 	void onDestroy() {
-
+		List<String> seedsToRun = [
+			"application.ProvisionTypeAmazonSeed",
+			"application.AmazonSeed",
+			"application.ComputeServerTypeAmazonSeed",
+			"application.AmazonComputeTypeSeed"
+		]
+		morpheus.async.seed.reinstallSeedData(seedsToRun).subscribe()
 	}
 
 	def MorpheusContext getMorpheusContext() {
