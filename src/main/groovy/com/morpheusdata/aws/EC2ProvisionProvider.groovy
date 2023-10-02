@@ -123,7 +123,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				inputType : OptionType.InputType.TYPEAHEAD,
 				displayOrder : 100,
 				required : false,
-
 				optionSource : 'amazonEc2NodeAmiImage'
 		])
 		OptionType logFolder = new OptionType([
