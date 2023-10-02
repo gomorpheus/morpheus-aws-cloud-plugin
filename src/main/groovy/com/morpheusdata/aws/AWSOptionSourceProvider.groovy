@@ -306,7 +306,6 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 
 	def s3Regions(args) {
 		args = args instanceof Object[] ? args.getAt(0) : args
-		log.info("aws plugin s3 regions")
 		// this filters AWS regions by aws partition based on the storage server
 		// make the storage server region the default value
 		def records = morpheus.services.referenceData.list(new DataQuery(sort:"name").withFilter("category", "amazon.ec2.region"))
