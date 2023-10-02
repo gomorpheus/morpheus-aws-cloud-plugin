@@ -7,8 +7,11 @@ import com.morpheusdata.core.Plugin
 import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.model.AccountCredential
 import com.morpheusdata.model.Cloud
+import com.morpheusdata.model.CloudRegion
+import com.morpheusdata.model.ComputeZoneRegion
 import com.morpheusdata.model.NetworkRouteTable
 import com.morpheusdata.core.util.MorpheusUtils
+import com.morpheusdata.model.StorageServer
 import groovy.util.logging.Slf4j
 
 @Slf4j
@@ -47,7 +50,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		return new ArrayList<String>([
 			'awsPluginVpc', 'awsPluginRegions', 'awsPluginAvailabilityZones', 'awsRouteTable', 'awsRouteDestinationType',
 			'awsRouteDestination', 'awsPluginEc2SecurityGroup', 'awsPluginEc2PublicIpType', 'awsPluginInventoryLevels',
-			'awsPluginStorageProvider', 'awsPluginEbsEncryption'
+			'awsPluginStorageProvider', 'awsPluginEbsEncryption', 's3Regions'
 		])
 	}
 
@@ -289,6 +292,59 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 			[name:'On', value:'on']
 		]
 	}
+
+	def s3Regions(args) {
+		args = args instanceof Object[] ? args.getAt(0) : args
+		log.info("aws plugin s3 regions")
+		// this filters AWS regions by aws partition based on the storage server
+		// make the storage server region the default value
+		def records = morpheus.services.referenceData.list(new DataQuery(sort:"name").withFilter("category", "amazon.ec2.region"))
+		// remove the global cost aggregator region
+		records = records.findAll {it.keyValue != 'global'}
+		String amazonEndpoint
+		String defaultRegion
+		if(args.storageProvider?.storageServer?.isLong()) {
+			StorageServer storageServer = morpheus.services.storageServer.get(args.storageProvider.storageServer.toLong())
+			if(storageServer.refType == 'ComputeZone') {
+				// Select us-east-1 by default, or else the first available region
+				Cloud cloud = morpheus.services.cloud.get(storageServer.refId.toLong())
+				def cloudRegions = morpheus.services.cloud.region.list(new DataQuery(sort:"name", order: DataQuery.SortOrder.asc).withFilter("cloud", cloud))
+				CloudRegion cloudRegion = cloudRegions?.find { it.regionCode == 'us-east-1' } ?: cloudRegions?.getAt(0)
+				if(cloudRegion) {
+					amazonEndpoint = cloudRegion.internalId
+				} else {
+					// no regions? use regionCode
+					if(cloud.regionCode)
+						amazonEndpoint = cloud.regionCode
+					else
+						amazonEndpoint = "s3.us-east-1.amazonaws.com"
+
+				}
+			} else if(storageServer.serviceUrl && storageServer.serviceUrl.contains('amazonaws.com')) {
+				amazonEndpoint = storageServer.serviceUrl
+			}
+		}
+		if(amazonEndpoint) {
+			defaultRegion = AmazonComputeUtility.getAmazonEndpointRegion(amazonEndpoint)
+			if(amazonEndpoint.endsWith(".cn")) {
+				// China
+				records = records.findAll { it.keyValue?.startsWith('cn-') }
+			} else if(amazonEndpoint.contains("gov-")) {
+				// US Gov
+				records = records.findAll { it.keyValue?.contains('gov-') }
+			} else {
+				// Default is everywhere else
+				records = records.findAll { !it.keyValue?.startsWith('cn-') && !it.keyValue?.contains('gov-') }
+			}
+		} else {
+			// if no storage server is passed, all regions are returned
+			// records = []
+		}
+		def rtn = records.collect { [value: it.keyValue, name: it.name, isDefault: (it.keyValue == defaultRegion)]}
+		def select = [name:morpheus.services.localization.get("gomorpheus.label.select"), value: '']
+		return [select] + rtn
+	}
+
 
 	private static getCloudId(args) {
 		def cloudId = null
