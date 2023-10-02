@@ -9,6 +9,7 @@ import com.morpheusdata.model.AccountCredential
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.CloudRegion
 import com.morpheusdata.model.ComputeZoneRegion
+import com.morpheusdata.model.ImageType
 import com.morpheusdata.model.NetworkRouteTable
 import com.morpheusdata.core.util.MorpheusUtils
 import com.morpheusdata.model.StorageServer
@@ -50,7 +51,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		return new ArrayList<String>([
 			'awsPluginVpc', 'awsPluginRegions', 'awsPluginAvailabilityZones', 'awsRouteTable', 'awsRouteDestinationType',
 			'awsRouteDestination', 'awsPluginEc2SecurityGroup', 'awsPluginEc2PublicIpType', 'awsPluginInventoryLevels',
-			'awsPluginStorageProvider', 'awsPluginEbsEncryption', 's3Regions'
+			'awsPluginStorageProvider', 'awsPluginEbsEncryption', 's3Regions', 'amazonEc2NodeAmiImage'
 		])
 	}
 
@@ -291,6 +292,16 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 			[name:'Off',value:'off'],
 			[name:'On', value:'on']
 		]
+	}
+
+	def amazonEc2NodeAmiImage(args) {
+		def rtn = []
+		args = args instanceof Object[] ? args.getAt(0) : args
+		def images = morpheusContext.async.virtualImage.listIdentityProjections(args?.accountId?.toLong(), ImageType.ami).toList().blockingGet()
+		if(images) {
+			rtn = images.collect { img -> [name: img.name, value: img.id] }.sort { it.name }
+		}
+		return rtn
 	}
 
 	def s3Regions(args) {

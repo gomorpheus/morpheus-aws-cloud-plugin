@@ -1226,6 +1226,15 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 		return null
 	}
 
+	/**
+	 * For the CF provision provider, we do NOT want a CF instance type created
+	 * @return
+	 */
+	@Override
+	Boolean createDefaultInstanceType() {
+		return false
+	}
+
 
 	private Instance saveAndGet(Instance instance) {
 		def saveSuccessful = morpheusContext.async.instance.save(instance).blockingGet()

@@ -114,7 +114,50 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	 */
 	@Override
 	Collection<OptionType> getNodeOptionTypes() {
-		new ArrayList<OptionType>()
+		OptionType amiImage = new OptionType([
+				name : 'image',
+				code : 'amazon-ec2-node-image',
+				fieldName : 'virtualImage.id',
+				fieldContext : 'domain',
+				fieldLabel : 'AMI Image',
+				inputType : OptionType.InputType.TYPEAHEAD,
+				displayOrder : 100,
+				required : false,
+
+				optionSource : 'amazonEc2NodeAmiImage'
+		])
+		OptionType logFolder = new OptionType([
+				name : 'mountLogs',
+				code : 'amazon-ec2--node-log-folder',
+				fieldName : 'mountLogs',
+				fieldContext : 'domain',
+				fieldLabel : 'Log Folder',
+				inputType : OptionType.InputType.TEXT,
+				displayOrder : 101,
+				required : false,
+		])
+		OptionType configFolder = new OptionType([
+				name : 'mountConfig',
+				code : 'amazon-ec2--node-config-folder',
+				fieldName : 'mountConfig',
+				fieldContext : 'domain',
+				fieldLabel : 'Config Folder',
+				inputType : OptionType.InputType.TEXT,
+				displayOrder : 102,
+				required : false,
+		])
+		OptionType deployFolder = new OptionType([
+				name : 'mountData',
+				code : 'amazon-ec2--node-deploy-folder',
+				fieldName : 'mountData',
+				fieldContext : 'domain',
+				fieldLabel : 'Deploy Folder',
+				inputType : OptionType.InputType.TEXT,
+				displayOrder : 103,
+				helpText: '(Optional) If using deployment services, this mount point will be replaced with the contents of said deployments.',
+				required : false,
+		])
+		return [amiImage, logFolder, configFolder, deployFolder]
 	}
 
 	/**
