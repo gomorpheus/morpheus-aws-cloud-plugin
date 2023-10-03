@@ -4,6 +4,7 @@ import com.amazonaws.services.ec2.model.InstanceTypeInfo
 import com.morpheusdata.aws.AWSPlugin
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
+import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
@@ -28,14 +29,14 @@ class ServicePlanSync {
 	def execute() {
 		// Get map of instance types to regions
 		def instanceTypeRegions = [:]
-		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+		morpheusContext.async.cloud.region.list(new DataQuery().withFilter('cloud.id', cloud.id)).blockingSubscribe { region ->
 			def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
 
 			for(InstanceTypeInfo instanceType in AmazonComputeUtility.listInstanceTypes([amazonClient: amazonClient]).instanceTypes) {
 				if(!instanceTypeRegions[instanceType.instanceType]) {
 					instanceTypeRegions[instanceType.instanceType] = [instanceType: instanceType, regionCodes: [] as Set]
 				}
-				instanceTypeRegions[instanceType.instanceType].regionCodes << region.externalId
+				instanceTypeRegions[instanceType.instanceType].regionCodes << region.internalId
 			}
 		}
 
@@ -161,7 +162,7 @@ class ServicePlanSync {
 
 		if(saveList) {
 			log.debug "About to update ${saveList.size()} service plans"
-			morpheusContext.async.servicePlan.save(saveList).blockingGet()
+			morpheusContext.async.servicePlan.bulkSave(saveList).blockingGet()
 		}
 	}
 
