@@ -164,11 +164,10 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 	@Override
 	List<OptionType> getIntegrationOptionTypes() {
 		return [
-                new OptionType(code: 'accountIntegration.amazon.dns.serviceUrl', name: 'Region', inputType: OptionType.InputType.SELECT, optionSourceType: 'amazon', optionSource: 'amazonEndpoint', fieldName: 'serviceUrl', fieldLabel: 'Region', fieldContext: 'domain', required: false, displayOrder: 0),
-                new OptionType(code: 'accountIntegration.amazon.dns.credentials', name: 'Credentials', inputType: OptionType.InputType.CREDENTIAL, fieldName: 'type', fieldLabel: 'Credentials', fieldContext: 'credential', required: true, displayOrder: 1, defaultValue: 'local',optionSource: 'credentials',config: '{"credentialTypes":["access-key-secret"]}'),
-
-                new OptionType(code: 'accountIntegration.amazon.dns.serviceUsername', name: 'Access Key', inputType: OptionType.InputType.TEXT, fieldName: 'serviceUsername', fieldLabel: 'Access Key', fieldContext: 'domain', required: true, displayOrder: 2,localCredential: true),
-                new OptionType(code: 'accountIntegration.amazon.dns.servicePassword', name: 'Secret Key', inputType: OptionType.InputType.PASSWORD, fieldName: 'servicePassword', fieldLabel: 'Secret Key', fieldContext: 'domain', required: true, displayOrder: 3,localCredential: true)
+			new OptionType(code: 'accountIntegration.amazon.dns.serviceUrl', name: 'Region', inputType: OptionType.InputType.SELECT, optionSourceType: null, optionSource: 'awsPluginRegions', fieldName: 'serviceUrl', fieldLabel: 'Region', fieldContext: 'domain', required: false, noSelection: "gomorpheus.label.all", displayOrder: 0),
+			new OptionType(code: 'accountIntegration.amazon.dns.credentials', name: 'Credentials', inputType: OptionType.InputType.CREDENTIAL, fieldName: 'type', fieldLabel: 'Credentials', fieldContext: 'credential', required: true, displayOrder: 1, defaultValue: 'local',optionSource: 'credentials',config: '{"credentialTypes":["access-key-secret"]}'),
+			new OptionType(code: 'accountIntegration.amazon.dns.serviceUsername', name: 'Access Key', inputType: OptionType.InputType.TEXT, fieldName: 'serviceUsername', fieldLabel: 'Access Key', fieldContext: 'domain', required: true, displayOrder: 2,localCredential: true),
+			new OptionType(code: 'accountIntegration.amazon.dns.servicePassword', name: 'Secret Key', inputType: OptionType.InputType.PASSWORD, fieldName: 'servicePassword', fieldLabel: 'Secret Key', fieldContext: 'domain', required: true, displayOrder: 3,localCredential: true)
         ]
 	}
 
@@ -305,17 +304,14 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
         }
     }
 
-
     // Cache Zone Records methods
     def cacheZoneRecords(AccountIntegration integration, Map opts=[:]) {
     	Cloud cloud = getIntegrationCloud(integration)
-        morpheus.network.domain.listIdentityProjections(integration.id).buffer(50).flatMap { Collection<NetworkDomainIdentityProjection> resourceIdents ->
-            return morpheus.network.domain.listById(resourceIdents.collect{it.id})
+        morpheus.async.network.domain.listIdentityProjections(integration.id).buffer(50).flatMap { Collection<NetworkDomainIdentityProjection> resourceIdents ->
+            return morpheus.async.network.domain.listById(resourceIdents.collect{it.id})
         }.flatMap { NetworkDomain domain ->
         	def amazonClient = AmazonComputeUtility.getAmazonRoute53Client(integration, cloud)
-            // def listResults = listRecords(integration,domain)
             def listResults = AmazonComputeUtility.listDnsZoneRecords(amazonClient, domain.externalId)
-            //todo: change to log.debug, or maybe do not log entire results eh?
             log.debug("cacheZoneRecords - domain: ${domain.externalId}, listResults: ${listResults}")
 
             if (listResults.success) {
@@ -330,18 +326,17 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 						recordData:record.recordData, 
 						content:record.recordsData?.join('\n')
 					]
-					if(addConfig.type == 'SOA' || addConfig.type == 'NS')
+					if(addConfig.type == 'SOA' || addConfig.type == 'NS') {
 						addConfig.name = record.name
-					else
+					} else {
 						addConfig.name = NetworkUtility.getFriendlyDomainName(record.name)
+					}
 					// def add = new NetworkDomainRecord(addConfig)
 					addConfig
                 } as List<Map>
 
-                //Unfortunately the unique identification matching for msdns requires the full record for now... so we have to load all records...this should be fixed
-
-                Observable<NetworkDomainRecord> domainRecords = morpheus.network.domain.record.listIdentityProjections(domain,null).buffer(50).flatMap {domainIdentities ->
-                    morpheus.network.domain.record.listById(domainIdentities.collect{it.id})
+                Observable<NetworkDomainRecord> domainRecords = morpheus.async.network.domain.record.listIdentityProjections(domain,null).buffer(50).flatMap {domainIdentities ->
+                    morpheus.async.network.domain.record.listById(domainIdentities.collect{it.id})
                 }
                 SyncTask<NetworkDomainRecord, Map, NetworkDomainRecord> syncTask = new SyncTask<NetworkDomainRecord, Map, NetworkDomainRecord>(domainRecords, apiItems)
                 return syncTask.addMatchFunction {  NetworkDomainRecord domainObject, Map apiItem ->
@@ -349,13 +344,13 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 
                 }.onDelete {removeItems ->
                 	log.debug("Removing ${removeItems.size()} network domain records for domain ${domain.externalId}")
-                    morpheus.network.domain.record.remove(domain, removeItems).blockingGet()
+                    morpheus.async.network.domain.record.remove(domain, removeItems).blockingGet()
                 }.onAdd { itemsToAdd ->
                 	log.debug("Adding ${itemsToAdd.size()} network domain records for domain ${domain.externalId}")
                     addMissingDomainRecords(domain, itemsToAdd)
                 }.withLoadObjectDetails { List<SyncTask.UpdateItemDto<NetworkDomainRecord,Map>> updateItems ->
                     Map<Long, SyncTask.UpdateItemDto<NetworkDomainRecord, Map>> updateItemMap = updateItems.collectEntries { [(it.existingItem.id): it]}
-                    return morpheus.network.domain.record.listById(updateItems.collect{it.existingItem.id} as Collection<Long>).map { NetworkDomainRecord domainRecord ->
+                    return morpheus.async.network.domain.record.listById(updateItems.collect{it.existingItem.id} as Collection<Long>).map { NetworkDomainRecord domainRecord ->
                         SyncTask.UpdateItemDto<NetworkDomainRecordIdentityProjection, Map> matchItem = updateItemMap[domainRecord.id]
                         return new SyncTask.UpdateItem<NetworkDomainRecord,Map>(existingItem:domainRecord, masterItem:matchItem.masterItem)
                     }
@@ -372,7 +367,6 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
         }.subscribe()
 
     }
-
 
     void updateMatchedDomainRecords(List<SyncTask.UpdateItem<NetworkDomainRecord, Map>> updateList) {
         def records = []

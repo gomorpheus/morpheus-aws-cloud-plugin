@@ -60,7 +60,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		def refDataIds = morpheus.services.referenceData.list(new DataQuery().withFilter("category", "amazon.ec2.region")).collect { it.id }
 		log.debug("refDataIds: ${refDataIds}")
 		if(refDataIds.size() > 0) {
-			rtn = morpheus.referenceData.listById(refDataIds).toList().blockingGet().sort { it.name }.collect { [value: it.value, name: it.name] }
+			rtn = morpheus.services.referenceData.listById(refDataIds).sort { it.name }.collect { [value: it.value, name: it.name] }
 		}
 
 		log.debug("results: ${rtn}")
