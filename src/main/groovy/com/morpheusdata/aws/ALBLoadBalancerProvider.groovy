@@ -791,9 +791,9 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
     private updateOrCreateLoadBalancer(NetworkLoadBalancer loadBalancer) {
         log.debug "updateOrCreateLoadBalancer: ${loadBalancer.id}"
         def rtn = ServiceResponse.prepare()
-        def networkService = morpheus.network
-        def regionService = morpheus.cloud.region
-        def loadBalancerService = morpheus.loadBalancer
+        def networkService = morpheus.async.network
+        def regionService = morpheus.async.cloud.region
+        def loadBalancerService = morpheus.async.loadBalancer
 
         try {
             def createRequired = !loadBalancer.externalId
@@ -862,7 +862,7 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
                 loadBalancer.sshHost = lbResult.loadBalancers[0].getDNSName()
 
                 // save load balancer changes
-                rtn.success = loadBalancerService.save([loadBalancer]).blockingGet()
+                rtn.success = loadBalancerService.bulkSave([loadBalancer]).blockingGet()
             } else {
                 log.debug "Existing LB found.. updating"
                 def arn = loadBalancer.getConfigProperty('arn')
@@ -1022,7 +1022,7 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
                         attributesRequest.attributes.add(new TargetGroupAttribute().withKey('stickiness.lb_cookie.duration_seconds').withValue(duration.toString()))
                     }
                     if (saveInstance) {
-                        this.morpheus.loadBalancer.instance.save([loadBalancerInstance]).blockingGet()
+                        this.morpheus.loadBalancer.instance.bulkSave([loadBalancerInstance]).blockingGet()
                     }
                 }
                 attributesRequest.attributes.add(new TargetGroupAttribute().withKey('load_balancing.algorithm.type').withValue(loadBalancerInstance.vipBalance == 'roundrobin' ? 'round_robin' : 'least_outstanding_requests'))
@@ -1064,7 +1064,7 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
             removeInvalidRules(amazonClient, loadBalancerInstance, loadBalancerArn, requiredListenerPorts, targetGroup)
 
             instance.setConfigProperty('loadBalancerId', loadBalancer.id)
-            morpheus.instance.save([instance]).blockingGet()
+            morpheus.instance.bulkSave([instance]).blockingGet()
             rtn.success = true
         } catch (ThrottlingException e) {
             log.error "${e} : stack: ${e.printStackTrace()}"
