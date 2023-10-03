@@ -789,12 +789,8 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		runConfig.server = saveAndGet(server)
 		def imageResults = AmazonComputeUtility.loadImage([amazonClient:opts.amazonClient, imageId:runConfig.imageRef])
 
-		//user key - TODO
-		def keyPairResults = ensureAmazonKeyPair([:], opts.amazonClient, account, server.cloud, runConfig.userConfig.primaryKey, morpheusContext)
-		if(keyPairResults.success) {
-			runConfig.publicKeyName = keyPairResults.data.keyName
-			runConfig.primaryKey = keyPairResults.data.key
-		}
+		//user key
+		def keyPairResults = ensureAmazonKeyPair(runConfig, opts.amazonClient, account, server.cloud, runConfig.userConfig.primaryKey, morpheusContext)
 
 		//root volume
 		def blockDeviceMap = imageResults.image.getBlockDeviceMappings()
@@ -1539,7 +1535,8 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	}
 
 
-	static protected ensureAmazonKeyPair(runConfig, AmazonEC2Client amazonClient, Account account, Cloud cloud, KeyPair primaryKey, MorpheusContext morpheus) {
+	static protected ServiceResponse ensureAmazonKeyPair(runConfig, AmazonEC2Client amazonClient, Account account, Cloud cloud, KeyPair primaryKey, MorpheusContext morpheus) {
+		ServiceResponse rtn = ServiceResponse.prepare(data: primaryKey)
 		if(primaryKey) {
 			def keyLocationId = 'amazon-' + cloud.id
 			def accountKey = morpheus.async.keyPair.findOrGenerateByAccount(account.id).blockingGet()
@@ -1557,6 +1554,9 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 					if(keyResults.uploaded == true) {
 						morpheus.async.keyPair.addZoneKeyPairLocation(cloud.id, keyLocationId, keyResults.keyName)
 					}
+
+					rtn.data.keyName = keyResults.keyName
+					rtn.success = true
 				}
 			} else {
 				log.debug('checking for keypair2')
@@ -1571,9 +1571,14 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 					if(keyResults.uploaded == true) {
 						morpheus.async.keyPair.addKeyPairLocation(primaryKey.id, keyLocationId, keyResults.keyName)
 					}
+
+					rtn.data.keyName = keyResults.keyName
+					rtn.success = true
 				}
 			}
 		}
+
+		return rtn
 	}
 
 
