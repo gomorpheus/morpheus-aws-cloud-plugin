@@ -19,8 +19,8 @@ import com.morpheusdata.model.projection.NetworkDomainIdentityProjection
 import com.morpheusdata.model.projection.NetworkDomainRecordIdentityProjection
 import com.morpheusdata.response.ServiceResponse
 import groovy.util.logging.Slf4j
-import io.reactivex.Single
-import io.reactivex.Observable
+import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.core.Observable
 
 /**
  * The DNS Provider implementation for Amazon Route53 DNS service.

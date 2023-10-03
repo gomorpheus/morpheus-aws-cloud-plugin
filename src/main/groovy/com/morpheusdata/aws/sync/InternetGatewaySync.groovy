@@ -13,8 +13,8 @@ import com.morpheusdata.model.NetworkRouterType
 import com.morpheusdata.model.projection.CloudPoolIdentity
 import com.morpheusdata.model.projection.NetworkRouterIdentityProjection
 import groovy.util.logging.Slf4j
-import io.reactivex.Observable
-import io.reactivex.Single
+import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.core.Single
 
 /**
  * Sync class for syncing InternetGateways within an AWS Cloud account

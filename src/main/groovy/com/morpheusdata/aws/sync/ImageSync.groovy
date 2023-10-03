@@ -19,7 +19,7 @@ import com.morpheusdata.model.projection.VirtualImageIdentityProjection
 import com.morpheusdata.model.projection.VirtualImageLocationIdentityProjection
 import groovy.json.JsonOutput
 import groovy.util.logging.Slf4j
-import io.reactivex.Observable
+import io.reactivex.rxjava3.core.Observable
 
 @Slf4j
 class ImageSync {
