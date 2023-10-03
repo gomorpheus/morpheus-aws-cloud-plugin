@@ -56,11 +56,11 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 		try {
 			AccountIntegration integration = new AccountIntegration(
 				name: cloud.name,
-				type: new AccountIntegrationType(code:"amazonDns"),
+				integrationType: new AccountIntegrationType(code:"amazonDns"),
 				serviceUrl: cloud.regionCode
 			)
-			morpheus.integration.registerCloudIntegration(cloud.id, integration).blockingGet()
-			ServiceResponse.success = true
+			morpheus.async.integration.registerCloudIntegration(cloud.id, integration).blockingGet()
+			rtn.success = true
 		} catch (Exception e) {
 			rtn.success = false
 			log.error("initializeProvider error: {}", e, e)
