@@ -245,6 +245,46 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		volumeTypes
 	}
 
+	@Override
+	Boolean lvmSupported() {
+		return true
+	}
+
+	@Override
+	String serverType() {
+		return "ami"
+	}
+
+	@Override
+	String getViewSet() {
+		return "amazonCustom"
+	}
+
+	@Override
+	Boolean multiTenant() {
+		return false
+	}
+
+	@Override
+	Boolean aclEnabled() {
+		return false
+	}
+
+	@Override
+	String getHostDiskMode() {
+		return "lvm"
+	}
+
+	@Override
+	Boolean hasSecurityGroups() {
+		return true
+	}
+
+	@Override
+	Boolean supportsAutoDatastore() {
+		return false
+	}
+
 	/**
 	 * Determines if this provision type has datastores that can be selected or not.
 	 * @return Boolean representation of whether or not this provision type has datastores
