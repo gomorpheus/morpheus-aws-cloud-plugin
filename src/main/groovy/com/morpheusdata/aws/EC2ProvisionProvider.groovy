@@ -790,7 +790,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		def imageResults = AmazonComputeUtility.loadImage([amazonClient:opts.amazonClient, imageId:runConfig.imageRef])
 
 		//user key
-		def keyPairResults = ensureAmazonKeyPair(runConfig, opts.amazonClient, account, server.cloud, runConfig.userConfig.primaryKey, morpheusContext)
+		ensureAmazonKeyPair(runConfig, opts.amazonClient, account, server.cloud, runConfig.userConfig.primaryKey, morpheusContext)
 
 		//root volume
 		def blockDeviceMap = imageResults.image.getBlockDeviceMappings()
