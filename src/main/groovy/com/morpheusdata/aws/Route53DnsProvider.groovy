@@ -364,7 +364,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
             }
         }.doOnError{ e ->
             log.error("cacheZoneRecords error: ${e}", e)
-        }.subscribe()
+        }.blockingSubscribe()
 
     }
 
