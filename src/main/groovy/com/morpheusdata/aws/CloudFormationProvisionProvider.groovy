@@ -186,7 +186,8 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 	 */
 	@Override
 	ServiceResponse validateInstance(Instance instance, Map opts) {
-		return null
+		def rtn = [success:true]
+		return ServiceResponse.create(rtn)
 	}
 
 
