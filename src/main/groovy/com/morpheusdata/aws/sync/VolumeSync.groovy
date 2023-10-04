@@ -28,7 +28,6 @@ class VolumeSync {
 
 	def execute() {
 		try {
-			log.debug("VolumeSync start")
 			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
 				def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
 				def cloudItems = AmazonComputeUtility.listVolumes([amazonClient: amazonClient, zone: cloud]).volumeList
@@ -46,7 +45,6 @@ class VolumeSync {
 					removeMissingStorageVolumes(removeItems)
 				}.start()
 			}
-			log.debug("VolumeSync end")
 		} catch(Exception ex) {
 			log.error("VolumeSync error: {}", ex, ex)
 		}
@@ -91,7 +89,6 @@ class VolumeSync {
 			def status = 'unattached'
 			def maxStorage = cloudItem.size * ComputeUtility.ONE_GIGABYTE
 
-			log.debug("Existing name: ${existingItem.name} == ${name} && ")
 			if(existingItem.name != name && name != cloudItem.volumeId) {
 				existingItem.name = name
 				save = true
