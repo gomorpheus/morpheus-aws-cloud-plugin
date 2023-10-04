@@ -557,6 +557,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 			amazonClient = plugin.getAmazonClient(cloud,false, server.resourcePool.regionCode)
 			def runConfig = buildWorkloadRunConfig(workload, workloadRequest, virtualImage, amazonClient, opts)
 			runVirtualMachine(runConfig, provisionResponse, opts + [amazonClient: amazonClient])
+			provisionResponse.noAgent = opts.noAgent ?: false
 			return new ServiceResponse<ProvisionResponse>(success: true, data: provisionResponse)
 		} catch (e) {
 			log.error "runWorkload: ${e}", e
