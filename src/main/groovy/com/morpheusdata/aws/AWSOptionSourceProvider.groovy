@@ -299,7 +299,11 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		args = args instanceof Object[] ? args.getAt(0) : args
 		def images = morpheusContext.async.virtualImage.listIdentityProjections(args?.accountId?.toLong(), ImageType.ami).toList().blockingGet()
 		if(images) {
-			rtn = images.collect { img -> [name: img.name, value: img.id] }.sort { it.name }
+			if(args.phrase) {
+				rtn = images.findAll{it.name.toLowerCase().contains(args.phrase.toLowerCase())}.collect { img -> [name: img.name, value: img.id] }.sort { it.name }
+			} else {
+				rtn = images.collect { img -> [name: img.name, value: img.id] }.sort { it.name }
+			}
 		}
 		return rtn
 	}

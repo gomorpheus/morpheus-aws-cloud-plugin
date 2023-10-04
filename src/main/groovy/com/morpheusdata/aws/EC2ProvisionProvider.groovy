@@ -127,7 +127,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		])
 		OptionType logFolder = new OptionType([
 				name : 'mountLogs',
-				code : 'amazon-ec2--node-log-folder',
+				code : 'amazon-ec2-node-log-folder',
 				fieldName : 'mountLogs',
 				fieldContext : 'domain',
 				fieldLabel : 'Log Folder',
@@ -137,7 +137,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		])
 		OptionType configFolder = new OptionType([
 				name : 'mountConfig',
-				code : 'amazon-ec2--node-config-folder',
+				code : 'amazon-ec2-node-config-folder',
 				fieldName : 'mountConfig',
 				fieldContext : 'domain',
 				fieldLabel : 'Config Folder',
@@ -147,7 +147,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		])
 		OptionType deployFolder = new OptionType([
 				name : 'mountData',
-				code : 'amazon-ec2--node-deploy-folder',
+				code : 'amazon-ec2-node-deploy-folder',
 				fieldName : 'mountData',
 				fieldContext : 'domain',
 				fieldLabel : 'Deploy Folder',
