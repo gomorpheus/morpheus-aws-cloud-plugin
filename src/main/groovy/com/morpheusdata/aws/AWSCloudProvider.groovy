@@ -30,6 +30,7 @@ import com.morpheusdata.aws.sync.VolumeSync
 import com.morpheusdata.aws.sync.VpcPeeringConnectionSync
 import com.morpheusdata.aws.sync.VpnGatewaySync
 import com.morpheusdata.aws.utils.AmazonComputeUtility
+import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.core.backup.AbstractBackupProvider
 import com.morpheusdata.core.CloudProvider
 import com.morpheusdata.core.MorpheusContext
@@ -328,43 +329,60 @@ class AWSCloudProvider implements CloudProvider {
 	@Override
 	Collection<StorageVolumeType> getStorageVolumeTypes() {
 		def volumeTypes = []
+
 		volumeTypes << new StorageVolumeType([
-				code: 'amazon-gp3',
-				name: 'gp3',
-				defaultType: true,
-				displayOrder: 0
+			code:'amazon-gp2', displayName:'gp2', name:'gp2', 
+			description:'AWS - gp2', volumeType:'volume', enabled:true, 
+			customLabel:true, customSize:true, defaultType:true, autoDelete:true, 
+			minStorage:(ComputeUtility.ONE_GIGABYTE), maxStorage:(16L * ComputeUtility.ONE_TERABYTE), 
+			hasDatastore:false, allowSearch:true, volumeCategory:'volume',
+			displayOrder: 0
 		])
 
 		volumeTypes << new StorageVolumeType([
-				code: 'amazon-gp2',
-				name: 'gp2',
-				displayOrder: 1
+			code:'amazon-gp3', displayName:'gp3', name:'gp3', 
+			description:'AWS - gp3', volumeType:'volume', enabled:true, 
+			customLabel:true, customSize:true, defaultType:true, autoDelete:true, 
+			minStorage:(ComputeUtility.ONE_GIGABYTE), maxStorage:(16L * ComputeUtility.ONE_TERABYTE), 
+			hasDatastore:false, allowSearch:true, volumeCategory:'volume',
+			displayOrder: 1
 		])
 
 		volumeTypes << new StorageVolumeType([
-				code: 'amazon-io1',
-				name: 'io1',
-				configurableIOPS:true,
-				minIOPS:100, 
-				maxIOPS:20000,
-				displayOrder: 2
+			code:'amazon-io1', displayName:'io1', name:'io1', 
+			description:'AWS - io1', volumeType:'volume', enabled:true, 
+			customLabel:true, customSize:true, defaultType:false, 
+			autoDelete:true, minStorage:(4L * ComputeUtility.ONE_GIGABYTE), maxStorage:(16L * ComputeUtility.ONE_TERABYTE), 
+			configurableIOPS:true, minIOPS:100, maxIOPS:20000, hasDatastore:false, 
+			allowSearch:true, volumeCategory:'volume', 
+			displayOrder:2
 		])
 
 		volumeTypes << new StorageVolumeType([
-				code: 'amazon-st1',
-				name: 'st1',
-				displayOrder: 3
+			code:'amazon-st1', displayName:'st1', name:'st1', 
+			description:'AWS - st1', volumeType:'volume', enabled:true, 
+			customLabel:true, customSize:true, defaultType:false, autoDelete:true, 
+			minStorage:(125L * ComputeUtility.ONE_GIGABYTE), maxStorage:(16L * ComputeUtility.ONE_TERABYTE), 
+			hasDatastore:false, allowSearch:true, volumeCategory:'volume',
+			displayOrder: 3
 		])
 
 		volumeTypes << new StorageVolumeType([
-				code: 'amazon-sc1',
-				name: 'sc1',
-				displayOrder: 4
+			code:'amazon-sc1', displayName:'sc1', name:'sc1', 
+			description:'AWS - sc1', volumeType:'volume', enabled:true, 
+			customLabel:true, customSize:true, defaultType:false, autoDelete:true, 
+			minStorage:(125 * ComputeUtility.ONE_GIGABYTE), maxStorage:(16L * ComputeUtility.ONE_TERABYTE), 
+			hasDatastore:false, allowSearch:true, volumeCategory:'volume',
+			displayOrder: 4
 		])
 
 		volumeTypes << new StorageVolumeType([
-				code: 'amazon-standard',
-				name: 'standard'
+			code:'amazon-standard', displayName:'standard', name:'standard', 
+			description:'AWS - standard', volumeType:'volume', enabled:true, 
+			customLabel:true, customSize:true, defaultType:false, autoDelete:true, 
+			minStorage:(1L * ComputeUtility.ONE_GIGABYTE), maxStorage:(1L * ComputeUtility.ONE_TERABYTE),
+			hasDatastore:false, allowSearch:true, volumeCategory:'volume',
+			displayOrder: 5
 		])
 
 		volumeTypes
