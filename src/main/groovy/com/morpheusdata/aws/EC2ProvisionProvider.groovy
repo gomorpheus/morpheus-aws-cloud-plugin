@@ -1273,7 +1273,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 								type: volumeType,
 								externalId: newVolumeId,
 								deviceName: deviceName,
-								deviceDisplayName: AmazonComputeUtility.extractDiskDisplayName(deviceName)?.replaceAll('sd', 'xvd'),
+								deviceDisplayName: extractDiskDisplayName(deviceName),
 								name: newVolumeId,
 								displayOrder: newCounter,
 								status: 'provisioned',
@@ -1677,7 +1677,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 			if(lastSlash > -1)
 				rtn = rtn.substring(lastSlash + 1)
 		}
-		return rtn
+		return  changeDiskDisplayName(rtn)
 	}
 
 	private changeDiskDisplayName(name) {
