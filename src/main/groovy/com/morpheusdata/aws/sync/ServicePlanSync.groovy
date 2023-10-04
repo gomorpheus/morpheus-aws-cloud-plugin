@@ -110,8 +110,11 @@ class ServicePlanSync {
 		}
 
 		// Create em all!
-		log.debug "About to create ${adds.size()} snapshots"
-		morpheusContext.async.servicePlan.create(adds).blockingGet()
+		if(adds) {
+			log.debug "About to create ${adds.size()} snapshots"
+			morpheusContext.async.servicePlan.create(adds).blockingGet()
+		}
+
 	}
 
 	private updateMatchedServicePlans(List<SyncTask.UpdateItem<ServicePlan, InstanceTypeInfo>> updateList, Map instanceTypesToRegion) {

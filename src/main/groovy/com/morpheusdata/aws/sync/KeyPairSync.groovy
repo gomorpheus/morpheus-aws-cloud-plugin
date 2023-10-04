@@ -67,7 +67,9 @@ class KeyPairSync {
 		}
 
 		log.debug "About to create ${adds.size()} keypairs"
-		morpheusContext.async.keyPair.bulkCreate(adds).blockingGet()
+		if(adds) {
+			morpheusContext.async.keyPair.bulkCreate(adds).blockingGet()
+		}
 	}
 
 	private updateMatchedKeyPairs(List<SyncTask.UpdateItem<KeyPair, KeyPairInfo>> updateList, CloudRegionIdentity region) {

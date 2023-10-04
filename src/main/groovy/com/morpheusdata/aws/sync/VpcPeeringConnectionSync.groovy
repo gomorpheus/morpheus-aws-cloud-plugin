@@ -67,7 +67,10 @@ class VpcPeeringConnectionSync extends InternalResourceSync {
 				resourceType:'VpcPeeringConnection', cloudName: cloud.name, name: name, displayName: name, region: new CloudRegion(id: region.id)
 			)
 		}
-		morpheusContext.async.cloud.resource.create(adds).blockingGet()
+		if(adds) {
+			morpheusContext.async.cloud.resource.create(adds).blockingGet()
+		}
+
 	}
 
 	protected void updateMatchedVpcPeeringConnections(List<SyncTask.UpdateItem<AccountResource, VpcPeeringConnection>> updateList, CloudRegionIdentity region) {

@@ -106,7 +106,10 @@ class ImageSync {
 
 		// Create em all!
 		log.debug "About to create ${adds.size()} virtualImages"
-		morpheusContext.async.virtualImage.create(adds, cloud).blockingGet()
+		if(adds) {
+			morpheusContext.async.virtualImage.create(adds, cloud).blockingGet()
+		}
+
 
 		// Fetch the images that we just created
 		def addExternalIds = adds.collect { it.externalId }

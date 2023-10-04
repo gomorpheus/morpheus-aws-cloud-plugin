@@ -64,7 +64,10 @@ class NetworkInterfaceSync extends InternalResourceSync {
 				region: new CloudRegion(id: region.id)
 			)
 		}
-		morpheusContext.async.cloud.resource.create(adds).blockingGet()
+		if(adds) {
+			morpheusContext.async.cloud.resource.create(adds).blockingGet()
+		}
+
 	}
 
 	protected void updateMatchedNetworkInterfaces(List<SyncTask.UpdateItem<AccountResource, NetworkInterface>> updateList, CloudRegionIdentity region) {

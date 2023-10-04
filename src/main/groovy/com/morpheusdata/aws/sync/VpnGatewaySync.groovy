@@ -64,7 +64,10 @@ class VpnGatewaySync extends InternalResourceSync {
 			add.configMap = [amazonSideAsn: cloudItem.amazonSideAsn, availabilityZone: cloudItem.availabilityZone]
 			adds << add
 		}
-		morpheusContext.async.cloud.resource.create(adds).blockingGet()
+		if(adds) {
+			morpheusContext.async.cloud.resource.create(adds).blockingGet()
+		}
+
 	}
 
 	protected void updateMatchedVpnGateways(List<SyncTask.UpdateItem<AccountResource, VpnGateway>> updateList, CloudRegionIdentity region) {

@@ -64,7 +64,10 @@ class NATGatewaySync extends InternalResourceSync {
 				cloudName: cloud.name, name: name, displayName: name, region: new CloudRegion(id: region.id)
 			)
 		}
-		morpheusContext.async.cloud.resource.bulkCreate(adds).blockingGet()
+		if(adds) {
+			morpheusContext.async.cloud.resource.bulkCreate(adds).blockingGet()
+		}
+
 	}
 
 	protected void updateMatchedNATGateways(List<SyncTask.UpdateItem<AccountResource, NatGateway>> updateList, CloudRegionIdentity region) {

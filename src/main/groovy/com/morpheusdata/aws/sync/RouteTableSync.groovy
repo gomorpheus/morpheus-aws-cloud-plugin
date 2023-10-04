@@ -140,7 +140,10 @@ class RouteTableSync {
 			configureRoute(routeTable, route, cloudItem)
 			adds << route
 		}
-		morpheusContext.async.network.router.route.create(router, adds).blockingGet()
+		if(adds) {
+			morpheusContext.async.network.router.route.create(router, adds).blockingGet()
+		}
+
 	}
 
 	private updateMatchedNetworkRoutes(List<SyncTask.UpdateItem<NetworkRoute, Route>> updateList, NetworkRouteTable routeTable, NetworkRouter router) {
