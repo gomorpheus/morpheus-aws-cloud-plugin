@@ -18,6 +18,9 @@ class InternalResourceSync {
 
 
 	protected removeMissingResources(List<AccountResourceIdentityProjection> removeList) {
-		morpheusContext.async.cloud.resource.remove(removeList).blockingGet()
+		if(removeList) {
+			morpheusContext.async.cloud.resource.bulkRemove(removeList).blockingGet()
+		}
+
 	}
 }
