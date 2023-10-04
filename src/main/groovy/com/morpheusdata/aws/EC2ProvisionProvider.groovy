@@ -1097,7 +1097,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	 */
 	@Override
 	ServiceResponse restartWorkload(Workload workload) {
-		log.debug("restartWorkload: ${server}")
+		log.debug("restartWorkload: ${workload}")
 		def client = plugin.getAmazonClient(workload.server.cloud, false, workload.server.resourcePool.regionCode)
 		AmazonComputeUtility.rebootServer([amazonClient: client, server: workload.server])
 		def waitResults = AmazonComputeUtility.waitForServerStatus([amazonClient: client, server: workload.server], 16)
