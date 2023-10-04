@@ -131,8 +131,8 @@ class S3StorageProvider implements StorageProvider, StorageProviderBuckets, Clou
                 name: cloud.name,
                 type: getStorageServerType()
             )
-            morpheus.integration.registerCloudIntegration(cloud.id, storageServer).blockingGet()
-            ServiceResponse.success = true
+            morpheus.async.integration.registerCloudIntegration(cloud.id, storageServer).blockingGet()
+            rtn.success = true
         } catch (Exception e) {
             rtn.success = false
             log.error("initializeProvider error: {}", e, e)
