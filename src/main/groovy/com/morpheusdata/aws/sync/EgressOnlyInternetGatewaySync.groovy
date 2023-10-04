@@ -23,30 +23,34 @@ class EgressOnlyInternetGatewaySync extends InternalResourceSync {
 	}
 
 	def execute() {
-		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
-			final String regionCode = region.externalId
-			def amazonClient = plugin.getAmazonClient(cloud,false, region.externalId)
-			def apiList = AmazonComputeUtility.listEgressOnlyInternetGateways([amazonClient: amazonClient],[:])
-			if(apiList.success) {
-				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.async.cloud.resource.listIdentityProjections(cloud.id,'aws.cloudFormation.ec2.egressOnlyInternetGateway',regionCode)
-				SyncTask<AccountResourceIdentityProjection, EgressOnlyInternetGateway, AccountResource> syncTask = new SyncTask<>(domainRecords, apiList.egressOnlyInternetGateways as Collection<EgressOnlyInternetGateway>)
-				return syncTask.addMatchFunction { AccountResourceIdentityProjection domainObject, EgressOnlyInternetGateway data ->
-					domainObject.externalId == data.egressOnlyInternetGatewayId
-				}.onDelete { removeItems ->
-					removeMissingResources(removeItems)
-				}.onUpdate { List<SyncTask.UpdateItem<AccountResource, EgressOnlyInternetGateway>> updateItems ->
-					updateMatchedEgressOnlyInternetGateways(updateItems, region)
-				}.onAdd { itemsToAdd ->
-					addMissingEgressOnlyInternetGateways(itemsToAdd, region)
+		try {
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
+				final String regionCode = region.externalId
+				def amazonClient = plugin.getAmazonClient(cloud,false, region.externalId)
+				def apiList = AmazonComputeUtility.listEgressOnlyInternetGateways([amazonClient: amazonClient],[:])
+				if(apiList.success) {
+					Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.async.cloud.resource.listIdentityProjections(cloud.id,'aws.cloudFormation.ec2.egressOnlyInternetGateway',regionCode)
+					SyncTask<AccountResourceIdentityProjection, EgressOnlyInternetGateway, AccountResource> syncTask = new SyncTask<>(domainRecords, apiList.egressOnlyInternetGateways as Collection<EgressOnlyInternetGateway>)
+					return syncTask.addMatchFunction { AccountResourceIdentityProjection domainObject, EgressOnlyInternetGateway data ->
+						domainObject.externalId == data.egressOnlyInternetGatewayId
+					}.onDelete { removeItems ->
+						removeMissingResources(removeItems)
+					}.onUpdate { List<SyncTask.UpdateItem<AccountResource, EgressOnlyInternetGateway>> updateItems ->
+						updateMatchedEgressOnlyInternetGateways(updateItems, region)
+					}.onAdd { itemsToAdd ->
+						addMissingEgressOnlyInternetGateways(itemsToAdd, region)
 
-				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<AccountResourceIdentityProjection, EgressOnlyInternetGateway>> updateItems ->
-					return morpheusContext.async.cloud.pool.listById(updateItems.collect { it.existingItem.id } as List<Long>)
-				}.observe()
-			} else {
-				log.error("Error Caching Egress Only Internet Gateways for Region: {} - {}", regionCode,apiList.msg)
-				return Single.just(false).toObservable() //ignore invalid region
-			}
-		}.blockingSubscribe()
+					}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<AccountResourceIdentityProjection, EgressOnlyInternetGateway>> updateItems ->
+						return morpheusContext.async.cloud.pool.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					}.observe()
+				} else {
+					log.error("Error Caching Egress Only Internet Gateways for Region: {} - {}", regionCode,apiList.msg)
+					return Single.just(false).toObservable() //ignore invalid region
+				}
+			}.blockingSubscribe()
+		} catch(Exception ex) {
+			log.error("EgressOnlyInternetGatewaySync error: {}", ex, ex)
+		}
 	}
 
 	protected String getCategory() {

@@ -34,24 +34,28 @@ class RouteTableSync {
 	}
 
 	def execute() {
-		routers = morpheusContext.async.network.router.listIdentityProjections(cloud.id).toList().blockingGet()
-		morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id, null, null).blockingSubscribe { CloudPoolIdentity zonePool ->
-			def router = morpheusContext.async.network.router.listById([routers.find { it.refType == 'ComputeZonePool' && it.refId == zonePool.id }?.id ?: 0L]).blockingFirst()
-			def amazonClient = plugin.getAmazonClient(cloud, false, zonePool.regionCode)
-			def cloudItems = AmazonComputeUtility.listRouteTables(amazonClient: amazonClient, filterVpcId: zonePool.externalId).routeTableList
-			Observable<NetworkRouteTableIdentityProjection> existingRecords = morpheusContext.async.network.routeTable.listIdentityProjections(zonePool.id)
-			SyncTask<NetworkRouteTableIdentityProjection, RouteTable, NetworkRouteTable> syncTask = new SyncTask<>(existingRecords, cloudItems)
-			syncTask.addMatchFunction { NetworkRouteTableIdentityProjection existingItem, RouteTable cloudItem ->
-				existingItem.externalId == cloudItem.routeTableId
-			}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<NetworkRouteTableIdentityProjection, NetworkRouteTable>> updateItems ->
-				morpheusContext.async.network.routeTable.listById(updateItems.collect { it.existingItem.id } as Collection<Long>)
-			}.onAdd { itemsToAdd ->
-				addMissingNetworkRouteTables(itemsToAdd, zonePool, router)
-			}.onUpdate { List<SyncTask.UpdateItem<NetworkRouteTable, RouteTable>> updateItems ->
-				updateMatchedNetworkRouteTables(updateItems, zonePool, router)
-			}.onDelete { removeItems ->
-				removeMissingNetworkRouteTables(removeItems)
-			}.start()
+		try {
+			routers = morpheusContext.async.network.router.listIdentityProjections(cloud.id).toList().blockingGet()
+			morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id, null, null).blockingSubscribe { CloudPoolIdentity zonePool ->
+				def router = morpheusContext.async.network.router.listById([routers.find { it.refType == 'ComputeZonePool' && it.refId == zonePool.id }?.id ?: 0L]).blockingFirst()
+				def amazonClient = plugin.getAmazonClient(cloud, false, zonePool.regionCode)
+				def cloudItems = AmazonComputeUtility.listRouteTables(amazonClient: amazonClient, filterVpcId: zonePool.externalId).routeTableList
+				Observable<NetworkRouteTableIdentityProjection> existingRecords = morpheusContext.async.network.routeTable.listIdentityProjections(zonePool.id)
+				SyncTask<NetworkRouteTableIdentityProjection, RouteTable, NetworkRouteTable> syncTask = new SyncTask<>(existingRecords, cloudItems)
+				syncTask.addMatchFunction { NetworkRouteTableIdentityProjection existingItem, RouteTable cloudItem ->
+					existingItem.externalId == cloudItem.routeTableId
+				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<NetworkRouteTableIdentityProjection, NetworkRouteTable>> updateItems ->
+					morpheusContext.async.network.routeTable.listById(updateItems.collect { it.existingItem.id } as Collection<Long>)
+				}.onAdd { itemsToAdd ->
+					addMissingNetworkRouteTables(itemsToAdd, zonePool, router)
+				}.onUpdate { List<SyncTask.UpdateItem<NetworkRouteTable, RouteTable>> updateItems ->
+					updateMatchedNetworkRouteTables(updateItems, zonePool, router)
+				}.onDelete { removeItems ->
+					removeMissingNetworkRouteTables(removeItems)
+				}.start()
+			}
+		} catch(Exception ex) {
+			log.error("RouteTableSync error: {}", ex, ex)
 		}
 	}
 

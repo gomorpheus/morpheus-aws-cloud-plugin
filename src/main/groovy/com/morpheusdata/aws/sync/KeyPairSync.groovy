@@ -27,24 +27,28 @@ class KeyPairSync {
 	}
 
 	def execute() {
-		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
-			def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
-			List<KeyPairInfo> cloudItems = AmazonComputeUtility.listKeypairs([amazonClient: amazonClient]).keyPairs
-			Observable<KeyPairIdentityProjection> existingRecords = morpheusContext.async.keyPair.listIdentityProjections(cloud.id, region.externalId)
-			SyncTask<KeyPairIdentityProjection, KeyPairInfo, KeyPair> syncTask = new SyncTask<>(existingRecords, cloudItems)
-			syncTask.addMatchFunction { KeyPairIdentityProjection existingItem, KeyPairInfo cloudItem ->
-				existingItem.externalId == cloudItem.keyPairId
-			}.addMatchFunction { KeyPairIdentityProjection existingItem, KeyPairInfo cloudItem ->
-				existingItem.externalId == cloudItem.keyName
-			}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<KeyPairIdentityProjection, KeyPair>> updateItems ->
-				morpheusContext.async.keyPair.listById(updateItems.collect { it.existingItem.id } as List<Long>)
-			}.onAdd { itemsToAdd ->
-				addMissingKeyPairs(itemsToAdd, region)
-			}.onUpdate { List<SyncTask.UpdateItem<KeyPair, KeyPairInfo>> updateItems ->
-				updateMatchedKeyPairs(updateItems, region)
-			}.onDelete { removeItems ->
-				removeMissingKeyPairs(removeItems)
-			}.start()
+		try {
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+				def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
+				List<KeyPairInfo> cloudItems = AmazonComputeUtility.listKeypairs([amazonClient: amazonClient]).keyPairs
+				Observable<KeyPairIdentityProjection> existingRecords = morpheusContext.async.keyPair.listIdentityProjections(cloud.id, region.externalId)
+				SyncTask<KeyPairIdentityProjection, KeyPairInfo, KeyPair> syncTask = new SyncTask<>(existingRecords, cloudItems)
+				syncTask.addMatchFunction { KeyPairIdentityProjection existingItem, KeyPairInfo cloudItem ->
+					existingItem.externalId == cloudItem.keyPairId
+				}.addMatchFunction { KeyPairIdentityProjection existingItem, KeyPairInfo cloudItem ->
+					existingItem.externalId == cloudItem.keyName
+				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<KeyPairIdentityProjection, KeyPair>> updateItems ->
+					morpheusContext.async.keyPair.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+				}.onAdd { itemsToAdd ->
+					addMissingKeyPairs(itemsToAdd, region)
+				}.onUpdate { List<SyncTask.UpdateItem<KeyPair, KeyPairInfo>> updateItems ->
+					updateMatchedKeyPairs(updateItems, region)
+				}.onDelete { removeItems ->
+					removeMissingKeyPairs(removeItems)
+				}.start()
+			}
+		} catch(Exception ex) {
+			log.error("KeyPairSync error: {}", ex, ex)
 		}
 	}
 

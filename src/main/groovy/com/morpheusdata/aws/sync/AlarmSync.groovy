@@ -31,31 +31,35 @@ class AlarmSync {
 	}
 
 	def execute() {
-		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap {
-			final String regionCode = it.externalId
-			String regionScopedCategory = "amazon.alarm.${cloud.id}.${regionCode}"
-			String cloudCategory = "amazon.alarm.${cloud.id}"
-			def amazonClient = AmazonComputeUtility.getAmazonCloudWatchClient(cloud,false,it.externalId)
-			def alarmResults = AmazonComputeUtility.listCloudWatchAlarms([amazonClient: amazonClient])
-			if(alarmResults.success) {
-				Observable<OperationNotificationIdentityProjection> domainRecords = morpheusContext.async.operationNotification.listIdentityProjections(regionScopedCategory).mergeWith(morpheusContext.async.operationNotification.listIdentityProjections(cloudCategory))
-				SyncTask<OperationNotificationIdentityProjection, MetricAlarm, OperationNotification> syncTask = new SyncTask<>(domainRecords, alarmResults.alarms as Collection<MetricAlarm>)
-				return syncTask.addMatchFunction { OperationNotificationIdentityProjection domainObject, MetricAlarm data ->
-					domainObject.externalId == data.getAlarmArn()
-				}.onDelete { removeItems ->
-					removeMissingAlarms(removeItems)
-				}.onUpdate { List<SyncTask.UpdateItem<OperationNotification, MetricAlarm>> updateItems ->
-					updateMatchedAlarms(updateItems,regionCode)
-				}.onAdd { itemsToAdd ->
-					addMissingAlarms(itemsToAdd, regionCode)
-				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<OperationNotificationIdentityProjection, MetricAlarm>> updateItems ->
-					return morpheusContext.async.operationNotification.listById(updateItems.collect { it.existingItem.id } as List<Long>)
-				}.observe()
-			} else {
-				log.error("Error Caching VPCs for Region: {} - {}",regionCode,alarmResults.msg)
-				return Single.just(false).toObservable() //ignore invalid region
-			}
-		}.blockingSubscribe()
+		try {
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap {
+				final String regionCode = it.externalId
+				String regionScopedCategory = "amazon.alarm.${cloud.id}.${regionCode}"
+				String cloudCategory = "amazon.alarm.${cloud.id}"
+				def amazonClient = AmazonComputeUtility.getAmazonCloudWatchClient(cloud,false,it.externalId)
+				def alarmResults = AmazonComputeUtility.listCloudWatchAlarms([amazonClient: amazonClient])
+				if(alarmResults.success) {
+					Observable<OperationNotificationIdentityProjection> domainRecords = morpheusContext.async.operationNotification.listIdentityProjections(regionScopedCategory).mergeWith(morpheusContext.async.operationNotification.listIdentityProjections(cloudCategory))
+					SyncTask<OperationNotificationIdentityProjection, MetricAlarm, OperationNotification> syncTask = new SyncTask<>(domainRecords, alarmResults.alarms as Collection<MetricAlarm>)
+					return syncTask.addMatchFunction { OperationNotificationIdentityProjection domainObject, MetricAlarm data ->
+						domainObject.externalId == data.getAlarmArn()
+					}.onDelete { removeItems ->
+						removeMissingAlarms(removeItems)
+					}.onUpdate { List<SyncTask.UpdateItem<OperationNotification, MetricAlarm>> updateItems ->
+						updateMatchedAlarms(updateItems,regionCode)
+					}.onAdd { itemsToAdd ->
+						addMissingAlarms(itemsToAdd, regionCode)
+					}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<OperationNotificationIdentityProjection, MetricAlarm>> updateItems ->
+						return morpheusContext.async.operationNotification.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					}.observe()
+				} else {
+					log.error("Error Caching VPCs for Region: {} - {}",regionCode,alarmResults.msg)
+					return Single.just(false).toObservable() //ignore invalid region
+				}
+			}.blockingSubscribe()
+		} catch(Exception ex) {
+			log.error("AlarmSync error: {}", ex, ex)
+		}
 	}
 
 	protected void addMissingAlarms(Collection<MetricAlarm> addList, String region) {

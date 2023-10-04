@@ -24,29 +24,33 @@ class NetworkInterfaceSync extends InternalResourceSync {
 	}
 
 	def execute() {
-		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
-			final String regionCode = region.externalId
-			def amazonClient = plugin.getAmazonClient(cloud,false, region.externalId)
-			def apiList = AmazonComputeUtility.listNetworkInterfaces([amazonClient: amazonClient],[:])
-			if(apiList.success) {
-				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.async.cloud.resource.listIdentityProjections(cloud.id,'aws.cloudFormation.ec2.networkInterface', regionCode)
-				SyncTask<AccountResourceIdentityProjection, NetworkInterface, AccountResource> syncTask = new SyncTask<>(domainRecords, apiList.networkInterfaces as Collection<NetworkInterface>)
-				return syncTask.addMatchFunction { AccountResourceIdentityProjection domainObject, NetworkInterface data ->
-					domainObject.externalId == data.networkInterfaceId
-				}.onDelete { removeItems ->
-					removeMissingResources(removeItems)
-				}.onUpdate { List<SyncTask.UpdateItem<AccountResource, NetworkInterface>> updateItems ->
-					updateMatchedNetworkInterfaces(updateItems, region)
-				}.onAdd { itemsToAdd ->
-					addMissingNetworkInterface(itemsToAdd, region)
-				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<AccountResourceIdentityProjection, NetworkInterface>> updateItems ->
-					return morpheusContext.async.cloud.resource.listById(updateItems.collect { it.existingItem.id } as List<Long>)
-				}.observe()
-			} else {
-				log.error("Error Caching Network Interfaces for Region: {} - {}", regionCode, apiList.msg)
-				return Single.just(false).toObservable() //ignore invalid region
-			}
-		}.blockingSubscribe()
+		try {
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
+				final String regionCode = region.externalId
+				def amazonClient = plugin.getAmazonClient(cloud,false, region.externalId)
+				def apiList = AmazonComputeUtility.listNetworkInterfaces([amazonClient: amazonClient],[:])
+				if(apiList.success) {
+					Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.async.cloud.resource.listIdentityProjections(cloud.id,'aws.cloudFormation.ec2.networkInterface', regionCode)
+					SyncTask<AccountResourceIdentityProjection, NetworkInterface, AccountResource> syncTask = new SyncTask<>(domainRecords, apiList.networkInterfaces as Collection<NetworkInterface>)
+					return syncTask.addMatchFunction { AccountResourceIdentityProjection domainObject, NetworkInterface data ->
+						domainObject.externalId == data.networkInterfaceId
+					}.onDelete { removeItems ->
+						removeMissingResources(removeItems)
+					}.onUpdate { List<SyncTask.UpdateItem<AccountResource, NetworkInterface>> updateItems ->
+						updateMatchedNetworkInterfaces(updateItems, region)
+					}.onAdd { itemsToAdd ->
+						addMissingNetworkInterface(itemsToAdd, region)
+					}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<AccountResourceIdentityProjection, NetworkInterface>> updateItems ->
+						return morpheusContext.async.cloud.resource.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					}.observe()
+				} else {
+					log.error("Error Caching Network Interfaces for Region: {} - {}", regionCode, apiList.msg)
+					return Single.just(false).toObservable() //ignore invalid region
+				}
+			}.blockingSubscribe()
+		} catch(Exception ex) {
+			log.error("NetworkInterfaceSync error: {}", ex, ex)
+		}
 	}
 
 	protected String getCategory() {

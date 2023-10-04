@@ -32,22 +32,26 @@ class ImageSync {
 	}
 
 	def execute() {
-		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
-			def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
-			def cloudItems = AmazonComputeUtility.listImages([amazonClient: amazonClient, zone: cloud]).imageList
-			Observable<VirtualImageIdentityProjection> existingRecords = morpheusContext.async.virtualImage.location.listIdentityProjections(cloud.id, region.externalId)
-			SyncTask<VirtualImageIdentityProjection, Image, VirtualImageLocation> syncTask = new SyncTask<>(existingRecords, cloudItems)
-			syncTask.addMatchFunction { VirtualImageLocationIdentityProjection existingItem, Image cloudItem ->
-				existingItem.externalId == cloudItem.imageId
-			}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<VirtualImageLocationIdentityProjection, VirtualImageLocation>> updateItems ->
-				morpheusContext.async.virtualImage.location.listById(updateItems.collect { it.existingItem.id } as List<Long>)
-			}.onAdd { itemsToAdd ->
-				addMissingVirtualImages(itemsToAdd, region.externalId)
-			}.onUpdate { List<SyncTask.UpdateItem<VirtualImageLocation, Image>> updateItems ->
-				updateMatchedVirtualImages(updateItems, region.externalId)
-			}.onDelete { removeItems ->
-				removeMissingVirtualImages(removeItems)
-			}.start()
+		try {
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+				def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
+				def cloudItems = AmazonComputeUtility.listImages([amazonClient: amazonClient, zone: cloud]).imageList
+				Observable<VirtualImageIdentityProjection> existingRecords = morpheusContext.async.virtualImage.location.listIdentityProjections(cloud.id, region.externalId)
+				SyncTask<VirtualImageIdentityProjection, Image, VirtualImageLocation> syncTask = new SyncTask<>(existingRecords, cloudItems)
+				syncTask.addMatchFunction { VirtualImageLocationIdentityProjection existingItem, Image cloudItem ->
+					existingItem.externalId == cloudItem.imageId
+				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<VirtualImageLocationIdentityProjection, VirtualImageLocation>> updateItems ->
+					morpheusContext.async.virtualImage.location.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+				}.onAdd { itemsToAdd ->
+					addMissingVirtualImages(itemsToAdd, region.externalId)
+				}.onUpdate { List<SyncTask.UpdateItem<VirtualImageLocation, Image>> updateItems ->
+					updateMatchedVirtualImages(updateItems, region.externalId)
+				}.onDelete { removeItems ->
+					removeMissingVirtualImages(removeItems)
+				}.start()
+			}
+		} catch(Exception ex) {
+			log.error("ImageSync error: {}", ex, ex)
 		}
 	}
 

@@ -27,23 +27,28 @@ class VolumeSync {
 	}
 
 	def execute() {
-
-		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
-			def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
-			def cloudItems = AmazonComputeUtility.listVolumes([amazonClient: amazonClient, zone: cloud]).volumeList
-			Observable<StorageVolumeIdentityProjection> existingRecords =  morpheusContext.async.storageVolume.listIdentityProjections(cloud.id, region.externalId)
-			SyncTask<StorageVolumeIdentityProjection, Volume, StorageVolume> syncTask = new SyncTask<>(existingRecords, cloudItems)
-			syncTask.addMatchFunction { StorageVolumeIdentityProjection existingItem, Volume cloudItem ->
-				existingItem.externalId == cloudItem.volumeId
-			}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<StorageVolumeIdentityProjection, StorageVolume>> updateItems ->
-				morpheusContext.async.storageVolume.listById(updateItems.collect { it.existingItem.id } as List<Long>)
-			}.onAdd { itemsToAdd ->
-				addMissingStorageVolumes(itemsToAdd, region.externalId)
-			}.onUpdate { List<SyncTask.UpdateItem<ComputeServer, Instance>> updateItems ->
-				updateMatchedStorageVolumes(updateItems, region.externalId)
-			}.onDelete { removeItems ->
-				removeMissingStorageVolumes(removeItems)
-			}.start()
+		try {
+			log.debug("VolumeSync start")
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+				def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
+				def cloudItems = AmazonComputeUtility.listVolumes([amazonClient: amazonClient, zone: cloud]).volumeList
+				Observable<StorageVolumeIdentityProjection> existingRecords =  morpheusContext.async.storageVolume.listIdentityProjections(cloud.id, region.externalId)
+				SyncTask<StorageVolumeIdentityProjection, Volume, StorageVolume> syncTask = new SyncTask<>(existingRecords, cloudItems)
+				syncTask.addMatchFunction { StorageVolumeIdentityProjection existingItem, Volume cloudItem ->
+					existingItem.externalId == cloudItem.volumeId
+				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<StorageVolumeIdentityProjection, StorageVolume>> updateItems ->
+					morpheusContext.async.storageVolume.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+				}.onAdd { itemsToAdd ->
+					addMissingStorageVolumes(itemsToAdd, region.externalId)
+				}.onUpdate { List<SyncTask.UpdateItem<ComputeServer, Instance>> updateItems ->
+					updateMatchedStorageVolumes(updateItems, region.externalId)
+				}.onDelete { removeItems ->
+					removeMissingStorageVolumes(removeItems)
+				}.start()
+			}
+			log.debug("VolumeSync end")
+		} catch(Exception ex) {
+			log.error("VolumeSync error: {}", ex, ex)
 		}
 	}
 
@@ -86,6 +91,7 @@ class VolumeSync {
 			def status = 'unattached'
 			def maxStorage = cloudItem.size * ComputeUtility.ONE_GIGABYTE
 
+			log.debug("Existing name: ${existingItem.name} == ${name} && ")
 			if(existingItem.name != name && name != cloudItem.volumeId) {
 				existingItem.name = name
 				save = true

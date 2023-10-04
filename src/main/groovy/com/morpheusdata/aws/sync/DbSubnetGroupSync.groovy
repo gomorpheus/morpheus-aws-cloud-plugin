@@ -27,29 +27,33 @@ class DbSubnetGroupSync {
 
 
 	def execute() {
-		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap {
-			final String regionCode = it.externalId
-			AmazonRDS amazonClient = AmazonComputeUtility.getAmazonRdsClient(cloud,false,it.externalId)
-			def dbSubnetResults = AmazonComputeUtility.listDbSubnetGroups([amazonClient: amazonClient, zone: cloud])
-			if(dbSubnetResults.success) {
-				Observable<ReferenceDataSyncProjection> domainRecords = morpheusContext.async.referenceData.listByAccountIdAndCategories(cloud.owner.id, ["amazon.ec2.db.subnetgroup.${cloud.id}.${regionCode}", "amazon.ec2.db.subnetgroup.${cloud.id}"])
-				SyncTask<ReferenceDataSyncProjection, DBSubnetGroup, ReferenceData> syncTask = new SyncTask<>(domainRecords, dbSubnetResults.subnetGroupList as Collection<DBSubnetGroup>)
-				return syncTask.addMatchFunction { ReferenceDataSyncProjection domainObject, DBSubnetGroup data ->
-					domainObject.name == data.getDBSubnetGroupName()
-				}.onDelete { removeItems ->
-					removeMissingDbSubnetGroups(removeItems)
-				}.onUpdate { List<SyncTask.UpdateItem<ReferenceData, DBSubnetGroup>> updateItems ->
-					//nothing to update for now(probably should at some point)
-				}.onAdd { itemsToAdd ->
-					addMissingDbSubnetGroups(itemsToAdd, regionCode)
-				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<ReferenceDataSyncProjection, DBSubnetGroup>> updateItems ->
-					morpheusContext.async.referenceData.listById(updateItems.collect { it.existingItem.id } as List<Long>)
-				}.observe()
-			} else {
-				log.error("Error Caching DB Subnet Groups for Region: {} - {}",regionCode,dbSubnetResults.msg)
-				return Single.just(false).toObservable() //ignore invalid region
-			}
-		}.blockingSubscribe()
+		try {
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap {
+				final String regionCode = it.externalId
+				AmazonRDS amazonClient = AmazonComputeUtility.getAmazonRdsClient(cloud,false,it.externalId)
+				def dbSubnetResults = AmazonComputeUtility.listDbSubnetGroups([amazonClient: amazonClient, zone: cloud])
+				if(dbSubnetResults.success) {
+					Observable<ReferenceDataSyncProjection> domainRecords = morpheusContext.async.referenceData.listByAccountIdAndCategories(cloud.owner.id, ["amazon.ec2.db.subnetgroup.${cloud.id}.${regionCode}", "amazon.ec2.db.subnetgroup.${cloud.id}"])
+					SyncTask<ReferenceDataSyncProjection, DBSubnetGroup, ReferenceData> syncTask = new SyncTask<>(domainRecords, dbSubnetResults.subnetGroupList as Collection<DBSubnetGroup>)
+					return syncTask.addMatchFunction { ReferenceDataSyncProjection domainObject, DBSubnetGroup data ->
+						domainObject.name == data.getDBSubnetGroupName()
+					}.onDelete { removeItems ->
+						removeMissingDbSubnetGroups(removeItems)
+					}.onUpdate { List<SyncTask.UpdateItem<ReferenceData, DBSubnetGroup>> updateItems ->
+						//nothing to update for now(probably should at some point)
+					}.onAdd { itemsToAdd ->
+						addMissingDbSubnetGroups(itemsToAdd, regionCode)
+					}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<ReferenceDataSyncProjection, DBSubnetGroup>> updateItems ->
+						morpheusContext.async.referenceData.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					}.observe()
+				} else {
+					log.error("Error Caching DB Subnet Groups for Region: {} - {}",regionCode,dbSubnetResults.msg)
+					return Single.just(false).toObservable() //ignore invalid region
+				}
+			}.blockingSubscribe()
+		} catch(Exception ex) {
+			log.error("DbSubnetGroupSync error: {}", ex, ex)
+		}
 	}
 
 	private String getCategory(String regionCode) {

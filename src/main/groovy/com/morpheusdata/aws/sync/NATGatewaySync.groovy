@@ -23,30 +23,34 @@ class NATGatewaySync extends InternalResourceSync {
 	}
 
 	def execute() {
-		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
-			final String regionCode = region.externalId
-			def amazonClient = plugin.getAmazonClient(cloud,false, region.externalId)
-			def apiList = AmazonComputeUtility.listNatGateways([amazonClient: amazonClient],[:])
-			if(apiList.success) {
-				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.async.cloud.resource.listIdentityProjections(cloud.id,'aws.cloudFormation.ec2.natGateway',regionCode)
-				SyncTask<AccountResourceIdentityProjection, NatGateway, AccountResource> syncTask = new SyncTask<>(domainRecords, apiList.natGateways as Collection<NatGateway>)
-				return syncTask.addMatchFunction { AccountResourceIdentityProjection domainObject, NatGateway data ->
-					domainObject.externalId == data.natGatewayId
-				}.onDelete { removeItems ->
-					removeMissingResources(removeItems)
-				}.onUpdate { List<SyncTask.UpdateItem<AccountResource, NatGateway>> updateItems ->
-					updateMatchedNATGateways(updateItems, region)
-				}.onAdd { itemsToAdd ->
-					addMissingNATGateway(itemsToAdd, region)
+		try {
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
+				final String regionCode = region.externalId
+				def amazonClient = plugin.getAmazonClient(cloud,false, region.externalId)
+				def apiList = AmazonComputeUtility.listNatGateways([amazonClient: amazonClient],[:])
+				if(apiList.success) {
+					Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.async.cloud.resource.listIdentityProjections(cloud.id,'aws.cloudFormation.ec2.natGateway',regionCode)
+					SyncTask<AccountResourceIdentityProjection, NatGateway, AccountResource> syncTask = new SyncTask<>(domainRecords, apiList.natGateways as Collection<NatGateway>)
+					return syncTask.addMatchFunction { AccountResourceIdentityProjection domainObject, NatGateway data ->
+						domainObject.externalId == data.natGatewayId
+					}.onDelete { removeItems ->
+						removeMissingResources(removeItems)
+					}.onUpdate { List<SyncTask.UpdateItem<AccountResource, NatGateway>> updateItems ->
+						updateMatchedNATGateways(updateItems, region)
+					}.onAdd { itemsToAdd ->
+						addMissingNATGateway(itemsToAdd, region)
 
-				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<AccountResourceIdentityProjection, NatGateway>> updateItems ->
-					return morpheusContext.async.cloud.resource.listById(updateItems.collect { it.existingItem.id } as List<Long>)
-				}.observe()
-			} else {
-				log.error("Error Caching NAT Gateways for Region: {} - {}", regionCode,apiList.msg)
-				return Single.just(false).toObservable() //ignore invalid region
-			}
-		}.blockingSubscribe()
+					}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<AccountResourceIdentityProjection, NatGateway>> updateItems ->
+						return morpheusContext.async.cloud.resource.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					}.observe()
+				} else {
+					log.error("Error Caching NAT Gateways for Region: {} - {}", regionCode,apiList.msg)
+					return Single.just(false).toObservable() //ignore invalid region
+				}
+			}.blockingSubscribe()
+		} catch(Exception ex) {
+			log.error("NATGatewaySync error: {}", ex, ex)
+		}
 	}
 
 	protected String getCategory() {

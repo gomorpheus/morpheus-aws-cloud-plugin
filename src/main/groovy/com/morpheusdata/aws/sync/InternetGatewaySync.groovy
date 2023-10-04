@@ -32,29 +32,33 @@ class InternetGatewaySync {
 	}
 
 	def execute() {
-		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
-			final String regionCode = region.externalId
-			def amazonClient = plugin.getAmazonClient(cloud,false, regionCode)
-			def routerResults = AmazonComputeUtility.listInternetGateways([amazonClient: amazonClient])
-			if(routerResults.success) {
-				Observable<NetworkRouterIdentityProjection> domainRecords = morpheusContext.async.network.router.listIdentityProjections(cloud.id,'amazonInternetGateway')
- 				SyncTask<NetworkRouterIdentityProjection, InternetGateway, NetworkRouter> syncTask = new SyncTask<>(domainRecords, routerResults.internetGateways as Collection<InternetGateway>)
-				return syncTask.addMatchFunction { NetworkRouterIdentityProjection domainObject, InternetGateway data ->
-					domainObject.externalId == data.getInternetGatewayId()
-				}.onDelete { removeItems ->
-					removeMissingRouters(removeItems)
-				}.onUpdate { List<SyncTask.UpdateItem<NetworkRouter, InternetGateway>> updateItems ->
-					updateMatchedInternetGateways(updateItems, regionCode)
-				}.onAdd { itemsToAdd ->
-					addMissingInternetGateways(itemsToAdd, regionCode)
-				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<NetworkRouterIdentityProjection, InternetGateway>> updateItems ->
-					return morpheusContext.async.network.router.listById(updateItems.collect { it.existingItem.id } as List<Long>)
-				}.observe()
-			} else {
-				log.error("Error Caching InternetGateways for Region: {} - {}",regionCode,routerResults.msg)
-				return Single.just(false).toObservable() //ignore invalid region
-			}
-		}.blockingSubscribe()
+		try {
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
+				final String regionCode = region.externalId
+				def amazonClient = plugin.getAmazonClient(cloud,false, regionCode)
+				def routerResults = AmazonComputeUtility.listInternetGateways([amazonClient: amazonClient])
+				if(routerResults.success) {
+					Observable<NetworkRouterIdentityProjection> domainRecords = morpheusContext.async.network.router.listIdentityProjections(cloud.id,'amazonInternetGateway')
+					SyncTask<NetworkRouterIdentityProjection, InternetGateway, NetworkRouter> syncTask = new SyncTask<>(domainRecords, routerResults.internetGateways as Collection<InternetGateway>)
+					return syncTask.addMatchFunction { NetworkRouterIdentityProjection domainObject, InternetGateway data ->
+						domainObject.externalId == data.getInternetGatewayId()
+					}.onDelete { removeItems ->
+						removeMissingRouters(removeItems)
+					}.onUpdate { List<SyncTask.UpdateItem<NetworkRouter, InternetGateway>> updateItems ->
+						updateMatchedInternetGateways(updateItems, regionCode)
+					}.onAdd { itemsToAdd ->
+						addMissingInternetGateways(itemsToAdd, regionCode)
+					}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<NetworkRouterIdentityProjection, InternetGateway>> updateItems ->
+						return morpheusContext.async.network.router.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					}.observe()
+				} else {
+					log.error("Error Caching InternetGateways for Region: {} - {}",regionCode,routerResults.msg)
+					return Single.just(false).toObservable() //ignore invalid region
+				}
+			}.blockingSubscribe()
+		} catch(Exception ex) {
+			log.error("InternetGatewaySync error: {}", ex, ex)
+		}
 	}
 	protected void addMissingInternetGateways(Collection<InternetGateway> addList, String regionCode) {
 		def adds = []
