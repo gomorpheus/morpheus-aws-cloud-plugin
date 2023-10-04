@@ -78,7 +78,7 @@ class RouteTableSync {
 	}
 
 	private updateMatchedNetworkRouteTables(List<SyncTask.UpdateItem<NetworkRouteTable, RouteTable>> updateList, CloudPoolIdentity zonePool, NetworkRouter router) {
-		log.debug "updateMatchedInstanceScales: ${cloud} ${region.externalId} ${updateList.size()}"
+		log.debug "updateMatchedNetworkRouteTables: ${cloud} ${zonePool.regionCode} ${updateList.size()}"
 		List<SyncTask.UpdateItem<NetworkRouteTable, RouteTable>> saveList = []
 
 		for(def updateItem in updateList) {
@@ -100,7 +100,7 @@ class RouteTableSync {
 	}
 
 	private removeMissingNetworkRouteTables(Collection<NetworkRouteTableIdentityProjection> removeList) {
-		log.debug "removeMissingInstanceScales: ${cloud} ${removeList.size()}"
+		log.debug "removeMissingNetworkRouteTables: ${cloud} ${removeList.size()}"
 		morpheusContext.async.network.routeTable.remove(removeList).blockingGet()
 	}
 

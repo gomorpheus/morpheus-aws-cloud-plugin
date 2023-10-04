@@ -75,7 +75,7 @@ class VolumeSync {
 	}
 
 	private updateMatchedStorageVolumes(List<SyncTask.UpdateItem<StorageVolume, Volume>> updateList, String regionCode) {
-		log.debug "updateMatchedStorageVolumes: ${cloud} ${regionCode} ${addList.size()}"
+		log.debug "updateMatchedStorageVolumes: ${cloud} ${regionCode} ${updateList.size()}"
 		def saveList = []
 
 		for(def updateItem in updateList) {
