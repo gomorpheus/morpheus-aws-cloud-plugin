@@ -276,7 +276,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		Cloud cloud = loadCloud(args)
 
 		try {
-			String regionCode = args.config?.costingBucketRegion ?: AmazonComputeUtility.getAmazonEndpointRegion(args.config?.endpoint) ?: cloud.regionCode
+			String regionCode = args.config?.costingRegion ?: AmazonComputeUtility.getAmazonEndpointRegion(args.config?.endpoint ?: cloud.regionCode)
 			AmazonComputeUtility.listBuckets(AmazonComputeUtility.getAmazonS3Client(cloud, regionCode)).buckets?.sort { it.name }.each {
 				rtn << [name: it.name, value: it.name]
 			}
