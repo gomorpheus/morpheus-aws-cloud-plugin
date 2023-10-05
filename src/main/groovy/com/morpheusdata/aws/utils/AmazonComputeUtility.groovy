@@ -5195,12 +5195,12 @@ class AmazonComputeUtility {
 			authConfig.secretKey = accountIntegration.credentialData?.password ?: accountIntegration.servicePassword ?: getAmazonSecretKey(cloud)
 			authConfig.useHostCredentials = getAmazonUseHostCredentials(cloud)
 			authConfig.stsAssumeRole = cloud.getConfigProperty('stsAssumeRole')
-			// authConfig.endpoint =  getAmazonCostingEndpoint(cloud)
-			// authConfig.region = getAmazonEndpointRegion(authConfig.endpoint)
+			authConfig.endpoint =  getAmazonCostingEndpoint(cloud)
+			authConfig.region = getAmazonEndpointRegion(authConfig.endpoint)
 		} else {
 			authConfig.accessKey = accountIntegration.credentialData?.username ?: accountIntegration.serviceUsername
 			authConfig.secretKey = accountIntegration.credentialData?.password ?: accountIntegration.servicePassword
-			// authConfig.region = region
+			authConfig.region = region
 			if(proxySettings) {
 				authConfig.apiProxy = proxySettings
 			}

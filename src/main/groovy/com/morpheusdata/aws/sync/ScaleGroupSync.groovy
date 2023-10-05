@@ -27,29 +27,33 @@ class ScaleGroupSync {
 	}
 
 	def execute() {
-		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
-			def subnetExternalIds
-			if(!cloud.getConfigProperty('vpc') && !cloud.getConfigProperty('isVpc')) {
-				subnetExternalIds = []
-				morpheusContext.async.network.listIdentityProjections(cloud.id, region.externalId).blockingSubscribe {
-					subnetExternalIds << it.externalId
+		try {
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+				def subnetExternalIds
+				if(!cloud.getConfigProperty('vpc') && !cloud.getConfigProperty('isVpc')) {
+					subnetExternalIds = []
+					morpheusContext.async.network.listIdentityProjections(cloud.id, region.externalId).blockingSubscribe {
+						subnetExternalIds << it.externalId
+					}
 				}
+				def amazonClient = AmazonComputeUtility.getAmazonAutoScalingClient(cloud, false, region.externalId)
+				def cloudItems = AmazonComputeUtility.listScaleGroups(amazonClient, subnetExternalIds).groups
+				Observable<InstanceScaleIdentityProjection> existingRecords = morpheusContext.async.instance.scale.listIdentityProjections(cloud.id, region.externalId)
+				SyncTask<InstanceScaleIdentityProjection, AutoScalingGroup, InstanceScale> syncTask = new SyncTask<>(existingRecords, cloudItems)
+				syncTask.addMatchFunction { InstanceScaleIdentityProjection existingItem, AutoScalingGroup cloudItem ->
+					existingItem.externalId == cloudItem.autoScalingGroupName
+				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<InstanceScaleIdentityProjection, InstanceScale>> updateItems ->
+					morpheusContext.async.instance.scale.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+				}.onAdd { itemsToAdd ->
+					addMissingInstanceScales(itemsToAdd, region)
+				}.onUpdate { List<SyncTask.UpdateItem<InstanceScale, AutoScalingGroup>> updateItems ->
+					updateMatchedInstanceScales(updateItems, region)
+				}.onDelete { removeItems ->
+					removeMissingInstanceScales(removeItems)
+				}.start()
 			}
-			def amazonClient = AmazonComputeUtility.getAmazonAutoScalingClient(cloud, false, region.externalId)
-			def cloudItems = AmazonComputeUtility.listScaleGroups(amazonClient, subnetExternalIds).groups
-			Observable<InstanceScaleIdentityProjection> existingRecords = morpheusContext.async.instance.scale.listIdentityProjections(cloud.id, region.externalId)
-			SyncTask<InstanceScaleIdentityProjection, AutoScalingGroup, InstanceScale> syncTask = new SyncTask<>(existingRecords, cloudItems)
-			syncTask.addMatchFunction { InstanceScaleIdentityProjection existingItem, AutoScalingGroup cloudItem ->
-				existingItem.externalId == cloudItem.autoScalingGroupName
-			}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<InstanceScaleIdentityProjection, InstanceScale>> updateItems ->
-				morpheusContext.async.instance.scale.listById(updateItems.collect { it.existingItem.id } as List<Long>)
-			}.onAdd { itemsToAdd ->
-				addMissingInstanceScales(itemsToAdd, region)
-			}.onUpdate { List<SyncTask.UpdateItem<InstanceScale, AutoScalingGroup>> updateItems ->
-				updateMatchedInstanceScales(updateItems, region)
-			}.onDelete { removeItems ->
-				removeMissingInstanceScales(removeItems)
-			}.start()
+		} catch(Exception ex) {
+			log.error("ScaleGroupSync error: {}", ex, ex)
 		}
 	}
 

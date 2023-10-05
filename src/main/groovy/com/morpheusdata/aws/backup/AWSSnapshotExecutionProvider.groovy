@@ -58,7 +58,7 @@ class AWSSnapshotExecutionProvider implements BackupExecutionProvider {
 			morpheus.async.backup.backupResult.listIdentityProjections(backup)
 				.subscribeOn(Schedulers.io())
 				.buffer(50)
-				.flatMap {List<BackupResultIdentityProjection> backupResults ->
+				.concatMap {List<BackupResultIdentityProjection> backupResults ->
 					morpheus.async.backup.backupResult.listById(backupResults.collect { it.id})
 				}
 				.doOnNext { BackupResult backupResult ->

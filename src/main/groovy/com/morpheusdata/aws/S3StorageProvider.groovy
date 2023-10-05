@@ -116,9 +116,9 @@ class S3StorageProvider implements StorageProvider, StorageProviderBuckets, Clou
     Collection<OptionType> getStorageBucketOptionTypes() {
         return [
             new OptionType(code: 'storageBucket.amazon.bucketName', name: 'Bucket Name', inputType: OptionType.InputType.TEXT, fieldName: 'bucketName', fieldLabel: 'Bucket Name', fieldContext: 'domain', required: true, displayOrder: 1, editable: false, fieldCode:'gomorpheus.label.bucketName'),
-            // new OptionType(code: 'storageBucket.amazon.createBucket', name: 'Create Bucket', inputType: OptionType.InputType.CHECKBOX, fieldName: 'createBucket', fieldLabel: 'Create Bucket', fieldContext: 'config', required: false, displayOrder: 2, fieldCode:'gomorpheus.label.createBucket'),
-            new OptionType(code: 'storageBucket.amazon.region', name: 'Region', inputType: OptionType.InputType.SELECT, optionSourceType: 'amazon', optionSource: 's3Regions', fieldName: 'region', fieldLabel: 'Region', fieldContext: 'config', required: true, displayOrder: 3, editable: true, fieldCode:'gomorpheus.label.region', dependsOnCode:'storageProvider.storageServer')
-            // new OptionType(code: 'storageBucket.amazon.endpoint', name: 'Endpoint URL', inputType: OptionType.InputType.TEXT , fieldName: 'endpoint', fieldLabel: 'Endpoint URL', fieldContext: 'config', required: false, displayOrder: 4, editable: true, fieldCode:'gomorpheus.label.endpointUrl', helpTextI18nCode:'gomorpheus.help.endpointUrl'),
+            new OptionType(code: 'storageBucket.amazon.createBucket', name: 'Create Bucket', inputType: OptionType.InputType.CHECKBOX, fieldName: 'createBucket', fieldLabel: 'Create Bucket', fieldContext: 'config', required: false, displayOrder: 2, fieldCode:'gomorpheus.label.createBucket'),
+            new OptionType(code: 'storageBucket.amazon.region', name: 'Region', inputType: OptionType.InputType.SELECT, optionSourceType: 'amazon', optionSource: 's3Regions', fieldName: 'region', fieldLabel: 'Region', fieldContext: 'config', required: true, displayOrder: 3, editable: true, fieldCode:'gomorpheus.label.region', visibleOnCode:'storageProvider.config.createBucket:on', dependsOnCode:'storageProvider.storageServer'),
+            new OptionType(code: 'storageBucket.amazon.endpoint', name: 'Endpoint URL', inputType: OptionType.InputType.TEXT , fieldName: 'endpoint', fieldLabel: 'Endpoint URL', fieldContext: 'config', required: false, displayOrder: 4, editable: true, fieldCode:'gomorpheus.label.endpointUrl', helpTextI18nCode:'gomorpheus.help.endpointUrl')
         ]
     }
 
@@ -132,8 +132,8 @@ class S3StorageProvider implements StorageProvider, StorageProviderBuckets, Clou
                 type: getStorageServerType(),
                 enabled: true
             )
-            morpheus.integration.registerCloudIntegration(cloud.id, storageServer).blockingGet()
-            ServiceResponse.success = true
+            morpheus.async.integration.registerCloudIntegration(cloud.id, storageServer).blockingGet()
+            rtn.success = true
         } catch (Exception e) {
             rtn.success = false
             log.error("initializeProvider error: {}", e, e)

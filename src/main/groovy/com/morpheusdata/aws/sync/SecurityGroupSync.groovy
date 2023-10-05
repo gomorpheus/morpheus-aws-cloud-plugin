@@ -73,7 +73,10 @@ class SecurityGroupSync {
 				zonePool: cloudItem.vpcId ? new CloudPool(id: allZonePools[cloudItem.vpcId].id) : null
 			)
 		}
-		morpheusContext.async.securityGroup.location.create(adds).blockingGet()
+		if(adds) {
+			morpheusContext.async.securityGroup.location.create(adds).blockingGet()
+		}
+
 		syncRules(addList, zonePoolId)
 	}
 

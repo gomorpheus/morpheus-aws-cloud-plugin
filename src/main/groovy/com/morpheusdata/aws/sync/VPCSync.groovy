@@ -29,29 +29,33 @@ class VPCSync {
 	}
 
 	def execute() {
-		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap {
-			final String regionCode = it.externalId
-			def amazonClient = plugin.getAmazonClient(cloud,false,it.externalId)
-			def vpcResults = AmazonComputeUtility.listVpcs([amazonClient: amazonClient])
-			if(vpcResults.success) {
-				Observable<CloudPoolIdentity> domainRecords = morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id, null, regionCode)
-				SyncTask<CloudPoolIdentity, Vpc, CloudPool> syncTask = new SyncTask<>(domainRecords, vpcResults.vpcList as Collection<Vpc>)
-				return syncTask.addMatchFunction { CloudPoolIdentity domainObject, Vpc data ->
-					domainObject.externalId == data.getVpcId()
-				}.onDelete { removeItems ->
-					removeMissingResourcePools(removeItems)
-				}.onUpdate { List<SyncTask.UpdateItem<CloudPool, Vpc>> updateItems ->
-					updateMatchedVpcs(updateItems,regionCode)
-				}.onAdd { itemsToAdd ->
-					addMissingVpcs(itemsToAdd, regionCode)
-				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<CloudPoolIdentity, Vpc>> updateItems ->
-					return morpheusContext.async.cloud.pool.listById(updateItems.collect { it.existingItem.id } as List<Long>)
-				}.observe()
-			} else {
-				log.error("Error Caching VPCs for Region: {} - {}",regionCode,vpcResults.msg)
-				return Single.just(false).toObservable() //ignore invalid region
-			}
-		}.blockingSubscribe()
+		try {
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).concatMap {
+				final String regionCode = it.externalId
+				def amazonClient = plugin.getAmazonClient(cloud,false,it.externalId)
+				def vpcResults = AmazonComputeUtility.listVpcs([amazonClient: amazonClient])
+				if(vpcResults.success) {
+					Observable<CloudPoolIdentity> domainRecords = morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id, null, regionCode)
+					SyncTask<CloudPoolIdentity, Vpc, CloudPool> syncTask = new SyncTask<>(domainRecords, vpcResults.vpcList as Collection<Vpc>)
+					return syncTask.addMatchFunction { CloudPoolIdentity domainObject, Vpc data ->
+						domainObject.externalId == data.getVpcId()
+					}.onDelete { removeItems ->
+						removeMissingResourcePools(removeItems)
+					}.onUpdate { List<SyncTask.UpdateItem<CloudPool, Vpc>> updateItems ->
+						updateMatchedVpcs(updateItems,regionCode)
+					}.onAdd { itemsToAdd ->
+						addMissingVpcs(itemsToAdd, regionCode)
+					}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<CloudPoolIdentity, Vpc>> updateItems ->
+						return morpheusContext.async.cloud.pool.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					}.observe()
+				} else {
+					log.error("Error Caching VPCs for Region: {} - {}",regionCode,vpcResults.msg)
+					return Single.just(false).toObservable() //ignore invalid region
+				}
+			}.blockingSubscribe()
+		} catch(Exception ex) {
+			log.error("VPCSync error: {}", ex, ex)
+		}
 	}
 
 	protected void addMissingVpcs(Collection<Vpc> addList, String region) {

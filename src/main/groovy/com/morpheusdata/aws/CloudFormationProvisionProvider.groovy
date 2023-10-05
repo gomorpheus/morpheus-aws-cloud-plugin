@@ -186,7 +186,8 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 	 */
 	@Override
 	ServiceResponse validateInstance(Instance instance, Map opts) {
-		return null
+		def rtn = [success:true]
+		return ServiceResponse.create(rtn)
 	}
 
 
@@ -1224,6 +1225,15 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 	@Override
 	String getNodeFormat() {
 		return null
+	}
+
+	/**
+	 * For the CF provision provider, we do NOT want a CF instance type created
+	 * @return
+	 */
+	@Override
+	Boolean createDefaultInstanceType() {
+		return false
 	}
 
 

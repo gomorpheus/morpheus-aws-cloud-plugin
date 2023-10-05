@@ -47,7 +47,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 			'awsPluginVpc', 'awsPluginEndpoints', 'awsPluginRegions', 'awsPluginAvailabilityZones', 'awsRouteTable',
 			'awsRouteDestinationType', 'awsRouteDestination', 'awsPluginEc2SecurityGroup', 'awsPluginEc2PublicIpType',
 			'awsPluginInventoryLevels', 'awsPluginStorageProvider', 'awsPluginEbsEncryption', 'awsPluginCostingReports',
-			'awsPluginCostingBuckets'
+			'awsPluginCostingBuckets', 'awsPluginInventoryLevels', 's3Regions', 'amazonEc2NodeAmiImage'
 		])
 	}
 
@@ -64,13 +64,14 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 
 	def awsPluginRegions(args) {
 		def rtn = []
-		def refDataIds = morpheusContext.services.referenceData.list(new DataQuery().withFilter('category', 'amazon.ec2.region')).collect { it.id }
+		def refDataIds = morpheus.services.referenceData.list(new DataQuery().withFilter("category", "amazon.ec2.region")).collect { it.id }
+		log.debug("refDataIds: ${refDataIds}")
 		if(refDataIds.size() > 0) {
-			morpheusContext.services.referenceData.listById(refDataIds).sort { it.name }.each {
-				rtn << [value: it.keyValue, name: it.name]
-			}
+			rtn = morpheus.services.referenceData.listById(refDataIds).sort { it.name }.collect { [value: it.value, name: it.name] }
 		}
-		rtn
+
+		log.debug("results: ${rtn}")
+		return rtn
 	}
 
 	def awsPluginVpc(args) {
@@ -101,15 +102,15 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		def rtn = []
 		def zoneId = MorpheusUtils.getZoneId(args)
 		def zonePoolId = MorpheusUtils.getResourcePoolId(args.network ?: [:])
-		def tmpZone = zoneId ? morpheus.cloud.getCloudById(zoneId).blockingGet() : null
-		def tmpZonePool = zonePoolId ? morpheus.cloud.pool.listById([zonePoolId]).toList().blockingGet()?.getAt(0) : null
+		def tmpZone = zoneId ? morpheus.services.cloud.get(zoneId) : null
+		def tmpZonePool = zonePoolId ? morpheus.services.cloud.pool.listById([zonePoolId])?.getAt(0) : null
 		if(tmpZone) {
 			def results = []
 			if(tmpZonePool && tmpZonePool.regionCode) {
 				def categories = ["amazon.ec2.zone.${tmpZone.id}.${tmpZonePool.regionCode}", "amazon.ec2.zone.${tmpZone.id}"]
-				results = morpheus.referenceData.listByAccountIdAndCategories(tmpZone.owner.id, categories).toList().blockingGet()
+				results = morpheus.services.referenceData.list(new DataQuery(tmpZone.owner).withFilter("category", "in", categories))
 			} else {
-				results = morpheus.referenceData.listByAccountIdAndCategoryMatch(tmpZone.owner.id, "amazon.ec2.zone.${tmpZone.id}").toList().blockingGet()
+				results = morpheus.services.referenceData.list(new DataQuery(tmpZone.owner).withFilter("category", "=~", "amazon.ec2.zone.${tmpZone.id}"))
 			}
 			if(results.size() > 0) {
 				rtn = results?.collect { [name:it.name, value:it.name] }
@@ -119,20 +120,20 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		return rtn
 	}
 
-	def awsRouteTable(args) {\
+	def awsRouteTable(args) {
 		args = args instanceof Object[] ? args.getAt(0) : args
 		log.info("awsRouteTable args: ${args}")
 		def rtn = []
 		def routerId = MorpheusUtils.parseLongConfig(args.routerId)
 		log.info("routerId: $routerId")
 		if(routerId) {
-			def router = morpheus.network.router.listById([routerId]).toList().blockingGet()?.getAt(0)
+			def router = morpheus.services.network.router.listById([routerId])?.getAt(0)
 			log.info("router: $router")
 			if(router && router.refType == 'ComputeZonePool') {
-				def routeTableIds = morpheus.network.routeTable.listIdentityProjections(router.refId).toList().blockingGet().collect { it.id }
+				def routeTableIds = morpheus.services.network.routeTable.listIdentityProjections(router.refId).collect { it.id }
 				log.info("routeTableIds: $routeTableIds")
 				if(routeTableIds.size() > 0) {
-					rtn = morpheus.network.routeTable.listById(routeTableIds).toList().blockingGet().collect {
+					rtn = morpheus.services.network.routeTable.listById(routeTableIds).collect {
 						[name: it.name, value: it.id]
 					}
 				}
@@ -161,7 +162,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		def destinationType = args.route?.destinationType
 		def networkRouteTableId = MorpheusUtils.parseLongConfig(args.route?.routeTable)
 		if(networkRouteTableId) {
-			NetworkRouteTable networkRouteTable = morpheus.network.routeTable.listById([networkRouteTableId]).toList().blockingGet()?.getAt(0)
+			NetworkRouteTable networkRouteTable = morpheus.services.network.routeTable.listById([networkRouteTableId])?.getAt(0)
 			if(networkRouteTable) {
 				def vpc = networkRouteTable?.zonePool
 				def account = vpc?.owner
@@ -171,16 +172,16 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 						resourceType = 'aws.cloudFormation.ec2.egressOnlyInternetGateway'
 						break
 					case 'INTERNET_GATEWAY':
-						List<Long> routerIds = morpheus.network.router.listIdentityProjections(vpc.cloud.id, 'amazonInternetGateway').toList().blockingGet().collect { it.id }
+						List<Long> routerIds = morpheus.async.network.router.listIdentityProjections(vpc.cloud.id, 'amazonInternetGateway').collect { it.id }
 						if(routerIds.size() > 0) {
-							rtn =  morpheus.network.router.listById(routerIds).toList().blockingGet()?.collect { [name: it.name, value: it.externalId ]}?.sort{it.name } ?: []
+							rtn =  morpheus.services.network.router.listById(routerIds)?.collect { [name: it.name, value: it.externalId ]}?.sort{it.name } ?: []
 						}
 						break
 					case 'GATEWAY':
 						resourceType = 'aws.cloudFormation.ec2.vpnGateway'
 						break
 					case 'INSTANCE':
-						rtn = morpheus.computeServer.listByResourcePoolId(vpc.id).toList().blockingGet()?.collect { [name: it.displayName ?: it.name, value: it.externalId ]}?.sort{it.name} ?: []
+						rtn = morpheus.services.computeServer.list(new DataQuery().withFilter("resourcePoolId", vpc.id))?.collect { [name: it.displayName ?: it.name, value: it.externalId ]}?.sort{it.name} ?: []
 						break
 					case 'NAT_GATEWAY':
 						resourceType = 'aws.cloudFormation.ec2.natGateway'
@@ -189,9 +190,9 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 						resourceType = 'aws.cloudFormation.ec2.networkInterface'
 						break
 					case 'TRANSIT_GATEWAY':
-						def accountResourceIds = morpheus.cloud.resource.listIdentityProjections(vpc.cloud.id, 'aws.cloudFormation.ec2.transitGatewayAttachment', null, account.id).toList().blockingGet().collect { it.id }
+						def accountResourceIds = morpheus.async.cloud.resource.listIdentityProjections(vpc.cloud.id, 'aws.cloudFormation.ec2.transitGatewayAttachment', null, account.id).toList().blockingGet().collect { it.id }
 						if(accountResourceIds.size() > 0) {
-							rtn = morpheus.cloud.resource.listById(accountResourceIds).filter {
+							rtn = morpheus.async.cloud.resource.listById(accountResourceIds).filter {
 								def payload = new groovy.json.JsonSlurper().parseText(it.rawData ?: '[]')
 								return (payload.vpcId == vpc.externalId && payload.state == 'available')
 							}.toList().blockingGet().collect {
@@ -205,9 +206,9 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 				}
 
 				if(resourceType && rtn.size == 0) {
-					def accountResourceIds = morpheus.cloud.resource.listIdentityProjections(vpc.cloud.id, resourceType, null, account.id).toList().blockingGet().collect { it.id }
+					def accountResourceIds = morpheus.async.cloud.resource.listIdentityProjections(vpc.cloud.id, resourceType, null, account.id).toList().blockingGet().collect { it.id }
 					if(accountResourceIds.size() > 0) {
-						rtn = morpheus.cloud.resource.listById(accountResourceIds).toList().blockingGet()?.collect {
+						rtn = morpheus.services.cloud.resource.listById(accountResourceIds)?.collect {
 							[name: it.displayName ?: it.name, value: it.externalId]
 						}?.sort { it.name } ?: []
 					}
@@ -287,6 +288,71 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 			[name:'Off',value:'off'],
 			[name:'On', value:'on']
 		]
+	}
+
+	def amazonEc2NodeAmiImage(args) {
+		def rtn = []
+		args = args instanceof Object[] ? args.getAt(0) : args
+		def images = morpheusContext.async.virtualImage.listIdentityProjections(args?.accountId?.toLong(), ImageType.ami).toList().blockingGet()
+		if(images) {
+			if(args.phrase) {
+				rtn = images.findAll{it.name.toLowerCase().contains(args.phrase.toLowerCase())}.collect { img -> [name: img.name, value: img.id] }.sort { it.name }
+			} else {
+				rtn = images.collect { img -> [name: img.name, value: img.id] }.sort { it.name }
+			}
+		}
+		return rtn
+	}
+
+	def s3Regions(args) {
+		args = args instanceof Object[] ? args.getAt(0) : args
+		// this filters AWS regions by aws partition based on the storage server
+		// make the storage server region the default value
+		def records = morpheus.services.referenceData.list(new DataQuery(sort:"name").withFilter("category", "amazon.ec2.region"))
+		// remove the global cost aggregator region
+		records = records.findAll {it.keyValue != 'global'}
+		String amazonEndpoint
+		String defaultRegion
+		if(args.storageProvider?.storageServer?.isLong()) {
+			StorageServer storageServer = morpheus.services.storageServer.get(args.storageProvider.storageServer.toLong())
+			if(storageServer.refType == 'ComputeZone') {
+				// Select us-east-1 by default, or else the first available region
+				Cloud cloud = morpheus.services.cloud.get(storageServer.refId.toLong())
+				def cloudRegions = morpheus.services.cloud.region.list(new DataQuery(sort:"name", order: DataQuery.SortOrder.asc).withFilter("cloud", cloud))
+				CloudRegion cloudRegion = cloudRegions?.find { it.regionCode == 'us-east-1' } ?: cloudRegions?.getAt(0)
+				if(cloudRegion) {
+					amazonEndpoint = cloudRegion.internalId
+				} else {
+					// no regions? use regionCode
+					if(cloud.regionCode)
+						amazonEndpoint = cloud.regionCode
+					else
+						amazonEndpoint = "s3.us-east-1.amazonaws.com"
+
+				}
+			} else if(storageServer.serviceUrl && storageServer.serviceUrl.contains('amazonaws.com')) {
+				amazonEndpoint = storageServer.serviceUrl
+			}
+		}
+		if(amazonEndpoint) {
+			defaultRegion = AmazonComputeUtility.getAmazonEndpointRegion(amazonEndpoint)
+			if(amazonEndpoint.endsWith(".cn")) {
+				// China
+				records = records.findAll { it.keyValue?.startsWith('cn-') }
+			} else if(amazonEndpoint.contains("gov-")) {
+				// US Gov
+				records = records.findAll { it.keyValue?.contains('gov-') }
+			} else {
+				// Default is everywhere else
+				records = records.findAll { !it.keyValue?.startsWith('cn-') && !it.keyValue?.contains('gov-') }
+			}
+		} else {
+			// if no storage server is passed, all regions are returned
+			// records = []
+		}
+		def rtn = records.collect { [value: it.keyValue, name: it.name, isDefault: (it.keyValue == defaultRegion)]}
+		def select = [name:morpheus.services.localization.get("gomorpheus.label.select"), value: '']
+		return [select] + rtn
 	}
 
 	def awsPluginCostingReports(args) {

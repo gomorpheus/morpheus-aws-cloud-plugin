@@ -31,37 +31,36 @@ class SnapshotSync {
 	}
 
 	def execute() {
-		def updatedSnapshotExternalIds = []
-		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
-			def volumes = morpheusContext.async.storageVolume.listIdentityProjections(cloud.id, region.externalId).toMap { it.externalId }.blockingGet()
-			def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
-			def cloudItems = AmazonComputeUtility.listSnapshots([amazonClient: amazonClient, zone: cloud]).snapshotList
-			Observable<SnapshotIdentityProjection> existingRecords = morpheusContext.async.snapshot.listIdentityProjections(cloud.id, region.externalId)
-			SyncTask<SnapshotIdentityProjection, Snapshot, SnapshotModel> syncTask = new SyncTask<>(existingRecords, cloudItems)
-			syncTask.addMatchFunction { SnapshotIdentityProjection existingItem, Snapshot cloudItem ->
-				existingItem.externalId == cloudItem.snapshotId
-			}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<SnapshotIdentityProjection, SnapshotModel>> updateItems ->
-				morpheusContext.async.snapshot.listById(updateItems.collect { it.existingItem.id } as List<Long>)
-			}.onAdd { itemsToAdd ->
-				updatedSnapshotExternalIds += addMissingSnapshots(itemsToAdd, region, volumes)
-			}.onUpdate { List<SyncTask.UpdateItem<SnapshotModel, Snapshot>> updateItems ->
-				updatedSnapshotExternalIds += updateMatchedSnapshots(updateItems, region)
-			}.onDelete { removeItems ->
-				removeMissingSnapshots(removeItems)
-			}.observe().blockingSubscribe { completed ->
-				log.debug "sending snapshot update price plan: ${updatedSnapshotExternalIds}"
-				def updatedSnapshotIds = []
-				morpheusContext.async.snapshot.listIdentityProjections(cloud.id, region.externalId).blockingSubscribe {
-					if(updatedSnapshotExternalIds.contains(it.externalId)) {
-						updatedSnapshotIds << it.id
+		try {
+			def updatedSnapshotIds = []
+			morpheusContext.async.cloud.region.listIdentityProjectionsForRegionsWithVolumes(cloud.id).blockingSubscribe { region ->
+				def volumes = morpheusContext.async.storageVolume.listIdentityProjections(cloud.id, region.externalId).toMap { it.externalId }.blockingGet()
+				def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
+				def cloudItems = AmazonComputeUtility.listSnapshots([amazonClient: amazonClient, zone: cloud]).snapshotList
+				Observable<SnapshotIdentityProjection> existingRecords = morpheusContext.async.snapshot.listIdentityProjections(cloud.id, region.externalId)
+				SyncTask<SnapshotIdentityProjection, Snapshot, SnapshotModel> syncTask = new SyncTask<>(existingRecords, cloudItems)
+				syncTask.addMatchFunction { SnapshotIdentityProjection existingItem, Snapshot cloudItem ->
+					existingItem.externalId == cloudItem.snapshotId
+				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<SnapshotIdentityProjection, SnapshotModel>> updateItems ->
+					morpheusContext.async.snapshot.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+				}.onAdd { itemsToAdd ->
+					updatedSnapshotIds += addMissingSnapshots(itemsToAdd, region, volumes)
+				}.onUpdate { List<SyncTask.UpdateItem<SnapshotModel, Snapshot>> updateItems ->
+					updatedSnapshotIds += updateMatchedSnapshots(updateItems, region)
+				}.onDelete { removeItems ->
+					removeMissingSnapshots(removeItems)
+				}.observe().blockingSubscribe { completed ->
+					if(updatedSnapshotIds) {
+						morpheusContext.async.usage.restartSnapshotUsage(updatedSnapshotIds).blockingGet()
 					}
 				}
-				morpheusContext.async.usage.restartSnapshotUsage(updatedSnapshotIds).blockingGet()
 			}
+		} catch(Exception ex) {
+			log.error("SnapshotSync error: {}", ex, ex)
 		}
 	}
 
-	private List<String> addMissingSnapshots(Collection<Snapshot> addList, CloudRegionIdentity region, Map<String, StorageVolumeIdentityProjection> volumes) {
+	private List<Long> addMissingSnapshots(Collection<Snapshot> addList, CloudRegionIdentity region, Map<String, StorageVolumeIdentityProjection> volumes) {
 		log.debug "addMissingSnapshots: ${cloud} ${region.externalId} ${addList.size()}"
 		def adds = []
 
@@ -85,12 +84,13 @@ class SnapshotSync {
 		// Create em all!
 		if(adds) {
 			log.debug "About to create ${adds.size()} snapshots"
-			morpheusContext.async.snapshot.create(adds).blockingGet()
+			return morpheusContext.async.snapshot.bulkCreate(adds).blockingGet().persistedItems?.collect{it.id} as List<Long>
+		} else {
+			return [] as List<Long>
 		}
-		adds.collect { it.externalId }
 	}
 
-	private updateMatchedSnapshots(List<SyncTask.UpdateItem<SnapshotModel, Snapshot>> updateList, CloudRegionIdentity region) {
+	private List<Long> updateMatchedSnapshots(List<SyncTask.UpdateItem<SnapshotModel, Snapshot>> updateList, CloudRegionIdentity region) {
 		log.debug "updateMatchedSnapshots: ${cloud} ${region.externalId} ${updateList.size()}"
 		def saveList = []
 
@@ -115,9 +115,9 @@ class SnapshotSync {
 
 		if(saveList) {
 			log.debug "About to update ${saveList.size()} snapshots"
-			morpheusContext.async.snapshot.save(saveList)
+			morpheusContext.async.snapshot.bulkSave(saveList).blockingGet()
 		}
-		saveList.collect{ it.externalId }
+		return saveList.collect{ it.id } as List<Long>
 	}
 
 	private removeMissingSnapshots(Collection<SnapshotIdentityProjection> removeList) {

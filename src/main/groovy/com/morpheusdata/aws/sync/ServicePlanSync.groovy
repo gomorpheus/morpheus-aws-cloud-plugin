@@ -4,6 +4,7 @@ import com.amazonaws.services.ec2.model.InstanceTypeInfo
 import com.morpheusdata.aws.AWSPlugin
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
+import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
@@ -26,33 +27,37 @@ class ServicePlanSync {
 	}
 
 	def execute() {
-		// Get map of instance types to regions
-		def instanceTypeRegions = [:]
-		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
-			def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
+		try {
+			// Get map of instance types to regions
+			def instanceTypeRegions = [:]
+			morpheusContext.async.cloud.region.list(new DataQuery().withFilter('cloud.id', cloud.id)).blockingSubscribe { region ->
+				def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
 
-			for(InstanceTypeInfo instanceType in AmazonComputeUtility.listInstanceTypes([amazonClient: amazonClient]).instanceTypes) {
-				if(!instanceTypeRegions[instanceType.instanceType]) {
-					instanceTypeRegions[instanceType.instanceType] = [instanceType: instanceType, regionCodes: [] as Set]
+				for(InstanceTypeInfo instanceType in AmazonComputeUtility.listInstanceTypes([amazonClient: amazonClient]).instanceTypes) {
+					if(!instanceTypeRegions[instanceType.instanceType]) {
+						instanceTypeRegions[instanceType.instanceType] = [instanceType: instanceType, regionCodes: [] as Set]
+					}
+					instanceTypeRegions[instanceType.instanceType].regionCodes << region.internalId
 				}
-				instanceTypeRegions[instanceType.instanceType].regionCodes << region.externalId
 			}
-		}
 
-		def cloudItems = instanceTypeRegions.values().collect { it.instanceType }
-		Observable<ServicePlanIdentityProjection> existingRecords = morpheusContext.async.servicePlan.listIdentityProjections(new ProvisionType(code: 'amazon'))
-		SyncTask<ServicePlanIdentityProjection, InstanceTypeInfo, ServicePlan> syncTask = new SyncTask<>(existingRecords, cloudItems)
-		syncTask.addMatchFunction { ServicePlanIdentityProjection existingItem, InstanceTypeInfo cloudItem ->
-			existingItem.externalId == cloudItem.instanceType
-		}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<ServicePlanIdentityProjection, ServicePlan>> updateItems ->
-			morpheusContext.async.servicePlan.listById(updateItems.collect { it.existingItem.id } as List<Long>)
-		}.onAdd { itemsToAdd ->
-			addMissingServicePlans(itemsToAdd, instanceTypeRegions)
-		}.onUpdate { List<SyncTask.UpdateItem<ServicePlan, InstanceTypeInfo>> updateItems ->
-			updateMatchedServicePlans(updateItems, instanceTypeRegions)
-		}.onDelete { removeItems ->
-			removeMissingServicePlans(removeItems)
-		}.start()
+			def cloudItems = instanceTypeRegions.values().collect { it.instanceType }
+			Observable<ServicePlanIdentityProjection> existingRecords = morpheusContext.async.servicePlan.listIdentityProjections(new ProvisionType(code: 'amazon'))
+			SyncTask<ServicePlanIdentityProjection, InstanceTypeInfo, ServicePlan> syncTask = new SyncTask<>(existingRecords, cloudItems)
+			syncTask.addMatchFunction { ServicePlanIdentityProjection existingItem, InstanceTypeInfo cloudItem ->
+				existingItem.externalId == cloudItem.instanceType
+			}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<ServicePlanIdentityProjection, ServicePlan>> updateItems ->
+				morpheusContext.async.servicePlan.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+			}.onAdd { itemsToAdd ->
+				addMissingServicePlans(itemsToAdd, instanceTypeRegions)
+			}.onUpdate { List<SyncTask.UpdateItem<ServicePlan, InstanceTypeInfo>> updateItems ->
+				updateMatchedServicePlans(updateItems, instanceTypeRegions)
+			}.onDelete { removeItems ->
+				removeMissingServicePlans(removeItems)
+			}.start()
+		} catch(Exception ex) {
+			log.error("ServicePlanSync error: {}", ex, ex)
+		}
 	}
 
 	private addMissingServicePlans(Collection<InstanceTypeInfo> addList, Map instanceTypeRegions) {
@@ -109,12 +114,15 @@ class ServicePlanSync {
 		}
 
 		// Create em all!
-		log.debug "About to create ${adds.size()} snapshots"
-		morpheusContext.async.servicePlan.create(adds).blockingGet()
+		if(adds) {
+			log.debug "About to create ${adds.size()} snapshots"
+			morpheusContext.async.servicePlan.create(adds).blockingGet()
+		}
+
 	}
 
 	private updateMatchedServicePlans(List<SyncTask.UpdateItem<ServicePlan, InstanceTypeInfo>> updateList, Map instanceTypesToRegion) {
-		log.debug "updateMatchedServicePlans: ${cloud} ${region.externalId} ${updateList.size()}"
+		log.debug "updateMatchedServicePlans: ${cloud} ${updateList.size()}"
 		def saveList = []
 
 		for(def updateItem in updateList) {
@@ -161,7 +169,7 @@ class ServicePlanSync {
 
 		if(saveList) {
 			log.debug "About to update ${saveList.size()} service plans"
-			morpheusContext.async.servicePlan.save(saveList).blockingGet()
+			morpheusContext.async.servicePlan.bulkSave(saveList).blockingGet()
 		}
 	}
 

@@ -24,30 +24,34 @@ class TransitGatewayVpcAttachmentSync extends InternalResourceSync {
 	}
 
 	def execute() {
-		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap {CloudRegionIdentity cloudRegion ->
-			final String regionCode = cloudRegion.externalId
-			def amazonClient = plugin.getAmazonClient(cloud,false,cloudRegion.externalId)
-			def apiList = AmazonComputeUtility.listTransitGatewayVpcAttachments([amazonClient: amazonClient],[:])
-			if(apiList.success) {
-				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.async.cloud.resource.listIdentityProjections(cloud.id,'aws.cloudFormation.ec2.transitGatewayAttachment',regionCode)
-				SyncTask<AccountResourceIdentityProjection, TransitGatewayVpcAttachment, AccountResource> syncTask = new SyncTask<>(domainRecords, apiList.transitGatewayVpcAttachments as Collection<TransitGatewayVpcAttachment>)
-				return syncTask.addMatchFunction { AccountResourceIdentityProjection domainObject, TransitGatewayVpcAttachment data ->
-					domainObject.externalId == data.transitGatewayAttachmentId
-				}.onDelete { removeItems ->
-					removeMissingResources(removeItems)
-				}.onUpdate { List<SyncTask.UpdateItem<AccountResource, TransitGatewayVpcAttachment>> updateItems ->
-					updateMatchedTransitGatewayVpcAttachments(updateItems,cloudRegion)
-				}.onAdd { itemsToAdd ->
-					addMissingTransitGatewayVpcAttachment(itemsToAdd, cloudRegion)
+		try {
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).concatMap {CloudRegionIdentity cloudRegion ->
+				final String regionCode = cloudRegion.externalId
+				def amazonClient = plugin.getAmazonClient(cloud,false,cloudRegion.externalId)
+				def apiList = AmazonComputeUtility.listTransitGatewayVpcAttachments([amazonClient: amazonClient],[:])
+				if(apiList.success) {
+					Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.async.cloud.resource.listIdentityProjections(cloud.id,'aws.cloudFormation.ec2.transitGatewayAttachment',regionCode)
+					SyncTask<AccountResourceIdentityProjection, TransitGatewayVpcAttachment, AccountResource> syncTask = new SyncTask<>(domainRecords, apiList.transitGatewayVpcAttachments as Collection<TransitGatewayVpcAttachment>)
+					return syncTask.addMatchFunction { AccountResourceIdentityProjection domainObject, TransitGatewayVpcAttachment data ->
+						domainObject.externalId == data.transitGatewayAttachmentId
+					}.onDelete { removeItems ->
+						removeMissingResources(removeItems)
+					}.onUpdate { List<SyncTask.UpdateItem<AccountResource, TransitGatewayVpcAttachment>> updateItems ->
+						updateMatchedTransitGatewayVpcAttachments(updateItems,cloudRegion)
+					}.onAdd { itemsToAdd ->
+						addMissingTransitGatewayVpcAttachment(itemsToAdd, cloudRegion)
 
-				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<AccountResourceIdentityProjection, TransitGatewayVpcAttachment>> updateItems ->
-					return morpheusContext.async.cloud.resource.listById(updateItems.collect { it.existingItem.id } as List<Long>)
-				}.observe()
-			} else {
-				log.error("Error Caching Transit Gateways for Region: {} - {}",regionCode,apiList.msg)
-				return Single.just(false).toObservable() //ignore invalid region
-			}
-		}.blockingSubscribe()
+					}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<AccountResourceIdentityProjection, TransitGatewayVpcAttachment>> updateItems ->
+						return morpheusContext.async.cloud.resource.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					}.observe()
+				} else {
+					log.error("Error Caching Transit Gateways for Region: {} - {}",regionCode,apiList.msg)
+					return Single.just(false).toObservable() //ignore invalid region
+				}
+			}.blockingSubscribe()
+		} catch(Exception ex) {
+			log.error("TransitGatewayVpcAttachmentSync error: {}", ex, ex)
+		}
 	}
 
 	protected String getCategory() {

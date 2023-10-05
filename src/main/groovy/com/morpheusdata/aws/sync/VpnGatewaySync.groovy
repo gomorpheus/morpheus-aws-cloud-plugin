@@ -24,27 +24,31 @@ class VpnGatewaySync extends InternalResourceSync {
 	}
 
 	def execute() {
-		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
-			def amazonClient = plugin.getAmazonClient(cloud,false, region.externalId)
-			def apiList = AmazonComputeUtility.listVpnGateways([amazonClient: amazonClient],[:])
-			if(apiList.success) {
-				Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.async.cloud.resource.listIdentityProjections(cloud.id,"aws.cloudFormation.ec2.vpnGateway", region.externalId)
-				SyncTask<AccountResourceIdentityProjection, VpnGateway, AccountResource> syncTask = new SyncTask<>(domainRecords, apiList.vpnGateways as Collection<VpnGateway>)
-				syncTask.addMatchFunction { AccountResourceIdentityProjection existingItem, VpnGateway cloudItem ->
-					existingItem.externalId == cloudItem.vpnGatewayId
-				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItem<AccountResourceIdentityProjection, VpnGateway>> updateItems ->
-					morpheusContext.async.cloud.resource.listById(updateItems.collect { it.existingItem.id } as List<Long>)
-				}.onAdd { itemsToAdd ->
-					addMissingVpnGateways(itemsToAdd, region)
-				}.onUpdate { List<SyncTask.UpdateItem<AccountResource, VpnGateway>> updateItems ->
-					updateMatchedVpnGateways(updateItems, region)
-				}.onDelete { removeItems ->
-					removeMissingResources(removeItems)
-				}.start()
-			} else {
-				log.error("Error Caching VPC Gateways for Region: {} - {}", region.externalId, apiList.msg)
-				return Single.just(false).toObservable() //ignore invalid region
+		try {
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+				def amazonClient = plugin.getAmazonClient(cloud,false, region.externalId)
+				def apiList = AmazonComputeUtility.listVpnGateways([amazonClient: amazonClient],[:])
+				if(apiList.success) {
+					Observable<AccountResourceIdentityProjection> domainRecords = morpheusContext.async.cloud.resource.listIdentityProjections(cloud.id,"aws.cloudFormation.ec2.vpnGateway", region.externalId)
+					SyncTask<AccountResourceIdentityProjection, VpnGateway, AccountResource> syncTask = new SyncTask<>(domainRecords, apiList.vpnGateways as Collection<VpnGateway>)
+					syncTask.addMatchFunction { AccountResourceIdentityProjection existingItem, VpnGateway cloudItem ->
+						existingItem.externalId == cloudItem.vpnGatewayId
+					}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItem<AccountResourceIdentityProjection, VpnGateway>> updateItems ->
+						morpheusContext.async.cloud.resource.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					}.onAdd { itemsToAdd ->
+						addMissingVpnGateways(itemsToAdd, region)
+					}.onUpdate { List<SyncTask.UpdateItem<AccountResource, VpnGateway>> updateItems ->
+						updateMatchedVpnGateways(updateItems, region)
+					}.onDelete { removeItems ->
+						removeMissingResources(removeItems)
+					}.start()
+				} else {
+					log.error("Error Caching VPC Gateways for Region: {} - {}", region.externalId, apiList.msg)
+					return Single.just(false).toObservable() //ignore invalid region
+				}
 			}
+		}  catch(Exception ex) {
+			log.error("VpnGatewaySync error: {}", ex, ex)
 		}
 	}
 
@@ -64,7 +68,10 @@ class VpnGatewaySync extends InternalResourceSync {
 			add.configMap = [amazonSideAsn: cloudItem.amazonSideAsn, availabilityZone: cloudItem.availabilityZone]
 			adds << add
 		}
-		morpheusContext.async.cloud.resource.create(adds).blockingGet()
+		if(adds) {
+			morpheusContext.async.cloud.resource.create(adds).blockingGet()
+		}
+
 	}
 
 	protected void updateMatchedVpnGateways(List<SyncTask.UpdateItem<AccountResource, VpnGateway>> updateList, CloudRegionIdentity region) {

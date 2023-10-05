@@ -487,7 +487,7 @@ class ELBLoadBalancerProvider implements LoadBalancerProvider {
                 CreateLoadBalancerResult lbResult = amazonClient.createLoadBalancer(lbCreateRequest)
                 loadBalancer.externalId = ':loadbalancer/' + lbName
                 loadBalancer.sshHost = lbResult.getDNSName()
-                loadBalancer.save(flush:true)
+                morpheus.async.loadBalancer.bulkSave([loadBalancer]).blockingGet()
             } else {
                 log.debug "Existing LB found.. updating"
                 DescribeLoadBalancersRequest lbRequest = new DescribeLoadBalancersRequest().withLoadBalancerNames(new LinkedList<String>())

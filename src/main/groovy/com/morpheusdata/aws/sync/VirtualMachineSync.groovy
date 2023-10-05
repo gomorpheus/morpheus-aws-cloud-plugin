@@ -52,44 +52,48 @@ class VirtualMachineSync {
 	}
 
 	def execute() {
-		def usageLists = [restartUsageIds: [], stopUsageIds: [], startUsageIds: [], updatedSnapshotIds: []]
-		def inventoryLevel = cloud.inventoryLevel ?: (cloud.getConfigProperty('importExisting') in [true, 'true', 'on'] ? 'basic' : 'off')
-		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
-			def amazonClient = plugin.getAmazonClient(cloud,false, region.externalId)
-			def vmList = AmazonComputeUtility.listVpcServers([amazonClient: amazonClient, cloud: cloud])
-			if(vmList.success) {
-				Observable<ComputeServerIdentityProjection> vmRecords = morpheusContext.async.computeServer.listIdentityProjections(cloud.id, region.externalId)
-				SyncTask<ComputeServerIdentityProjection, Instance, ComputeServer> syncTask = new SyncTask<>(vmRecords, vmList.serverList.findAll{ instance -> instance.state?.code != 48 } as Collection<Instance>)
-				syncTask.addMatchFunction { ComputeServerIdentityProjection domainObject, Instance cloudItem ->
-					def match = domainObject.externalId == cloudItem.instanceId.toString()
-					if(!match && !domainObject.externalId) {
-						//check we don't have something being created with the same name - like terraform or cf
-						if(!(domainObject.computeServerTypeCode in ['amazonEksKubeMaster', 'amazonRdsVm', 'amazonEksKubeMasterUnmanaged'])) {
-							def instanceName = cloudItem.tags?.find { it.key == 'Name' }?.value ?: cloudItem.instanceId
-							match = domainObject.name == instanceName || domainObject.internalIp == cloudItem.privateIpAddress || domainObject.externalIp == cloudItem.publicIpAddress
+		try {
+			def usageLists = [restartUsageIds: [], stopUsageIds: [], startUsageIds: [], updatedSnapshotIds: []]
+			def inventoryLevel = cloud.inventoryLevel ?: (cloud.getConfigProperty('importExisting') in [true, 'true', 'on'] ? 'basic' : 'off')
+			morpheusContext.async.cloud.region.listIdentityProjectionsForRegionsWithCloudPools(cloud.id).blockingSubscribe { region ->
+				def amazonClient = plugin.getAmazonClient(cloud,false, region.externalId)
+				def vmList = AmazonComputeUtility.listVpcServers([amazonClient: amazonClient, cloud: cloud])
+				if(vmList.success) {
+					Observable<ComputeServerIdentityProjection> vmRecords = morpheusContext.async.computeServer.listIdentityProjections(cloud.id, region.externalId)
+					SyncTask<ComputeServerIdentityProjection, Instance, ComputeServer> syncTask = new SyncTask<>(vmRecords, vmList.serverList.findAll{ instance -> instance.state?.code != 48 } as Collection<Instance>)
+					syncTask.addMatchFunction { ComputeServerIdentityProjection domainObject, Instance cloudItem ->
+						def match = domainObject.externalId == cloudItem.instanceId.toString()
+						if(!match && !domainObject.externalId) {
+							//check we don't have something being created with the same name - like terraform or cf
+							if(!(domainObject.computeServerTypeCode in ['amazonEksKubeMaster', 'amazonRdsVm', 'amazonEksKubeMasterUnmanaged'])) {
+								def instanceName = cloudItem.tags?.find { it.key == 'Name' }?.value ?: cloudItem.instanceId
+								match = domainObject.name == instanceName || domainObject.internalIp == cloudItem.privateIpAddress || domainObject.externalIp == cloudItem.publicIpAddress
+							}
 						}
+						match
+					}.withLoadObjectDetailsFromFinder { List<UpdateItemDto<ComputeServerIdentityProjection, Instance>> updateItems ->
+						morpheusContext.async.computeServer.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					}.onAdd { itemsToAdd ->
+						if(inventoryLevel in ['basic', 'full']) {
+							addMissingVirtualMachines(itemsToAdd, region, vmList.volumeList, usageLists)
+						}
+					}.onUpdate { List<SyncTask.UpdateItem<ComputeServer, Instance>> updateItems ->
+						updateMatchedVirtualMachines(updateItems, region, vmList.volumeList, usageLists, inventoryLevel)
+					}.onDelete { removeItems ->
+						removeMissingVirtualMachines(removeItems)
+					}.observe().blockingSubscribe { completed ->
+						log.debug "sending usage start/stop/restarts: ${usageLists}"
+						morpheusContext.async.usage.startServerUsage(usageLists.startUsageIds).blockingGet()
+						morpheusContext.async.usage.stopServerUsage(usageLists.stopUsageIds).blockingGet()
+						morpheusContext.async.usage.restartServerUsage(usageLists.restartUsageIds).blockingGet()
+						morpheusContext.async.usage.restartSnapshotUsage(usageLists.updatedSnapshotIds).blockingGet()
 					}
-					match
-				}.withLoadObjectDetailsFromFinder { List<UpdateItemDto<ComputeServerIdentityProjection, Instance>> updateItems ->
-					morpheusContext.async.computeServer.listById(updateItems.collect { it.existingItem.id } as List<Long>)
-				}.onAdd { itemsToAdd ->
-					if(inventoryLevel in ['basic', 'full']) {
-						addMissingVirtualMachines(itemsToAdd, region, vmList.volumeList, usageLists)
-					}
-				}.onUpdate { List<SyncTask.UpdateItem<ComputeServer, Instance>> updateItems ->
-					updateMatchedVirtualMachines(updateItems, region, vmList.volumeList, usageLists, inventoryLevel)
-				}.onDelete { removeItems ->
-					removeMissingVirtualMachines(removeItems)
-				}.observe().blockingSubscribe { completed ->
-					log.debug "sending usage start/stop/restarts: ${usageLists}"
-					morpheusContext.async.usage.startServerUsage(usageLists.startUsageIds).blockingGet()
-					morpheusContext.async.usage.stopServerUsage(usageLists.stopUsageIds).blockingGet()
-					morpheusContext.async.usage.restartServerUsage(usageLists.restartUsageIds).blockingGet()
-					morpheusContext.async.usage.restartSnapshotUsage(usageLists.updatedSnapshotIds).blockingGet()
+				} else {
+					log.error("Error Caching VMs for Region: {}", region.externalId)
 				}
-			} else {
-				log.error("Error Caching VMs for Region: {}", region.externalId)
 			}
+		} catch(Exception ex) {
+			log.error("VirtualMachineSync error: {}", ex, ex)
 		}
 	}
 

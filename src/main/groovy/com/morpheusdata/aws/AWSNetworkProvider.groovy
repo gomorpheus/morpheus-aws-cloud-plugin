@@ -194,7 +194,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 				type: new NetworkServerType(code:"amazon")
 			)
 			morpheus.integration.registerCloudIntegration(cloud.id, integration).blockingGet()
-			ServiceResponse.success = true
+			rtn.success = true
 		} catch (Exception e) {
 			rtn.success = false
 			log.error("initializeProvider error: {}", e, e)

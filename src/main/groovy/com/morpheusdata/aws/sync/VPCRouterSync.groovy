@@ -32,20 +32,24 @@ class VPCRouterSync {
 	}
 
 	def execute() {
-		List<CloudPoolIdentity> resourcePools = morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id,null,null).toList().blockingGet()
-		Observable<NetworkRouterIdentityProjection> vpcRouters = morpheusContext.async.network.router.listIdentityProjections(cloud.id,'amazonVpcRouter')
-		SyncTask<NetworkRouterIdentityProjection, CloudPoolIdentity, NetworkRouter> syncTask = new SyncTask<>(vpcRouters, resourcePools)
-		syncTask.addMatchFunction { NetworkRouterIdentityProjection domainObject, CloudPoolIdentity data ->
-			domainObject.refType == 'ComputeZonePool' && domainObject.refId == data.id
-		}.onDelete { removeItems ->
-			removeMissingRouters(removeItems)
-		}.onUpdate { List<SyncTask.UpdateItem<CloudRegion, Region>> updateItems ->
-			updateMatchedVpcRouters(updateItems)
-		}.onAdd { itemsToAdd ->
-			addMissingVPCRouters(itemsToAdd)
-		}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<NetworkRouterIdentityProjection, NetworkRouter>> updateItems ->
-			morpheusContext.async.network.router.listById(updateItems.collect { it.existingItem.id } as List<Long>)
-		}.start()
+		try {
+			List<CloudPoolIdentity> resourcePools = morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id,null,null).toList().blockingGet()
+			Observable<NetworkRouterIdentityProjection> vpcRouters = morpheusContext.async.network.router.listIdentityProjections(cloud.id,'amazonVpcRouter')
+			SyncTask<NetworkRouterIdentityProjection, CloudPoolIdentity, NetworkRouter> syncTask = new SyncTask<>(vpcRouters, resourcePools)
+			syncTask.addMatchFunction { NetworkRouterIdentityProjection domainObject, CloudPoolIdentity data ->
+				domainObject.refType == 'ComputeZonePool' && domainObject.refId == data.id
+			}.onDelete { removeItems ->
+				removeMissingRouters(removeItems)
+			}.onUpdate { List<SyncTask.UpdateItem<CloudRegion, Region>> updateItems ->
+				updateMatchedVpcRouters(updateItems)
+			}.onAdd { itemsToAdd ->
+				addMissingVPCRouters(itemsToAdd)
+			}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<NetworkRouterIdentityProjection, NetworkRouter>> updateItems ->
+				morpheusContext.async.network.router.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+			}.start()
+		} catch(Exception ex) {
+			log.error("VPCRouterSync error: {}", ex, ex)
+		}
 	}
 
 

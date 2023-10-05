@@ -1,7 +1,7 @@
 resource "option-type" "aws-image-type" {
   name = "virtual image"
   code = "containerType.amazon.imageType"
-  fieldName = "imageId"
+  fieldName = "imageType"
   fieldContext = "config"
   fieldLabel = "Image Type"
   type = "radio"

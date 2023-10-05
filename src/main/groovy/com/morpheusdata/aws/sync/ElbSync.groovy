@@ -29,28 +29,32 @@ class ElbSync {
 	}
 
 	def execute() {
-		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
-			def amazonClient = AmazonComputeUtility.getAmazonElbClassicClient(cloud,false, region.externalId)
-			def elbList = AmazonComputeUtility.listElbs([amazonClient: amazonClient])
-			if(elbList.success) {
-				Observable<NetworkLoadBalancerIdentityProjection> domainRecords = morpheusContext.async.loadBalancer.listIdentityProjections(cloud.id, region.externalId,'amazon')
-				SyncTask<NetworkLoadBalancerIdentityProjection, LoadBalancerDescription, NetworkLoadBalancer> syncTask = new SyncTask<>(domainRecords, elbList.elbList as Collection<LoadBalancerDescription>)
-				return syncTask.addMatchFunction { NetworkLoadBalancerIdentityProjection domainObject, LoadBalancerDescription data ->
-					domainObject.externalId == ':loadbalancer/' + data.getLoadBalancerName()
-				}.onDelete { removeItems ->
-					removeMissingLoadBalancers(removeItems)
-				}.onUpdate { List<SyncTask.UpdateItem<NetworkLoadBalancer, LoadBalancerDescription>> updateItems ->
-					updateMatchedLoadBalancers(updateItems,region)
-				}.onAdd { itemsToAdd ->
-					addMissingLoadBalancers(itemsToAdd, region)
-				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<NetworkLoadBalancerIdentityProjection, LoadBalancerDescription>> updateItems ->
-					return morpheusContext.async.loadBalancer.listById(updateItems.collect { it.existingItem.id } as List<Long>)
-				}.observe()
-			} else {
-				log.error("Error Caching ELB LoadBalancers for Region: {} - {}",region.externalId,elbList.msg)
-				return Single.just(false).toObservable() //ignore invalid region
-			}
-		}.blockingSubscribe()
+		try {
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).concatMap { region ->
+				def amazonClient = AmazonComputeUtility.getAmazonElbClassicClient(cloud,false, region.externalId)
+				def elbList = AmazonComputeUtility.listElbs([amazonClient: amazonClient])
+				if(elbList.success) {
+					Observable<NetworkLoadBalancerIdentityProjection> domainRecords = morpheusContext.async.loadBalancer.listIdentityProjections(cloud.id, region.externalId,'amazon')
+					SyncTask<NetworkLoadBalancerIdentityProjection, LoadBalancerDescription, NetworkLoadBalancer> syncTask = new SyncTask<>(domainRecords, elbList.elbList as Collection<LoadBalancerDescription>)
+					return syncTask.addMatchFunction { NetworkLoadBalancerIdentityProjection domainObject, LoadBalancerDescription data ->
+						domainObject.externalId == ':loadbalancer/' + data.getLoadBalancerName()
+					}.onDelete { removeItems ->
+						removeMissingLoadBalancers(removeItems)
+					}.onUpdate { List<SyncTask.UpdateItem<NetworkLoadBalancer, LoadBalancerDescription>> updateItems ->
+						updateMatchedLoadBalancers(updateItems,region)
+					}.onAdd { itemsToAdd ->
+						addMissingLoadBalancers(itemsToAdd, region)
+					}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<NetworkLoadBalancerIdentityProjection, LoadBalancerDescription>> updateItems ->
+						return morpheusContext.async.loadBalancer.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					}.observe()
+				} else {
+					log.error("Error Caching ELB LoadBalancers for Region: {} - {}",region.externalId,elbList.msg)
+					return Single.just(false).toObservable() //ignore invalid region
+				}
+			}.blockingSubscribe()
+		} catch(Exception ex) {
+			log.error("ElbSync error: {}", ex, ex)
+		}
 	}
 
 

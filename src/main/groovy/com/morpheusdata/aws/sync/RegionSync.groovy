@@ -25,30 +25,34 @@ class RegionSync {
 	}
 
 	def execute() {
-		//TODO: what is the default region for listing regions
-		def amazonClient = plugin.getAmazonClient(cloud,false,null)
-		def regionResults = AmazonComputeUtility.listRegions([amazonClient: amazonClient])
-		if(regionResults.success) {
-			if(cloud.regionCode) { //cloud is scoped to a particular region already
-				String region = AmazonComputeUtility.getAmazonEndpointRegion(cloud.regionCode)
-				regionResults.regionList = regionResults.regionList.findAll{it.getRegionName() == region}
-			}
-			Observable<CloudRegionIdentity> domainRecords = morpheusContext.async.cloud.region.listIdentityProjections(cloud.id)
-			SyncTask<CloudRegionIdentity, Region, CloudRegion> syncTask = new SyncTask<>(domainRecords, regionResults.regionList as Collection<Region>)
-			syncTask.addMatchFunction { CloudRegionIdentity domainObject, Region data ->
-				domainObject.externalId == data.getRegionName()
-			}.onDelete { removeItems ->
-				removeMissingRegions(removeItems)
-			}.onUpdate { List<SyncTask.UpdateItem<CloudRegion, Region>> updateItems ->
-				// Nothing to do
-			}.onAdd { itemsToAdd ->
-				addMissingRegions(itemsToAdd)
-			}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<CloudRegionIdentity, Region>> updateItems ->
-				morpheusContext.async.cloud.region.listById(updateItems.collect { it.existingItem.id } as List<Long>)
-			}.start()
+		try {
+			//TODO: what is the default region for listing regions
+			def amazonClient = plugin.getAmazonClient(cloud,false,null)
+			def regionResults = AmazonComputeUtility.listRegions([amazonClient: amazonClient])
+			if(regionResults.success) {
+				if(cloud.regionCode) { //cloud is scoped to a particular region already
+					String region = AmazonComputeUtility.getAmazonEndpointRegion(cloud.regionCode)
+					regionResults.regionList = regionResults.regionList.findAll{it.getRegionName() == region}
+				}
+				Observable<CloudRegionIdentity> domainRecords = morpheusContext.async.cloud.region.listIdentityProjections(cloud.id)
+				SyncTask<CloudRegionIdentity, Region, CloudRegion> syncTask = new SyncTask<>(domainRecords, regionResults.regionList as Collection<Region>)
+				syncTask.addMatchFunction { CloudRegionIdentity domainObject, Region data ->
+					domainObject.externalId == data.getRegionName()
+				}.onDelete { removeItems ->
+					removeMissingRegions(removeItems)
+				}.onUpdate { List<SyncTask.UpdateItem<CloudRegion, Region>> updateItems ->
+					// Nothing to do
+				}.onAdd { itemsToAdd ->
+					addMissingRegions(itemsToAdd)
+				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<CloudRegionIdentity, Region>> updateItems ->
+					morpheusContext.async.cloud.region.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+				}.start()
 
-			//upload missing key pairs
-			ensureKeyPairs()
+				//upload missing key pairs
+				ensureKeyPairs()
+			}
+		} catch(Exception ex) {
+			log.error("RegionSync error: {}", ex, ex)
 		}
 	}
 
@@ -56,7 +60,7 @@ class RegionSync {
 		def adds = []
 		for(cloudItem in addList) {
 			def name = cloudItem.getRegionName()
-			def add = new CloudRegion(cloud: cloud, account: cloud.account, code: name, name: name, externalId: name, regionCode: name,zoneCode: name,internalId: cloudItem.getEndpoint())
+			def add = new CloudRegion(cloud: cloud, account: cloud.account, code: name, name: name, externalId: name, regionCode: name, cloudCode: name, internalId: cloudItem.getEndpoint())
 			adds << add
 		}
 		if(adds) {

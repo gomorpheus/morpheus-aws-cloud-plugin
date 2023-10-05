@@ -25,29 +25,33 @@ class SubnetSync {
 	}
 
 	def execute() {
-		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
-			final String regionCode = region.externalId
-			def amazonClient = plugin.getAmazonClient(cloud,false, regionCode)
-			def subnetResults = AmazonComputeUtility.listSubnets([amazonClient: amazonClient, zone: cloud])
-			if(subnetResults.success) {
-				Observable<NetworkIdentityProjection> domainRecords = morpheusContext.async.network.listIdentityProjections(cloud)
-				SyncTask<NetworkIdentityProjection, Subnet, Network> syncTask = new SyncTask<>(domainRecords, subnetResults.subnetList as Collection<Subnet>)
-				return syncTask.addMatchFunction { NetworkIdentityProjection domainObject, Subnet data ->
-					domainObject.externalId == data.getSubnetId()
-				}.onDelete { removeItems ->
-					removeMissingSubnets(removeItems)
-				}.onUpdate { List<SyncTask.UpdateItem<Network, Subnet>> updateItems ->
-					updateMatchedSubnets(updateItems,regionCode)
-				}.onAdd { itemsToAdd ->
-					addMissingSubnets(itemsToAdd, regionCode)
-				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<NetworkIdentityProjection, Subnet>> updateItems ->
-					morpheusContext.async.cloud.network.listById(updateItems.collect { it.existingItem.id } as List<Long>)
-				}.observe()
-			} else {
-				log.error("Error Caching Subnets for Region: {} - {}",regionCode,subnetResults.msg)
-				return Single.just(false).toObservable() //ignore invalid region
-			}
-		}.blockingSubscribe()
+		try {
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).concatMap { region ->
+				final String regionCode = region.externalId
+				def amazonClient = plugin.getAmazonClient(cloud,false, regionCode)
+				def subnetResults = AmazonComputeUtility.listSubnets([amazonClient: amazonClient, zone: cloud])
+				if(subnetResults.success) {
+					Observable<NetworkIdentityProjection> domainRecords = morpheusContext.async.network.listIdentityProjections(cloud)
+					SyncTask<NetworkIdentityProjection, Subnet, Network> syncTask = new SyncTask<>(domainRecords, subnetResults.subnetList as Collection<Subnet>)
+					return syncTask.addMatchFunction { NetworkIdentityProjection domainObject, Subnet data ->
+						domainObject.externalId == data.getSubnetId()
+					}.onDelete { removeItems ->
+						removeMissingSubnets(removeItems)
+					}.onUpdate { List<SyncTask.UpdateItem<Network, Subnet>> updateItems ->
+						updateMatchedSubnets(updateItems,regionCode)
+					}.onAdd { itemsToAdd ->
+						addMissingSubnets(itemsToAdd, regionCode)
+					}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<NetworkIdentityProjection, Subnet>> updateItems ->
+						morpheusContext.async.cloud.network.listById(updateItems.collect { it.existingItem.id } as List<Long>)
+					}.observe()
+				} else {
+					log.error("Error Caching Subnets for Region: {} - {}",regionCode,subnetResults.msg)
+					return Single.just(false).toObservable() //ignore invalid region
+				}
+			}.blockingSubscribe()
+		} catch(Exception ex) {
+			log.error("SubnetSync error: {}", ex, ex)
+		}
 	}
 
 

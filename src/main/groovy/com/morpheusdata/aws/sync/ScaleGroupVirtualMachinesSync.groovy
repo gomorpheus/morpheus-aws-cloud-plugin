@@ -41,57 +41,61 @@ class ScaleGroupVirtualMachinesSync {
 	}
 
 	def execute() {
-		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
-			morpheusContext.async.instance.scale.listIdentityProjections(cloud.id, region.externalId).blockingSubscribe { scale ->
-				if (scale.externalId) {
-					scale = morpheusContext.async.instance.scale.get(scale.id).blockingGet()
-					def amazonClient = plugin.getAmazonClient(cloud,false, region.externalId)
-					def autoScaleAmazonClient = AmazonComputeUtility.getAmazonAutoScalingClient(cloud, false, region.externalId)
-					def scaleGroupResult = AmazonComputeUtility.getAutoScaleGroup(autoScaleAmazonClient, scale.externalId)
+		try {
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+				morpheusContext.async.instance.scale.listIdentityProjections(cloud.id, region.externalId).blockingSubscribe { scale ->
+					if (scale.externalId) {
+						scale = morpheusContext.async.instance.scale.get(scale.id).blockingGet()
+						def amazonClient = plugin.getAmazonClient(cloud,false, region.externalId)
+						def autoScaleAmazonClient = AmazonComputeUtility.getAmazonAutoScalingClient(cloud, false, region.externalId)
+						def scaleGroupResult = AmazonComputeUtility.getAutoScaleGroup(autoScaleAmazonClient, scale.externalId)
 
-					if(scaleGroupResult.success) {
-						// existing records includes vms associated to scale group or by externalId
-						def existingRecords = morpheusContext.async.computeServer.list(
-							new DataQuery().withFilters([
-								new DataFilter('zone.id', cloud.id),
-								new DataOrFilter([
-									new DataFilter('externalId', 'in', scaleGroupResult.group.instances?.collect { it.instanceId }),
-									new DataFilter('scale.id', scale.id)
+						if(scaleGroupResult.success) {
+							// existing records includes vms associated to scale group or by externalId
+							def existingRecords = morpheusContext.async.computeServer.list(
+								new DataQuery().withFilters([
+									new DataFilter('zone.id', cloud.id),
+									new DataOrFilter([
+										new DataFilter('externalId', 'in', scaleGroupResult.group.instances?.collect { it.instanceId }),
+										new DataFilter('scale.id', scale.id)
+									])
 								])
-							])
-						).toList().blockingGet()
+							).toList().blockingGet()
 
-						// If the scale group is part of a cloud formation deployment (has iacId) then:
-						// 1.  The Server is associated to the scale group (set scale on computeserver)
-						// 2.  Make sure an Instance exists for which multiple VMs (containers can be added to)
-						ComputeServer managedSibling = existingRecords.find { it.scale?.id == scale.id && it.computeServerTypeCode != 'amazonUnmanaged' }
+							// If the scale group is part of a cloud formation deployment (has iacId) then:
+							// 1.  The Server is associated to the scale group (set scale on computeserver)
+							// 2.  Make sure an Instance exists for which multiple VMs (containers can be added to)
+							ComputeServer managedSibling = existingRecords.find { it.scale?.id == scale.id && it.computeServerTypeCode != 'amazonUnmanaged' }
 
-						SyncList.MatchFunction matchMasterToValidFunc = { ComputeServer server, AutoScaleInstance cloudItem ->
-							server.externalId == cloudItem.instanceId
-						}
-						def syncLists = new SyncList(matchMasterToValidFunc).buildSyncLists(existingRecords, scaleGroupResult.group.instances)
-
-						while(syncLists.addList) {
-							for(AutoScaleInstance cloudItem in syncLists.addList.take(50)) {
-								addVmToScaleGroup(amazonClient, region, scale, cloudItem, managedSibling)
+							SyncList.MatchFunction matchMasterToValidFunc = { ComputeServer server, AutoScaleInstance cloudItem ->
+								server.externalId == cloudItem.instanceId
 							}
-							syncLists.addList = syncLists.addList.drop(50)
-						}
-						while(syncLists.updateList) {
-							for(SyncList.UpdateItem<ComputeServer, AutoScaleInstance> updateItem in syncLists.updateList.take(50)) {
-								if(scale.iacId && updateItem.existingItem.scale?.id != scale.id) {
-									addVmToScaleGroup(amazonClient, region, scale, updateItem.masterItem, managedSibling, updateItem.existingItem)
+							def syncLists = new SyncList(matchMasterToValidFunc).buildSyncLists(existingRecords, scaleGroupResult.group.instances)
+
+							while(syncLists.addList) {
+								for(AutoScaleInstance cloudItem in syncLists.addList.take(50)) {
+									addVmToScaleGroup(amazonClient, region, scale, cloudItem, managedSibling)
 								}
+								syncLists.addList = syncLists.addList.drop(50)
 							}
-							syncLists.updateList = syncLists.updateList.drop(50)
-						}
-						while(syncLists.removeList) {
-							removeVmsFromScaleGroup(syncLists.removeList.take(50), scale)
-							syncLists.removeList = syncLists.removeList.drop(50)
+							while(syncLists.updateList) {
+								for(SyncList.UpdateItem<ComputeServer, AutoScaleInstance> updateItem in syncLists.updateList.take(50)) {
+									if(scale.iacId && updateItem.existingItem.scale?.id != scale.id) {
+										addVmToScaleGroup(amazonClient, region, scale, updateItem.masterItem, managedSibling, updateItem.existingItem)
+									}
+								}
+								syncLists.updateList = syncLists.updateList.drop(50)
+							}
+							while(syncLists.removeList) {
+								removeVmsFromScaleGroup(syncLists.removeList.take(50), scale)
+								syncLists.removeList = syncLists.removeList.drop(50)
+							}
 						}
 					}
 				}
 			}
+		} catch(Exception ex) {
+			log.error("ScaleGroupVirtualMachinesSync error: {}", ex, ex)
 		}
 	}
 

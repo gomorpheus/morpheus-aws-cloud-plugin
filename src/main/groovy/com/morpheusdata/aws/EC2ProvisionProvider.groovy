@@ -6,6 +6,7 @@ import com.morpheusdata.aws.backup.AWSSnapshotBackupProvider
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.AbstractProvisionProvider
 import com.morpheusdata.core.MorpheusContext
+import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.providers.HostProvisionProvider
 import com.morpheusdata.core.providers.ProvisionProvider
 import com.morpheusdata.core.providers.VmProvisionProvider
@@ -13,6 +14,7 @@ import com.morpheusdata.core.providers.WorkloadProvisionProvider
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.model.Account
 import com.morpheusdata.model.Cloud
+import com.morpheusdata.model.CloudPool
 import com.morpheusdata.model.CloudRegion
 import com.morpheusdata.model.ComputeCapacityInfo
 import com.morpheusdata.model.ComputeServer
@@ -114,7 +116,49 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	 */
 	@Override
 	Collection<OptionType> getNodeOptionTypes() {
-		new ArrayList<OptionType>()
+		OptionType amiImage = new OptionType([
+				name : 'image',
+				code : 'amazon-ec2-node-image',
+				fieldName : 'virtualImage.id',
+				fieldContext : 'domain',
+				fieldLabel : 'AMI Image',
+				inputType : OptionType.InputType.TYPEAHEAD,
+				displayOrder : 100,
+				required : false,
+				optionSource : 'amazonEc2NodeAmiImage'
+		])
+		OptionType logFolder = new OptionType([
+				name : 'mountLogs',
+				code : 'amazon-ec2-node-log-folder',
+				fieldName : 'mountLogs',
+				fieldContext : 'domain',
+				fieldLabel : 'Log Folder',
+				inputType : OptionType.InputType.TEXT,
+				displayOrder : 101,
+				required : false,
+		])
+		OptionType configFolder = new OptionType([
+				name : 'mountConfig',
+				code : 'amazon-ec2-node-config-folder',
+				fieldName : 'mountConfig',
+				fieldContext : 'domain',
+				fieldLabel : 'Config Folder',
+				inputType : OptionType.InputType.TEXT,
+				displayOrder : 102,
+				required : false,
+		])
+		OptionType deployFolder = new OptionType([
+				name : 'mountData',
+				code : 'amazon-ec2-node-deploy-folder',
+				fieldName : 'mountData',
+				fieldContext : 'domain',
+				fieldLabel : 'Deploy Folder',
+				inputType : OptionType.InputType.TEXT,
+				displayOrder : 103,
+				helpText: '(Optional) If using deployment services, this mount point will be replaced with the contents of said deployments.',
+				required : false,
+		])
+		return [amiImage, logFolder, configFolder, deployFolder]
 	}
 
 	/**
@@ -142,7 +186,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	 */
 	@Override
 	Collection<StorageVolumeType> getRootVolumeStorageTypes() {
-		getStorageVolumeTypes()
+		getStorageVolumeTypes().findAll { !['amazon-st1','amazon-sc1'].contains(it.code) }
 	}
 
 	/**
@@ -151,21 +195,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	 */
 	@Override
 	Collection<StorageVolumeType> getDataVolumeStorageTypes() {
-		def volumeTypes = getStorageVolumeTypes()
-
-		volumeTypes << new StorageVolumeType([
-				code: 'amazon-st1',
-				name: 'st1',
-				displayOrder: 3
-		])
-
-		volumeTypes << new StorageVolumeType([
-				code: 'amazon-sc1',
-				name: 'sc1',
-				displayOrder: 4
-		])
-
-		return volumeTypes
+		getStorageVolumeTypes()
 	}
 
 	//Helper method for provider storage types
@@ -173,34 +203,101 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		def volumeTypes = []
 
 		volumeTypes << new StorageVolumeType([
-				code: 'amazon-gp2',
-				name: 'gp2',
-				defaultType: true,
-				displayOrder: 0
+			code:'amazon-gp2', displayName:'gp2', name:'gp2', 
+			description:'AWS - gp2', volumeType:'volume', enabled:true, 
+			customLabel:true, customSize:true, defaultType:true, autoDelete:true, 
+			minStorage:(ComputeUtility.ONE_GIGABYTE), maxStorage:(16L * ComputeUtility.ONE_TERABYTE), 
+			hasDatastore:false, allowSearch:true, volumeCategory:'volume',
+			displayOrder: 0
 		])
 
 		volumeTypes << new StorageVolumeType([
-				code: 'amazon-gp3',
-				name: 'gp3',
-				displayOrder: 1
+			code:'amazon-gp3', displayName:'gp3', name:'gp3', 
+			description:'AWS - gp3', volumeType:'volume', enabled:true, 
+			customLabel:true, customSize:true, defaultType:true, autoDelete:true, 
+			minStorage:(ComputeUtility.ONE_GIGABYTE), maxStorage:(16L * ComputeUtility.ONE_TERABYTE), 
+			hasDatastore:false, allowSearch:true, volumeCategory:'volume',
+			displayOrder: 1
 		])
 
 		volumeTypes << new StorageVolumeType([
-				code: 'amazon-io1',
-				name: 'io1',
-				configurableIOPS:true,
-				minIOPS:100,
-				maxIOPS:20000,
-				displayOrder: 2
+			code:'amazon-io1', displayName:'io1', name:'io1', 
+			description:'AWS - io1', volumeType:'volume', enabled:true, 
+			customLabel:true, customSize:true, defaultType:false, 
+			autoDelete:true, minStorage:(4L * ComputeUtility.ONE_GIGABYTE), maxStorage:(16L * ComputeUtility.ONE_TERABYTE), 
+			configurableIOPS:true, minIOPS:100, maxIOPS:20000, hasDatastore:false, 
+			allowSearch:true, volumeCategory:'volume', 
+			displayOrder:2
 		])
 
 		volumeTypes << new StorageVolumeType([
-				code: 'amazon-standard',
-				name: 'standard',
-				displayOrder: 5
+			code:'amazon-st1', displayName:'st1', name:'st1', 
+			description:'AWS - st1', volumeType:'volume', enabled:true, 
+			customLabel:true, customSize:true, defaultType:false, autoDelete:true, 
+			minStorage:(125L * ComputeUtility.ONE_GIGABYTE), maxStorage:(16L * ComputeUtility.ONE_TERABYTE), 
+			hasDatastore:false, allowSearch:true, volumeCategory:'volume',
+			displayOrder: 3
+		])
+
+		volumeTypes << new StorageVolumeType([
+			code:'amazon-sc1', displayName:'sc1', name:'sc1', 
+			description:'AWS - sc1', volumeType:'volume', enabled:true, 
+			customLabel:true, customSize:true, defaultType:false, autoDelete:true, 
+			minStorage:(125 * ComputeUtility.ONE_GIGABYTE), maxStorage:(16L * ComputeUtility.ONE_TERABYTE), 
+			hasDatastore:false, allowSearch:true, volumeCategory:'volume',
+			displayOrder: 4
+		])
+
+		volumeTypes << new StorageVolumeType([
+			code:'amazon-standard', displayName:'standard', name:'standard', 
+			description:'AWS - standard', volumeType:'volume', enabled:true, 
+			customLabel:true, customSize:true, defaultType:false, autoDelete:true, 
+			minStorage:(1L * ComputeUtility.ONE_GIGABYTE), maxStorage:(1L * ComputeUtility.ONE_TERABYTE),
+			hasDatastore:false, allowSearch:true, volumeCategory:'volume',
+			displayOrder: 5
 		])
 
 		volumeTypes
+	}
+
+	@Override
+	Boolean lvmSupported() {
+		return true
+	}
+
+	@Override
+	String serverType() {
+		return "ami"
+	}
+
+	@Override
+	String getViewSet() {
+		return "amazonCustom"
+	}
+
+	@Override
+	Boolean multiTenant() {
+		return false
+	}
+
+	@Override
+	Boolean aclEnabled() {
+		return false
+	}
+
+	@Override
+	String getHostDiskMode() {
+		return "lvm"
+	}
+
+	@Override
+	Boolean hasSecurityGroups() {
+		return true
+	}
+
+	@Override
+	Boolean supportsAutoDatastore() {
+		return false
 	}
 
 	/**
@@ -475,6 +572,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 			amazonClient = plugin.getAmazonClient(cloud,false, server.resourcePool.regionCode)
 			def runConfig = buildWorkloadRunConfig(workload, workloadRequest, virtualImage, amazonClient, opts)
 			runVirtualMachine(runConfig, provisionResponse, opts + [amazonClient: amazonClient])
+			provisionResponse.noAgent = opts.noAgent ?: false
 			return new ServiceResponse<ProvisionResponse>(success: true, data: provisionResponse)
 		} catch (e) {
 			log.error "runWorkload: ${e}", e
@@ -496,15 +594,58 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 
 		def rtn = [success: false, msg: null]
 		try {
+			def layout = server?.layout
+			def typeSet = server.typeSet
+			def config = server.getConfigMap()
+			def imageType = config.templateTypeSelect ?: 'default'
+			Cloud cloud = server.cloud
+			def cloudPoolId = server.resourcePool?.id ?: getCloudPoolId(cloud?.getConfigMap(), server?.getConfigMap())
+			CloudPool cloudPool
+			if(cloudPoolId instanceof String) {
+				cloudPool = morpheus.services.cloud.pool.find(new DataQuery().withFilter("cloud.id", cloud.id).withFilter("externalId", cloudPoolId))
+			} else if(cloudPoolId instanceof Number) {
+				cloudPool = morpheus.services.cloud.pool.get(cloudPoolId)
+			}
+			if(server.resourcePool == null && cloudPool) {
+				server.resourcePool = cloudPool
+			}
+			AmazonEC2 amazonClient = plugin.getAmazonClient(cloud,false, server.resourcePool?.regionCode)
+
 			VirtualImage virtualImage
-			Long computeTypeSetId = server.typeSet?.id
-			if(computeTypeSetId) {
-				ComputeTypeSet computeTypeSet = morpheus.computeTypeSet.get(computeTypeSetId).blockingGet()
-				if(computeTypeSet.containerType) {
-					ContainerType containerType = morpheus.containerType.get(computeTypeSet.containerType.id).blockingGet()
-					virtualImage = containerType.virtualImage
+
+			if(layout && typeSet) {
+				Long computeTypeSetId = server.typeSet?.id
+				if(computeTypeSetId) {
+					ComputeTypeSet computeTypeSet = morpheus.services.computeTypeSet.get(computeTypeSetId)
+					if(computeTypeSet.containerType) {
+						ContainerType containerType = morpheus.services.containerType.get(computeTypeSet.containerType.id)
+						virtualImage = containerType.virtualImage
+						if(virtualImage) {
+							ensureVirtualImageLocation(amazonClient, server.resourcePool?.regionCode, virtualImage, cloud)
+						}
+					}
+				}
+			} else if(imageType == 'custom') {
+				if(config.publicImageId) {
+					def saveResults = saveAccountImage(amazonClient, server.account, cloud, server.resourcePool?.regionCode, config.publicImageId, morpheusContext)
+					virtualImage = saveResults.image
+					if(virtualImage) {
+						ensureVirtualImageLocation(amazonClient, server.resourcePool?.regionCode, virtualImage, cloud)
+					}
+				} else if(config.imageId) {
+					Long imageId = config.imageId?.toLong()
+					virtualImage = morpheus.services.virtualImage.get(imageId)
+					if(virtualImage) {
+						ensureVirtualImageLocation(amazonClient, server.resourcePool?.regionCode, virtualImage, cloud)
+					}
+				}
+			} else {
+				virtualImage = morpheus.services.virtualImage.find(new DataQuery().withFilter("code", "amazon.ec2.image.morpheus.ubuntu.20.04.4-v1.ubuntu.20.04.4.amd64"))
+				if(virtualImage) {
+					ensureVirtualImageLocation(amazonClient, server.resourcePool?.regionCode, virtualImage, cloud)
 				}
 			}
+
 			if(!virtualImage) {
 				rtn.msg = "No virtual image selected"
 			} else {
@@ -747,12 +888,8 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		runConfig.server = saveAndGet(server)
 		def imageResults = AmazonComputeUtility.loadImage([amazonClient:opts.amazonClient, imageId:runConfig.imageRef])
 
-		//user key - TODO
-		def keyPairResults = ensureAmazonKeyPair([:], opts.amazonClient, account, server.cloud, runConfig.userConfig.primaryKey, morpheusContext)
-		if(keyPairResults.success) {
-			runConfig.publicKeyName = keyPairResults.data.keyName
-			runConfig.primaryKey = keyPairResults.data.key
-		}
+		//user key
+		ensureAmazonKeyPair(runConfig, opts.amazonClient, account, server.cloud, runConfig.userConfig.primaryKey, morpheusContext)
 
 		//root volume
 		def blockDeviceMap = imageResults.image.getBlockDeviceMappings()
@@ -1005,7 +1142,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	 */
 	@Override
 	ServiceResponse restartWorkload(Workload workload) {
-		log.debug("restartWorkload: ${server}")
+		log.debug("restartWorkload: ${workload}")
 		def client = plugin.getAmazonClient(workload.server.cloud, false, workload.server.resourcePool.regionCode)
 		AmazonComputeUtility.rebootServer([amazonClient: client, server: workload.server])
 		def waitResults = AmazonComputeUtility.waitForServerStatus([amazonClient: client, server: workload.server], 16)
@@ -1134,10 +1271,57 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				def newCounter = server.volumes?.size()
 				def availabilityZone
 				def allStorageVolumeTypes
-				if (resizeRequest.volumesUpdate) {
+				if (resizeRequest.volumesUpdate || resizeRequest.volumesAdd) {
 					def serverDetails = AmazonComputeUtility.getServerDetail(amazonOpts)
 					availabilityZone = serverDetails.server.getPlacement().getAvailabilityZone()
 					allStorageVolumeTypes = morpheusContext.async.storageVolume.storageVolumeType.listAll().toMap { it.id }.blockingGet()
+				}
+
+				resizeRequest.volumesAdd?.each {newVolumeProps ->
+					log.info("Adding New Volume")
+					//new disk add it
+					if (!newVolumeProps.maxStorage) {
+						newVolumeProps.maxStorage = newVolumeProps.size ? (newVolumeProps.size.toDouble() * ComputeUtility.ONE_GIGABYTE).toLong() : 0
+					}
+					def volumeType = allStorageVolumeTypes[newVolumeProps.storageType?.toInteger()]
+					def diskType = volumeType ? volumeType?.name : 'gp2'
+					def addDiskResults = AmazonComputeUtility.addVolume([name: newVolumeProps.name, size: newVolumeProps.size, iops: newVolumeProps.maxIOPS ? newVolumeProps.maxIOPS.toInteger() : null,
+																		 amazonClient: amazonOpts.amazonClient, availabilityId: availabilityZone, encryptEbs: encryptEbs, diskType: diskType, kmsKeyId: server.getConfigProperty('kmsKeyId')])
+					if (!addDiskResults.success)
+						throw new Exception("Error in creating new volume: ${addDiskResults}")
+					def newVolumeId = addDiskResults.volume.volumeId
+					def checkReadyResult = AmazonComputeUtility.checkVolumeReady([volumeId: newVolumeId, amazonClient: amazonOpts.amazonClient])
+					if (!checkReadyResult.success)
+						throw new Exception("Volume never became ready: ${checkReadyResult}")
+					// Attach the new one
+					def attachResults = AmazonComputeUtility.attachVolume([volumeId: newVolumeId, serverId: amazonOpts.server.externalId, amazonClient: amazonOpts.amazonClient])
+					if (!attachResults.success)
+						throw new Exception("Volume failed to attach: ${attachResults}")
+					def waitAttachResults = AmazonComputeUtility.waitForVolumeState([volumeId: newVolumeId, requestedState: 'in-use', amazonClient: amazonOpts.amazonClient])
+					if (!waitAttachResults.success)
+						throw new Exception("Volume never attached: ${waitAttachResults}")
+
+					def deviceName = waitAttachResults.results?.volume?.getAttachments()?.find { it.instanceId == amazonOpts.server.externalId }?.getDevice()
+					def newVolume = new StorageVolume(
+							refType: 'ComputeZone',
+							refId: cloud.id,
+							regionCode: server.region?.regionCode,
+							account: server.account,
+							maxStorage: newVolumeProps.maxStorage,
+							maxIOPS: newVolumeProps.maxIops,
+							type: volumeType,
+							externalId: newVolumeId,
+							deviceName: deviceName,
+							deviceDisplayName: extractDiskDisplayName(deviceName),
+							name: newVolumeProps.name,
+							displayOrder: newCounter,
+							status: 'provisioned',
+							rootVolume: ['/dev/sda1','/dev/xvda','xvda','sda1','sda'].contains(deviceName)
+					)
+					log.info("Saving Volume")
+					morpheusContext.async.storageVolume.create([newVolume], server).blockingGet()
+					server = morpheusContext.async.computeServer.get(server.id).blockingGet()
+					newCounter++
 				}
 
 				resizeRequest.volumesUpdate?.each { volumeUpdate ->
@@ -1195,8 +1379,8 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 								type: volumeType,
 								externalId: newVolumeId,
 								deviceName: deviceName,
-								deviceDisplayName: AmazonComputeUtility.extractDiskDisplayName(deviceName)?.replaceAll('sd', 'xvd'),
-								name: newVolumeId,
+								deviceDisplayName: extractDiskDisplayName(deviceName),
+								name: updateProps.name,
 								displayOrder: newCounter,
 								status: 'provisioned',
 								rootVolume: ['/dev/sda1','/dev/xvda','xvda','sda1','sda'].contains(deviceName)
@@ -1497,7 +1681,8 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	}
 
 
-	static protected ensureAmazonKeyPair(runConfig, AmazonEC2Client amazonClient, Account account, Cloud cloud, KeyPair primaryKey, MorpheusContext morpheus) {
+	static protected ServiceResponse ensureAmazonKeyPair(runConfig, AmazonEC2Client amazonClient, Account account, Cloud cloud, KeyPair primaryKey, MorpheusContext morpheus) {
+		ServiceResponse rtn = ServiceResponse.prepare(data: primaryKey)
 		if(primaryKey) {
 			def keyLocationId = 'amazon-' + cloud.id
 			def accountKey = morpheus.async.keyPair.findOrGenerateByAccount(account.id).blockingGet()
@@ -1515,6 +1700,9 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 					if(keyResults.uploaded == true) {
 						morpheus.async.keyPair.addZoneKeyPairLocation(cloud.id, keyLocationId, keyResults.keyName)
 					}
+
+					rtn.data.keyName = keyResults.keyName
+					rtn.success = true
 				}
 			} else {
 				log.debug('checking for keypair2')
@@ -1529,9 +1717,14 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 					if(keyResults.uploaded == true) {
 						morpheus.async.keyPair.addKeyPairLocation(primaryKey.id, keyLocationId, keyResults.keyName)
 					}
+
+					rtn.data.keyName = keyResults.keyName
+					rtn.success = true
 				}
 			}
 		}
+
+		return rtn
 	}
 
 
@@ -1545,7 +1738,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		return rtn
 	}
 
-	private static getResourceGroupId(zoneConfig, containerConfig) {
+	private static getCloudPoolId(zoneConfig, containerConfig) {
 		def rtn = zoneConfig['vpc']
 		if(!rtn)
 			rtn = containerConfig['resourcePool']
@@ -1590,7 +1783,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 			if(lastSlash > -1)
 				rtn = rtn.substring(lastSlash + 1)
 		}
-		return rtn
+		return  changeDiskDisplayName(rtn)
 	}
 
 	private changeDiskDisplayName(name) {
