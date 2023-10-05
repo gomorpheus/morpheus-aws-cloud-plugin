@@ -145,7 +145,7 @@ class ImageSync {
 	private updateMatchedVirtualImages(List<SyncTask.UpdateItem<VirtualImage, Image>> updateList, String regionCode) {
 		def adds = []
 		for(def updateItem in updateList) {
-			def externalDiskId = updateItem.masterItem.blockDeviceMappings.find { mapping -> mapping.deviceName == cloudItem.rootDeviceName }?.ebs?.snapshotId
+			def externalDiskId = updateItem.masterItem.blockDeviceMappings.find { mapping -> mapping.deviceName == updateItem.masterItem.rootDeviceName }?.ebs?.snapshotId
 
 			def locationConfig = [virtualImage: updateItem.existingItem,code:"amazon.ec2.image.${cloud.id}.${updateItem.masterItem.getImageId()}", externalId:updateItem.masterItem.getImageId(),
 								  refType:'ComputeZone', refId:cloud.id, imageName:updateItem.masterItem.getName(), imageRegion: regionCode, externalDiskId: externalDiskId]
