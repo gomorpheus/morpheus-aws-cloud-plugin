@@ -122,7 +122,8 @@ class SnapshotSync {
 			log.info "About to update ${saveList.size()} snapshots"
 			morpheusContext.async.snapshot.bulkSave(saveList).blockingGet()
 		}
-		return saveList.addAll(noPriceList).collect{ it.id } as List<Long>
+		saveList.addAll(noPriceList)
+		return saveList.collect{ it.id } as List<Long>
 	}
 
 	private removeMissingSnapshots(Collection<SnapshotIdentityProjection> removeList) {
