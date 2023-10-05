@@ -30,6 +30,8 @@ import com.morpheusdata.aws.sync.VolumeSync
 import com.morpheusdata.aws.sync.VpcPeeringConnectionSync
 import com.morpheusdata.aws.sync.VpnGatewaySync
 import com.morpheusdata.aws.utils.AmazonComputeUtility
+import com.morpheusdata.core.data.DataFilter
+import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.core.backup.AbstractBackupProvider
 import com.morpheusdata.core.providers.CloudProvider
@@ -38,6 +40,7 @@ import com.morpheusdata.core.Plugin
 import com.morpheusdata.core.providers.CloudCostingProvider
 import com.morpheusdata.core.providers.ProvisionProvider
 import com.morpheusdata.core.util.ConnectionUtils
+import com.morpheusdata.model.AccountCredential
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.ComputeServer
 import com.morpheusdata.model.ComputeServerType
@@ -651,7 +654,29 @@ class AWSCloudProvider implements CloudProvider {
 
 	@Override
 	void refreshDailyCloudType() {
+		def regionCodeToZoneMap = [:]
+		morpheusContext.async.cloud.list(new DataQuery().withFilters(new DataFilter<String>("type.code","amazon"), new DataFilter<Boolean>("enabled",true))).toList().blockingGet().each { Cloud cloud ->
+			String regionCode = cloud.regionCode
+			if (!regionCodeToZoneMap[regionCode]) {
+				Cloud activeZone = cloud
+				if (activeZone) {
+					regionCodeToZoneMap[regionCode] = activeZone
+				} else {
+					log.error "Unable to locate an active zone for ${regionCode}"
+				}
+			}
+		}
+		regionCodeToZoneMap?.each { regionCode, cloudObj ->
+			Cloud cloud = cloudObj as Cloud
+			AccountCredential credential = morpheusContext.async.accountCredential.loadCredentials(cloud).blockingGet()
+			cloud.accountCredentialLoaded = true
+			cloud.accountCredentialData = credential.data
+			new ServicePlanSync(this.plugin as AWSPlugin,cloud).execute()
+		}
+
 		new PriceSync(this.plugin).execute()
+
+		
 	}
 
 	@Override
@@ -741,10 +766,7 @@ class AWSCloudProvider implements CloudProvider {
 					new AlarmSync(this.plugin,cloudInfo).execute()
 					log.info("${cloudInfo.name}: Alarm Synced in ${new Date().time - now}ms")
 					now = new Date().time
-					//service plans
-					new ServicePlanSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: Service Plan Synced in ${new Date().time - now}ms")
-					now = new Date().time
+
 					//vms
 					new VirtualMachineSync(this.plugin,cloudInfo).execute()
 					log.info("${cloudInfo.name}: VirtualMachine Synced in ${new Date().time - now}ms")

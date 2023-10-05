@@ -52,7 +52,7 @@ class SnapshotSync {
 					removeMissingSnapshots(removeItems)
 				}.observe().blockingSubscribe { completed ->
 					if(updatedSnapshotIds) {
-						morpheusContext.async.usage.restartSnapshotUsage(updatedSnapshotIds).blockingGet()
+						morpheusContext.async.usage.restartSnapshotUsage(updatedSnapshotIds).subscribe()
 					}
 				}
 			}
@@ -62,7 +62,7 @@ class SnapshotSync {
 	}
 
 	private List<Long> addMissingSnapshots(Collection<Snapshot> addList, CloudRegionIdentity region) {
-		log.debug "addMissingSnapshots: ${cloud} ${region.externalId} ${addList.size()}"
+		log.info "addMissingSnapshots: ${cloud} ${region.externalId} ${addList.size()}"
 		def adds = []
 		Map<String, StorageVolumeIdentityProjection> volumes = morpheusContext.async.storageVolume.listIdentityProjections(new DataQuery().withFilters(
 				new DataFilter<Long>("zoneId",cloud.id),
