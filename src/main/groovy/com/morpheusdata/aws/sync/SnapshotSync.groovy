@@ -4,6 +4,8 @@ import com.amazonaws.services.ec2.model.Snapshot
 import com.morpheusdata.aws.AWSPlugin
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
+import com.morpheusdata.core.data.DataFilter
+import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
@@ -34,7 +36,6 @@ class SnapshotSync {
 		try {
 			def updatedSnapshotIds = []
 			morpheusContext.async.cloud.region.listIdentityProjectionsForRegionsWithVolumes(cloud.id).blockingSubscribe { region ->
-				def volumes = morpheusContext.async.storageVolume.listIdentityProjections(cloud.id, region.externalId).toMap { it.externalId }.blockingGet()
 				def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
 				def cloudItems = AmazonComputeUtility.listSnapshots([amazonClient: amazonClient, zone: cloud]).snapshotList
 				Observable<SnapshotIdentityProjection> existingRecords = morpheusContext.async.snapshot.listIdentityProjections(cloud.id, region.externalId)
@@ -44,7 +45,7 @@ class SnapshotSync {
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<SnapshotIdentityProjection, SnapshotModel>> updateItems ->
 					morpheusContext.async.snapshot.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.onAdd { itemsToAdd ->
-					updatedSnapshotIds += addMissingSnapshots(itemsToAdd, region, volumes)
+					updatedSnapshotIds += addMissingSnapshots(itemsToAdd, region)
 				}.onUpdate { List<SyncTask.UpdateItem<SnapshotModel, Snapshot>> updateItems ->
 					updatedSnapshotIds += updateMatchedSnapshots(updateItems, region)
 				}.onDelete { removeItems ->
@@ -60,9 +61,15 @@ class SnapshotSync {
 		}
 	}
 
-	private List<Long> addMissingSnapshots(Collection<Snapshot> addList, CloudRegionIdentity region, Map<String, StorageVolumeIdentityProjection> volumes) {
+	private List<Long> addMissingSnapshots(Collection<Snapshot> addList, CloudRegionIdentity region) {
 		log.debug "addMissingSnapshots: ${cloud} ${region.externalId} ${addList.size()}"
 		def adds = []
+		Map<String, StorageVolumeIdentityProjection> volumes = morpheusContext.async.storageVolume.listIdentityProjections(new DataQuery().withFilters(
+				new DataFilter<Long>("zoneId",cloud.id),
+				new DataFilter<String>("regionCode",region.externalId),
+				new DataFilter<Collection<String>>("externalId","in",addList.collect{it.volumeId}
+				)
+		)).toMap { it.externalId }.blockingGet()
 
 		for(Snapshot cloudItem in addList) {
 			StorageVolumeIdentityProjection volume = volumes[cloudItem.volumeId]
@@ -75,7 +82,7 @@ class SnapshotSync {
 					snapshotCreated: cloudItem.startTime,
 					region: new CloudRegion(id: region.id),
 					volume: new StorageVolume(id: volume.id),
-					volumeType: allVolumeTypes['s3Object'],
+					volumeType: new StorageVolumeType(code:'s3Object'),
 					maxStorage: (cloudItem.volumeSize ?: 0) * ComputeUtility.ONE_GIGABYTE
 				)
 			}
@@ -83,7 +90,7 @@ class SnapshotSync {
 
 		// Create em all!
 		if(adds) {
-			log.debug "About to create ${adds.size()} snapshots"
+			log.info "About to create ${adds.size()} snapshots"
 			return morpheusContext.async.snapshot.bulkCreate(adds).blockingGet().persistedItems?.collect{it.id} as List<Long>
 		} else {
 			return [] as List<Long>
@@ -93,7 +100,7 @@ class SnapshotSync {
 	private List<Long> updateMatchedSnapshots(List<SyncTask.UpdateItem<SnapshotModel, Snapshot>> updateList, CloudRegionIdentity region) {
 		log.debug "updateMatchedSnapshots: ${cloud} ${region.externalId} ${updateList.size()}"
 		def saveList = []
-
+		def noPriceList = []
 		for(def updateItem in updateList) {
 			def existingItem = updateItem.existingItem
 			def cloudItem = updateItem.masterItem
@@ -104,28 +111,23 @@ class SnapshotSync {
 				save = true
 			}
 
-			if(!existingItem.pricePlan) {
-				save = true
-			}
-
 			if(save) {
 				saveList << existingItem
+			} else if (!existingItem.pricePlan) {
+				noPriceList << existingItem
 			}
 		}
 
 		if(saveList) {
-			log.debug "About to update ${saveList.size()} snapshots"
+			log.info "About to update ${saveList.size()} snapshots"
 			morpheusContext.async.snapshot.bulkSave(saveList).blockingGet()
 		}
-		return saveList.collect{ it.id } as List<Long>
+		return saveList.addAll(noPriceList).collect{ it.id } as List<Long>
 	}
 
 	private removeMissingSnapshots(Collection<SnapshotIdentityProjection> removeList) {
-		log.debug "removeMissingSnapshots: ${cloud} ${removeList.size()}"
+		log.info "removeMissingSnapshots: ${cloud} ${removeList.size()}"
 		morpheusContext.async.snapshot.remove(removeList).blockingGet()
 	}
 
-	private getAllVolumeTypes() {
-		volumeTypes ?: (volumeTypes = morpheusContext.async.storageVolume.storageVolumeType.listAll().toMap { it.code }.blockingGet())
-	}
 }
