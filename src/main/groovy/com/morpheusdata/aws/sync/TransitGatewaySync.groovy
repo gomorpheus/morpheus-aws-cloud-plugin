@@ -24,7 +24,7 @@ class TransitGatewaySync extends InternalResourceSync{
 
 	def execute() {
 		try {
-			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).concatMap { region ->
 				def amazonClient = plugin.getAmazonClient(cloud,false,region.externalId)
 				def apiList = AmazonComputeUtility.listTransitGateways([amazonClient: amazonClient],[:])
 				if(apiList.success) {

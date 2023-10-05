@@ -28,7 +28,7 @@ class DbSubnetGroupSync {
 
 	def execute() {
 		try {
-			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap {
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).concatMap {
 				final String regionCode = it.externalId
 				AmazonRDS amazonClient = AmazonComputeUtility.getAmazonRdsClient(cloud,false,it.externalId)
 				def dbSubnetResults = AmazonComputeUtility.listDbSubnetGroups([amazonClient: amazonClient, zone: cloud])

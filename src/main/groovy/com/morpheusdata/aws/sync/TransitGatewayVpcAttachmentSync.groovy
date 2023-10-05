@@ -25,7 +25,7 @@ class TransitGatewayVpcAttachmentSync extends InternalResourceSync {
 
 	def execute() {
 		try {
-			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap {CloudRegionIdentity cloudRegion ->
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).concatMap {CloudRegionIdentity cloudRegion ->
 				final String regionCode = cloudRegion.externalId
 				def amazonClient = plugin.getAmazonClient(cloud,false,cloudRegion.externalId)
 				def apiList = AmazonComputeUtility.listTransitGatewayVpcAttachments([amazonClient: amazonClient],[:])

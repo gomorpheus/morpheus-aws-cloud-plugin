@@ -28,7 +28,7 @@ class InstanceProfileSync {
 
 	def execute() {
 		try {
-			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap {
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).concatMap {
 				final String regionCode = it.externalId
 				AmazonIdentityManagement amazonClient = AmazonComputeUtility.getAmazonIamClient(cloud,false,it.externalId)
 				def instanceProfileResults = AmazonComputeUtility.listInstanceProfiles([amazonClient: amazonClient])

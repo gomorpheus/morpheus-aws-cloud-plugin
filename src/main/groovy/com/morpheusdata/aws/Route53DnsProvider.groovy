@@ -307,9 +307,9 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
     // Cache Zone Records methods
     def cacheZoneRecords(AccountIntegration integration, Map opts=[:]) {
     	Cloud cloud = getIntegrationCloud(integration)
-        morpheus.async.network.domain.listIdentityProjections(integration.id).buffer(50).flatMap { Collection<NetworkDomainIdentityProjection> resourceIdents ->
+        morpheus.async.network.domain.listIdentityProjections(integration.id).buffer(50).concatMap { Collection<NetworkDomainIdentityProjection> resourceIdents ->
             return morpheus.async.network.domain.listById(resourceIdents.collect{it.id})
-        }.flatMap { NetworkDomain domain ->
+        }.concatMap { NetworkDomain domain ->
         	def amazonClient = AmazonComputeUtility.getAmazonRoute53Client(integration, cloud)
             def listResults = AmazonComputeUtility.listDnsZoneRecords(amazonClient, domain.externalId)
             log.debug("cacheZoneRecords - domain: ${domain.externalId}, listResults: ${listResults}")
@@ -335,7 +335,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 					addConfig
                 } as List<Map>
 
-                Observable<NetworkDomainRecord> domainRecords = morpheus.async.network.domain.record.listIdentityProjections(domain,null).buffer(50).flatMap {domainIdentities ->
+                Observable<NetworkDomainRecord> domainRecords = morpheus.async.network.domain.record.listIdentityProjections(domain,null).buffer(50).concatMap {domainIdentities ->
                     morpheus.async.network.domain.record.listById(domainIdentities.collect{it.id})
                 }
                 SyncTask<NetworkDomainRecord, Map, NetworkDomainRecord> syncTask = new SyncTask<NetworkDomainRecord, Map, NetworkDomainRecord>(domainRecords, apiItems)

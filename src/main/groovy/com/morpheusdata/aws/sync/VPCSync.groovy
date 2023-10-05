@@ -30,7 +30,7 @@ class VPCSync {
 
 	def execute() {
 		try {
-			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap {
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).concatMap {
 				final String regionCode = it.externalId
 				def amazonClient = plugin.getAmazonClient(cloud,false,it.externalId)
 				def vpcResults = AmazonComputeUtility.listVpcs([amazonClient: amazonClient])

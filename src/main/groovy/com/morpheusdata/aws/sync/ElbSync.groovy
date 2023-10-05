@@ -30,7 +30,7 @@ class ElbSync {
 
 	def execute() {
 		try {
-			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).concatMap { region ->
 				def amazonClient = AmazonComputeUtility.getAmazonElbClassicClient(cloud,false, region.externalId)
 				def elbList = AmazonComputeUtility.listElbs([amazonClient: amazonClient])
 				if(elbList.success) {

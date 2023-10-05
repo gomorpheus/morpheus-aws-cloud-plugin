@@ -31,7 +31,7 @@ class AlbSync {
 
 	def execute() {
 		try {
-			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).flatMap { region ->
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).concatMap { region ->
 				final String regionCode = region.externalId
 				def amazonClient = AmazonComputeUtility.getAmazonElbClient(cloud,false,regionCode)
 				def albList = AmazonComputeUtility.listAlbs([amazonClient: amazonClient])

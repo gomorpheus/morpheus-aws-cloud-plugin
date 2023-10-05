@@ -271,11 +271,11 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			log.info("Processing Files for Billing Period {} - File Count: {}", period, reportKeys.size())
 			Integer filePosition = 0
 			Observable<String> reportObservable = Observable.fromIterable(reportKeys)
-			reportObservable.flatMap { String reportKey ->
+			reportObservable.concatMap { String reportKey ->
 				return createCsvStreamer(storageProvider,costReport.bucket as String,reportKey,period,manifest)
 			}.buffer(billingBatchSize).map {rows ->
 				processAwsBillingBatch(cloud,period,costReport,rows,costDate,opts)
-			}.buffer(billingBatchSize * 10000).flatMapCompletable {
+			}.buffer(billingBatchSize * 10000).concatMapCompletable {
 				morpheusContext.async.costing.invoice.bulkReconcileInvoices([])//.andThen(morpheusContext.async.costing.invoice.summarizeCloudInvoice()).andThen(morpheusContext.async.costing.invoice.processProjectedCosts())
 			}.blockingAwait()
 		} catch(ex) {
