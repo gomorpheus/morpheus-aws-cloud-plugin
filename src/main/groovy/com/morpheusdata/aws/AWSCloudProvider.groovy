@@ -676,7 +676,7 @@ class AWSCloudProvider implements CloudProvider {
 
 		new PriceSync(this.plugin).execute()
 
-		
+
 	}
 
 	@Override

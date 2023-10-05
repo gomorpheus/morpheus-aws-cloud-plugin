@@ -1878,6 +1878,7 @@ class AmazonComputeUtility {
 			AmazonEC2Client amazonClient = opts.amazonClient
 			def snapshotsRequest = new DescribeSnapshotsRequest().withFilters(new LinkedList<Filter>())
 			snapshotsRequest.setMaxResults(1000)
+			snapshotsRequest.withOwnerIds("self")
 			DescribeSnapshotsResult snapResponse = amazonClient.describeSnapshots(snapshotsRequest)
 			def tmpSnapshots = snapResponse.getSnapshots()
 

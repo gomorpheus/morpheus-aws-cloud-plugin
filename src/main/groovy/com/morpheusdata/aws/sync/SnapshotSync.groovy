@@ -85,6 +85,16 @@ class SnapshotSync {
 					volumeType: new StorageVolumeType(code:'s3Object'),
 					maxStorage: (cloudItem.volumeSize ?: 0) * ComputeUtility.ONE_GIGABYTE
 				)
+			} else {
+				adds << new SnapshotModel(
+						account: cloud.account,
+						cloud: cloud,
+						name: cloudItem.snapshotId,
+						externalId: cloudItem.snapshotId,
+						snapshotCreated: cloudItem.startTime,
+						region: new CloudRegion(id: region.id),
+						maxStorage: (cloudItem.volumeSize ?: 0) * ComputeUtility.ONE_GIGABYTE
+				)
 			}
 		}
 
