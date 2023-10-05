@@ -746,7 +746,7 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 			if(!zoneId) {
 				rtn.errors['cloudFormation.zoneId'] = 'Required'
 			}
-			def cloud = morpheusContext.async.cloud.get(zoneId).blockingGet()
+			def cloud = morpheusContext.async.cloud.get(zoneId.toLong()).blockingGet()
 
 			// Must have a region
 			def regionCode = cloudFormationOpts.regionCode

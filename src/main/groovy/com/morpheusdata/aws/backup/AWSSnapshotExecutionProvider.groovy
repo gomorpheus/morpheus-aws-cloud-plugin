@@ -82,7 +82,7 @@ class AWSSnapshotExecutionProvider implements BackupExecutionProvider {
 
 			def cloud
 			if(cloudId) {
-				cloud = morpheus.async.cloud.get(cloudId).blockingGet()
+				cloud = morpheus.async.cloud.get(cloudId.toLong()).blockingGet()
 			} else {
 				def container = morpheus.async.workload.get(backupResult.containerId).blockingGet()
 				def server = container?.server

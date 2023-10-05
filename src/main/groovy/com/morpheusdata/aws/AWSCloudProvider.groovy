@@ -832,7 +832,7 @@ class AWSCloudProvider implements CloudProvider {
 
 	@Override
 	Icon getCircularIcon() {
-		return new Icon(path:"amazon.svg", darkPath: "amazon-dark.svg")
+		return new Icon(path:"amazon-circular.svg", darkPath: "amazon-circular.svg")
 	}
 
 	@Override
