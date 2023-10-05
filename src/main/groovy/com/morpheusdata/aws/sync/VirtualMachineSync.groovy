@@ -128,7 +128,7 @@ class VirtualMachineSync {
 						osType: osType,
 						serverOs: allOsTypes[osType] ?: new OsType(code: 'unknown'),
 						region: new CloudRegion(id: region.id),
-						computeServerType: allComputeServerTypes[defaultServerType ?: (osType == 'windows' ? 'amazonWindowsVm' : 'amazonUnmanaged')],
+						computeServerType: allComputeServerTypes[defaultServerType ?: (osType == 'windows' ? 'amazonUnmanagedWindows' : 'amazonUnmanaged')],
 						maxMemory: servicePlan?.maxMemory,
 						configMap: [
 							blockDevices  : cloudItem.blockDeviceMappings?.collect { [name: it.deviceName, ebs: it.ebs] } ?: [],

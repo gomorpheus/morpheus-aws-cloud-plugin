@@ -70,16 +70,17 @@ class AWSCloudProvider implements CloudProvider {
 
 	@Override
 	Collection<OptionType> getOptionTypes() {
+		def displayOrder = 0
 		OptionType apiUrl = new OptionType(
 			name: 'Region',
 			code: 'aws-plugin-endpoint',
 			defaultValue: 'ec2.us-east-1.amazonaws.com',
-			displayOrder: 0,
+			displayOrder: displayOrder,
 			fieldContext: 'config',
 			fieldLabel: 'Region',
 			fieldName: 'endpoint',
 			inputType: OptionType.InputType.SELECT,
-			optionSource: 'awsPluginRegions',
+			optionSource: 'awsPluginEndpoints',
 			required: true
 		)
 		OptionType credentials = new OptionType(
@@ -91,14 +92,14 @@ class AWSCloudProvider implements CloudProvider {
 			fieldName: 'type',
 			required: true,
 			defaultValue: 'local',
-			displayOrder: 10,
+			displayOrder: displayOrder += 10,
 			optionSource: 'credentials',
 			config: '{"credentialTypes":["access-key-secret"]}'
 		)
 		OptionType accessKey = new OptionType(
 			name: 'Access Key',
 			code: 'aws-plugin-access-key',
-			displayOrder: 20,
+			displayOrder: displayOrder += 10,
 			fieldContext: 'config',
 			fieldLabel: 'Access Key',
 			fieldName: 'accessKey',
@@ -109,7 +110,7 @@ class AWSCloudProvider implements CloudProvider {
 		OptionType secretKey = new OptionType(
 			name: 'Secret Key',
 			code: 'aws-plugin-secret-key',
-			displayOrder: 30,
+			displayOrder: displayOrder += 10,
 			fieldContext: 'config',
 			fieldLabel: 'Secret Key',
 			fieldName: 'secretKey',
@@ -120,7 +121,7 @@ class AWSCloudProvider implements CloudProvider {
 		OptionType useHostCreds = new OptionType(
 			name: 'Use Host IAM Credentials',
 			code: 'aws-plugin-use-host-creds',
-			displayOrder: 40,
+			displayOrder: displayOrder += 10,
 			fieldContext: 'config',
 			fieldLabel: 'Use Host IAM Credentials',
 			fieldName: 'useHostCredentials',
@@ -130,7 +131,7 @@ class AWSCloudProvider implements CloudProvider {
 		OptionType roleArn = new OptionType(
 			name: 'Role ARN',
 			code: 'aws-plugin-role-arn',
-			displayOrder: 50,
+			displayOrder: displayOrder += 10,
 			fieldContext: 'config',
 			fieldLabel: 'Role ARN',
 			fieldName: 'stsAssumeRole',
@@ -139,7 +140,7 @@ class AWSCloudProvider implements CloudProvider {
 		OptionType externalId = new OptionType(
 			name: 'External ID',
 			code: 'aws-plugin-external-id',
-			displayOrder: 60,
+			displayOrder: displayOrder += 10,
 			fieldContext: 'config',
 			fieldLabel: 'External ID',
 			fieldName: 'stsExternalId',
@@ -148,7 +149,7 @@ class AWSCloudProvider implements CloudProvider {
 		OptionType inventoryLevel = new OptionType(
 			name: 'Inventory Level',
 			code: 'aws-plugin-inventory-level',
-			displayOrder: 70,
+			displayOrder: displayOrder += 10,
 			fieldContext: 'config',
 			fieldLabel: 'Inventory Level',
 			fieldName: 'inventoryLevel',
@@ -159,7 +160,7 @@ class AWSCloudProvider implements CloudProvider {
 		OptionType vpc = new OptionType(
 			name: 'VPC',
 			code: 'aws-plugin-vpc',
-			displayOrder: 80,
+			displayOrder: displayOrder += 10,
 			fieldContext: 'config',
 			fieldLabel: 'VPC',
 			fieldName: 'vpc',
@@ -170,7 +171,7 @@ class AWSCloudProvider implements CloudProvider {
 		OptionType imageTransferStore = new OptionType(
 			name: 'Image Transfer Store',
 			code: 'aws-plugin-image-xfer-store',
-			displayOrder: 10,
+			displayOrder: displayOrder += 10,
 			fieldContext: 'config',
 			fieldLabel: 'Image Transfer Store',
 			fieldName: 'imageStoreId',
@@ -181,7 +182,7 @@ class AWSCloudProvider implements CloudProvider {
 		OptionType ebsEncrytion = new OptionType(
 			name: 'EBS Encryption',
 			code: 'aws-plugin-ebs-encryption',
-			displayOrder: 20,
+			displayOrder: displayOrder += 10,
 			fieldContext: 'config',
 			fieldLabel: 'EBS Encryption',
 			fieldName: 'ebsEncryption',
@@ -189,10 +190,84 @@ class AWSCloudProvider implements CloudProvider {
 			inputType: OptionType.InputType.SELECT,
 			optionSource: 'awsPluginEbsEncryption'
 		)
+		OptionType costingReport = new OptionType(
+			name: 'Costing Report',
+			code: 'aws-plugin-costing-report',
+			displayOrder: displayOrder += 10,
+			fieldContext: 'config',
+			fieldLabel: 'Costing Report',
+			fieldName: 'costingReport',
+			fieldGroup: 'Advanced',
+			inputType: OptionType.InputType.SELECT,
+			optionSource: 'awsPluginCostingReports',
+			dependsOnCode: 'config.endpoint, endpoint, config.accessKey, accessKey, config.secretKey, secretKey, credential, credential.type'
+		)
+		OptionType costingReportName = new OptionType(
+			name: 'Costing Report Name',
+			code: 'aws-plugin-costing-report-name',
+			displayOrder: displayOrder += 10,
+			fieldContext: 'config',
+			fieldLabel: 'Costing Report Name',
+			fieldName: 'costingReportName',
+			fieldGroup: 'Advanced',
+			inputType: OptionType.InputType.TEXT,
+			visibleOnCode: 'config.costingReport:create-report',
+			required: true
+		)
+		OptionType costingFolder = new OptionType(
+			name: 'Costing Folder',
+			code: 'aws-plugin-costing-folder',
+			displayOrder: displayOrder += 10,
+			fieldContext: 'config',
+			fieldLabel: 'Costing Folder',
+			fieldName: 'costingFolder',
+			fieldGroup: 'Advanced',
+			inputType: OptionType.InputType.TEXT,
+			visibleOnCode: 'config.costingReport:create-report',
+			required: true
+		)
+		OptionType costingBucket = new OptionType(
+			name: 'Costing Bucket',
+			code: 'aws-plugin-costing-bucket',
+			displayOrder: displayOrder += 10,
+			fieldContext: 'config',
+			fieldLabel: 'Costing Bucket',
+			fieldName: 'costingBucket',
+			fieldGroup: 'Advanced',
+			inputType: OptionType.InputType.SELECT,
+			optionSource: 'awsPluginCostingBuckets',
+			visibleOnCode: 'config.costingReport:create-report',
+			dependsOnCode: 'config.endpoint, endpoint, config.accessKey, accessKey, config.secretKey, secretKey, credential, credential.type',
+			required: true
+		)
+		OptionType costingBucketName = new OptionType(
+			name: 'Costing Bucket Name',
+			code: 'aws-plugin-costing-bucket-name',
+			displayOrder: displayOrder += 10,
+			fieldContext: 'config',
+			fieldLabel: 'Costing Bucket Name',
+			fieldName: 'costingBucketName',
+			fieldGroup: 'Advanced',
+			inputType: OptionType.InputType.TEXT,
+			visibleOnCode: 'matchAll::config.costingReport:create-report,config.costingBucket:create-bucket',
+			required: true
+		)
+		OptionType costingBucketRegion = new OptionType(
+			name: 'Costing Bucket Region',
+			code: 'aws-plugin-costing-bucket-region',
+			displayOrder: displayOrder += 10,
+			fieldContext: 'config',
+			fieldLabel: 'Costing Bucket Region',
+			fieldName: 'costingRegion',
+			fieldGroup: 'Advanced',
+			inputType: OptionType.InputType.SELECT,
+			optionSource: 'awsPluginRegions',
+			visibleOnCode: 'matchAll::config.costingReport:create-report,config.costingBucket:create-bucket'
+		)
 		OptionType costingKey = new OptionType(
 			name: 'Costing Key',
 			code: 'aws-plugin-costing-key',
-			displayOrder: 30,
+			displayOrder: displayOrder += 10,
 			fieldContext: 'config',
 			fieldLabel: 'Costing Key',
 			fieldName: 'costingAccessKey',
@@ -202,7 +277,7 @@ class AWSCloudProvider implements CloudProvider {
 		OptionType costingSecret = new OptionType(
 			name: 'Costing Secret',
 			code: 'aws-plugin-costing-secret',
-			displayOrder: 40,
+			displayOrder: displayOrder += 10,
 			fieldContext: 'config',
 			fieldLabel: 'Costing Secret',
 			fieldName: 'costingSecretKey',
@@ -212,7 +287,7 @@ class AWSCloudProvider implements CloudProvider {
 		OptionType linkedAccount = new OptionType(
 			name: 'Linked Account ID',
 			code: 'aws-plugin-linked-account',
-			displayOrder: 50,
+			displayOrder: displayOrder += 10,
 			fieldLabel: 'Linked Account ID',
 			fieldName: 'linkedAccountId',
 			fieldGroup: 'Advanced',
@@ -220,7 +295,8 @@ class AWSCloudProvider implements CloudProvider {
 		)
 		[
 			apiUrl, credentials, accessKey, secretKey, useHostCreds, roleArn, externalId, inventoryLevel,
-			vpc, imageTransferStore, ebsEncrytion, costingKey, costingSecret, linkedAccount
+			vpc, imageTransferStore, ebsEncrytion, costingReport, costingReportName, costingFolder,
+			costingBucket, costingBucketName, costingBucketRegion, costingKey, costingSecret, linkedAccount
 		]
 	}
 
@@ -251,6 +327,17 @@ class AWSCloudProvider implements CloudProvider {
 		unmanaged.platform = PlatformType.none
 		unmanaged.managed = false
 		unmanaged.provisionTypeCode = 'amazon'
+
+		ComputeServerType unmanagedWindows = new ComputeServerType()
+		unmanagedWindows.name = 'Amazon Windows Node'
+		unmanagedWindows.code = 'amazonUnmanagedWindows'
+		unmanagedWindows.description = 'Amazon Instance'
+		unmanagedWindows.reconfigureSupported = false
+		unmanagedWindows.hasAutomation = false
+		unmanagedWindows.supportsConsoleKeymap = false
+		unmanagedWindows.platform = PlatformType.windows
+		unmanagedWindows.managed = false
+		unmanagedWindows.provisionTypeCode = 'amazon'
 
 		ComputeServerType dockerType = new ComputeServerType()
 		dockerType.name = 'Amazon Docker Host'
@@ -291,7 +378,7 @@ class AWSCloudProvider implements CloudProvider {
 		windwsVmType.provisionTypeCode = 'amazon'
 		windwsVmType.optionTypes = options
 
-		[unmanaged, dockerType, vmType, windwsVmType] //TODO: More types for RDS and K8s
+		[unmanaged, unmanagedWindows, dockerType, vmType, windwsVmType] //TODO: More types for RDS and K8s
 	}
 
 	@Override

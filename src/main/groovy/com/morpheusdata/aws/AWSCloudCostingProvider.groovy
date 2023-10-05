@@ -34,6 +34,7 @@ import com.morpheusdata.model.ComputeServer
 import com.morpheusdata.model.NetworkLoadBalancer
 import com.morpheusdata.model.OperationData
 import com.morpheusdata.model.StorageBucket
+import com.morpheusdata.model.StorageServer
 import com.morpheusdata.model.StorageVolume
 import com.morpheusdata.model.AccountInvoiceItem
 import groovy.json.JsonOutput
@@ -119,49 +120,46 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 		Date syncDate = new Date()
 		try {
 			morpheus.async.cloud.updateCloudCostStatus(cloud,Cloud.Status.syncing,null,syncDate)
-			initializeCosting(cloud)
 
-			if(cloud && cloud.costingMode in ['full', 'costing']) {
-				//zone reservations
-				try {
-					def costingReportDef = loadAwsBillingReportDefinition(cloud)
-					def costingReport = costingReportDef?.reportName ?: cloud.getConfigProperty('costingReport')
-					def costingBucket = costingReportDef?.s3Bucket ?: cloud.getConfigProperty('costingBucket')
-					def costingRegion = costingReportDef?.s3Region ?: cloud.getConfigProperty('costingRegion')
-					def costingFolder = costingReportDef?.s3Prefix ?: cloud.getConfigProperty('costingFolder')
+			if(initializeCosting(cloud).success) {
+				if (cloud && cloud.costingMode in ['full', 'costing']) {
+					//zone reservations
+					try {
+						def costingReportDef = loadAwsBillingReportDefinition(cloud)
+						def costingReport = costingReportDef?.reportName ?: cloud.getConfigProperty('costingReport')
+						def costingBucket = costingReportDef?.s3Bucket ?: cloud.getConfigProperty('costingBucket')
+						def costingRegion = costingReportDef?.s3Region ?: cloud.getConfigProperty('costingRegion')
 
-					if(!costingBucket && !costingRegion && !costingReport) {
-						log.info("No costing report specified. Running Cost Explorer Set")
-						refreshCloudCostFromCostExplorer(cloud, costDate)
+						if (!costingBucket && !costingRegion && !costingReport) {
+							log.info("No costing report specified. Running Cost Explorer Set")
+							refreshCloudCostFromCostExplorer(cloud, costDate)
+						}
+					} catch (e2) {
+						log.error("Error Checking cost explorer data {}", e2.message, e2)
 					}
-				} catch(e2) {
-					log.error("Error Checking cost explorer data {}",e2.message,e2)
-				}
-				if(cloud.costingMode == 'full' || cloud.costingMode == 'reservations') {
-					//refreshes reservation recommendation information or reservation lists
-					refreshCloudReservations(cloud, costDate)
-				}
+					if (cloud.costingMode == 'full' || cloud.costingMode == 'reservations') {
+						//refreshes reservation recommendation information or reservation lists
+						refreshCloudReservations(cloud, costDate)
+					}
 
-
-				//detailed billing report
-				Calendar cal = Calendar.getInstance()
-				int dayOfMonth = cal.get(Calendar.DAY_OF_MONTH)
-				if(cloudRefreshOptions.noLag != true && dayOfMonth < 4) { //lets check historical
-					processAwsBillingReport(cloud, new Date() - 4)
-				}
-				def results = processAwsBillingReport(cloud, costDate)
-				if(results.success) {
-					morpheus.async.cloud.updateCloudCostStatus(cloud,Cloud.Status.ok,null,syncDate)
+					//detailed billing report
+					Calendar cal = Calendar.getInstance()
+					int dayOfMonth = cal.get(Calendar.DAY_OF_MONTH)
+					if (cloudRefreshOptions.noLag != true && dayOfMonth < 4) { //lets check historical
+						processAwsBillingReport(cloud, new Date() - 4)
+					}
+					def results = processAwsBillingReport(cloud, costDate)
+					if (results.success) {
+						morpheus.async.cloud.updateCloudCostStatus(cloud, Cloud.Status.ok, null, syncDate)
+					} else {
+						morpheus.async.cloud.updateCloudCostStatus(cloud, Cloud.Status.error, results.msg as String, syncDate)
+					}
 				} else {
-					morpheus.async.cloud.updateCloudCostStatus(cloud,Cloud.Status.error,results.msg as String,syncDate)
+					morpheus.async.cloud.updateCloudCostStatus(cloud, Cloud.Status.ok, null, syncDate)
 				}
-			} else {
-				morpheus.async.cloud.updateCloudCostStatus(cloud,Cloud.Status.ok,null,syncDate)
+				log.info("done refreshing daily resource invoice")
 			}
-
-			log.info("done refreshing daily resource invoice")
 		} catch (e) {
-
 			log.error("refreshDailyResourceInvoice error: {}",e.message, e)
 			morpheus.async.cloud.updateCloudCostStatus(cloud,Cloud.Status.error,e.message,syncDate)
 		}
@@ -213,21 +211,17 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 				def provider = StorageProvider.create(providerConfig)
 
 				log.info("dateFolder: {}", dateFolder)
-				//this should be a directory
-				def searchOpts
-				def manifest
-
 				def reportRoot = provider[costingBucket]
-				searchOpts = [prefix:costingFolder + '/' + costingReport + '/' + dateFolder + '/']
-				manifest = reportRoot[costingFolder + '/' + costingReport + '/' + dateFolder + '/' + costingReport + '-Manifest.json']
+				def manifest = reportRoot[costingFolder + '/' + costingReport + '/' + dateFolder + '/' + costingReport + '-Manifest.json']
 
-				def processReport
-				def existingLock = morpheusContext.checkLock(lockName.toString(), [:])
-				if(existingLock) {
+				if(morpheusContext.checkLock(lockName.toString(), [:]).blockingGet()) {
 					log.warn("Lock Already Exists for Processing AWS Billing Period: ${period}...If this is in error, please purge lock from DistributedLock table.")
 					return rtn
 				}
-				lock = morpheusContext.acquireLock(lockName, [timeout: 48l * 60l * 60l * 1000l, ttl: 48l * 60l * 60l * 1000l])
+
+				lock = morpheusContext.acquireLock(lockName, [timeout: 48l * 60l * 60l * 1000l, ttl: 48l * 60l * 60l * 1000l]).blockingGet()
+
+				def processReport
 				if(manifest.exists()) {
 					processReport = [manifestFile:manifest,provider:provider,bucket:costingBucket, lastModified: manifest.getDateModified()]
 				} else {
@@ -235,7 +229,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 					morpheusContext.async.cloud.updateCloudCostStatus(cloud,Cloud.Status.error,"Manifest File not found: ${costingFolder + '/' + costingReport + '/' + dateFolder + '/' + costingReport + '-Manifest.json'}",new Date())
 				}
 				if(processReport) {
-					processAwsBillingFiles(cloud, processReport, costDate, opts + [lineCounter:0, lineItems:0, newInvoice:0, newItem:0, newResource:0, itemUpdate:0, unprocessed:0, lastEndDate:null, lockName: lockName])
+					processAwsBillingFiles(cloud, processReport, costDate, [lineCounter:0, lineItems:0, newInvoice:0, newItem:0, newResource:0, itemUpdate:0, unprocessed:0, lastEndDate:null, lockName: lockName])
 				}
 				rtn.success = true
 				//done
@@ -274,7 +268,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			reportObservable.flatMap { String reportKey ->
 				return createCsvStreamer(storageProvider,costReport.bucket as String,reportKey,period,manifest)
 			}.buffer(billingBatchSize).map {rows ->
-				processAwsBillingBatch(cloud,period,costReport,rows,costDate,opts)
+				processAwsBillingBatch(cloud,period,rows,costDate,opts)
 			}.buffer(billingBatchSize * 10000).flatMapCompletable {
 				morpheusContext.async.costing.invoice.bulkReconcileInvoices([])//.andThen(morpheusContext.async.costing.invoice.summarizeCloudInvoice()).andThen(morpheusContext.async.costing.invoice.processProjectedCosts())
 			}.blockingAwait()
@@ -282,8 +276,6 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			log.error("Error processing aws billing report file {}",ex.message,ex)
 		}
 	}
-
-
 
 	InvoiceProcessResult processAwsBillingBatch(Cloud cloud, String tmpPeriod, Collection<Map<String,Object>> lineItems, Date costDate, Map opts) {
 		InvoiceProcessResult chunkedResult = new InvoiceProcessResult()
@@ -436,7 +428,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 				Map<String,List<Map<String,Object>>> usageAccountLineItems = (lineItems.groupBy{ r->r.lineItem['UsageAccountId']} as Map<String,List<Map<String,Object>>>)
 
 				// log.info("Prep Time: ${new Date().time - checkTime.time}")
-				checkTime = new Date()
+				Date checkTime = new Date()
 				for(usageAccountId in usageAccountLineItems.keySet()) {
 					List<Cloud> targetClouds = usageCloudsByExternalId[usageAccountId]
 					for(Cloud targetCloud in targetClouds) {
@@ -2927,10 +2919,10 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 		return rtn
 	}
 
-	def loadReportDefinitions(Cloud zone) {
+	def loadAwsReportDefinitions(Cloud zone) {
 		def rtn = [success:false]
 		try {
-			def amazonClient = AmazonComputeUtility.getAmazonCostReportClient(zoneService.loadFullZone(zone))
+			def amazonClient = AmazonComputeUtility.getAmazonCostReportClient(zone)
 			def reportDefResult = AmazonComputeUtility.getCostingReportDefinitions(amazonClient, [:])
 			if(reportDefResult.success) {
 				rtn.success = true
@@ -2950,78 +2942,103 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 
 	//create bucket / report if needed
 	def initializeCosting(Cloud zone, Map opts = [:]) {
-		if(zone.getConfigProperty('costingReport') == 'createReport' && !zone.getConfigProperty('costingReportCreateError')) {
+		def rtn = [success:true]
+		if(zone.getConfigProperty('costingReport') == 'create-report' /* && !zone.getConfigProperty('costingReportCreateError')*/) {
 			def costingReportName = zone.getConfigProperty('costingReportName')
-			def costingBucketName = zone.getConfigProperty('costingBucket') == 'createBucket' ? zone.getConfigProperty('costingBucketName') : zone.getConfigProperty('costingBucket')
+			def costingBucketName = zone.getConfigProperty('costingBucket')
 			def costingFolder = zone.getConfigProperty('costingFolder')
 			def costingRegion = zone.getConfigProperty('costingRegion') ?: AmazonComputeUtility.getAmazonEndpointRegion(AmazonComputeUtility.getAmazonEndpoint(zone))
+			def costingReport
+			def costingBucket
 
-			def reportResults = loadReportDefinitions(zone)
-			def costingReport = reportResults.reports?.find {
-				it.getReportName() == costingReportName &&
-						it.getS3Bucket() == costingBucketName &&
-						it.getS3Prefix() == costingFolder &&
-						it.getS3Region() == costingRegion
-			}
+			if(costingBucketName == 'create-bucket') {
+				costingBucketName = zone.getConfigProperty('costingBucketName')
 
-			if(!costingReport) {
-				def costingBucket = StorageBucket.withCriteria(uniqueResult: true) {
-					eq('bucketName', costingBucketName)
-					eq('account', zone.account)
-					storageServer {
-						eq('refType', 'Cloud')
-						eq('refId', zone.id)
-					}
-				}
+				// check if already exists
+				costingBucket = morpheusContext.services.storageBucket.find(
+					new DataQuery().withFilters([
+						new DataFilter('bucketName', costingBucketName),
+						new DataFilter('account.id', zone.account.id),
+						new DataFilter('storageServer.refType', 'ComputeZone'),
+						new DataFilter('storageServer.refId', zone.id)
+					])
+				)
 
 				if(!costingBucket) {
-					def createBucketResult = createReportBucket(zone, costingBucketName)
+					def createBucketResult = createReportBucket(zone, costingBucketName, costingRegion)
 					if (createBucketResult.success) {
 						costingBucket = createBucketResult.bucket
-						zone.setConfigProperty('costingReportCreateError', null)
 					} else {
-						zone.setConfigProperty('costingReportCreateError', [msg: createBucketResult.msg, field: 'costingBucket'])
-						zone.save(flush:true)
-						log.error("Unable to create costing bucket due to error: ${createBucketResult.msg}")
+						morpheus.async.cloud.updateCloudCostStatus(zone, Cloud.Status.error, createBucketResult.msg, new Date())
+						rtn.success = false
+						log.error(zone.costStatusMessage)
 					}
 				}
+			} else {
+				costingBucket = morpheusContext.services.storageBucket.find(
+					new DataQuery().withFilters([
+						new DataFilter('bucketName', costingBucketName),
+						new DataFilter('account.id', zone.account.id),
+						new DataFilter('storageServer.refType', 'ComputeZone'),
+						new DataFilter('storageServer.refId', zone.id)
+					])
+				)
 
-				if(costingBucket) {
+				if(!costingBucket) {
+					// bucket not discovered yet, skipping report creation
+					morpheus.async.cloud.updateCloudCostStatus(zone, Cloud.Status.error, "Waiting for costing bucket ${costingBucketName} discovery", new Date())
+					rtn.success = false
+					log.warn("Waiting for costing bucket ${costingBucketName} discovery")
+				} else if(costingBucket.regionCode) {
+					costingRegion = costingBucket.regionCode
+				}
+			}
+
+			if(rtn.success) {
+				def reportResults = loadAwsReportDefinitions(zone)
+				costingReport = reportResults.reports?.find {
+					it.reportName == costingReportName &&
+					it.s3Bucket == costingBucketName &&
+					it.s3Region == costingRegion &&
+					it.s3Prefix == costingFolder
+				}
+
+				// create report
+				if (!costingReport) {
 					def createReportResult = createReportDefinition(zone, costingBucket, [
-							name: costingReportName, bucket: costingBucket, folder: costingFolder
+						name: costingReportName, bucket: costingBucket, folder: costingFolder
 					])
 					if (createReportResult.success) {
 						costingReport = createReportResult.report
 					} else {
-						zone.setConfigProperty('costingReportCreateError', createReportResult.error)
-						zone.save(flush:true)
-						log.error("Unable to create costing report due to error: ${createReportResult.error.msg}")
+						morpheus.async.cloud.updateCloudCostStatus(zone, Cloud.Status.error, createReportResult.error.msg, new Date())
+						rtn.success = false
+						log.error(zone.costStatusMessage)
 					}
 				}
-			}
 
-			if(costingReport) {
-				zone.setConfigProperty('costingReport', costingReport.reportName)
-				zone.setConfigProperty('costingBucket', costingReport.s3Bucket)
-				zone.setConfigProperty('costingRegion', costingReport.s3Region)
-				zone.setConfigProperty('costingFolder', costingReport.s3Prefix)
-				zone.setConfigProperty('costingReportName', null)
-				zone.setConfigProperty('costingReportCreateError', null)
-				zone.save(flush:true)
+				if (costingReport) {
+					zone.setConfigProperty('costingReport', costingReport.reportName)
+					zone.setConfigProperty('costingBucket', costingReport.s3Bucket)
+					zone.setConfigProperty('costingRegion', costingReport.s3Region)
+					zone.setConfigProperty('costingFolder', costingReport.s3Prefix)
+					zone.setConfigProperty('costingReportName', null)
+					morpheusContext.services.cloud.save(zone)
+				}
 			}
 		}
+		rtn
 	}
 
 	//create the definition if it doesn't exist
 	def createReportDefinition(Cloud cloud, StorageBucket bucket, Map opts = [:]) {
 		def rtn = [success:false, report:null]
 		try {
-
 			// bucket region can be diff from zone region
 			def region = bucket.getConfigProperty('region') ?: cloud.getConfigProperty('costingRegion') ?: AmazonComputeUtility.getAmazonEndpointRegion(AmazonComputeUtility.getAmazonEndpoint(cloud))
 			def s3Client = AmazonComputeUtility.getAmazonS3Client(cloud, region)
 			def reportConfig = [
-					name: opts.name ?: opts.costingReportName, bucket: bucket.bucketName, region: region, prefix: opts.folder ?: '', artifacts: opts.artifacts
+				name: opts.name ?: opts.costingReportName, bucket: bucket.bucketName, region: region, prefix: opts.folder ?: '', artifacts: opts.artifacts
 			]
 
 			def bucketPolicyResult = AmazonComputeUtility.getBucketPolicy(s3Client, bucket.bucketName)
@@ -3031,8 +3048,8 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 
 				// ensure needed policy stmts on reporting bucket
 				def reqStmts = [
-						[service: 'billingreports.amazonaws.com', actions: ['s3:GetBucketAcl', 's3:GetBucketPolicy'], resource: "arn:aws:s3:::${bucket.bucketName}"],
-						[service: 'billingreports.amazonaws.com', actions: ['s3:PutObject'], resource: "arn:aws:s3:::${bucket.bucketName}/*"]
+					[service: 'billingreports.amazonaws.com', actions: ['s3:GetBucketAcl', 's3:GetBucketPolicy'], resource: "arn:aws:s3:::${bucket.bucketName}"],
+					[service: 'billingreports.amazonaws.com', actions: ['s3:PutObject'], resource: "arn:aws:s3:::${bucket.bucketName}/*"]
 				]
 
 				def updatePolicy = false
@@ -3080,48 +3097,45 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 
 					if(reportResult.success) {
 						rtn.success = true
-						rtn.report = loadReportDefinitions(cloud).reports.find { it.reportName == reportConfig.name }
+						rtn.report = loadAwsReportDefinitions(cloud).reports.find { it.reportName == reportConfig.name }
 					}
 					else {
 						rtn.error = [msg: "Unable to create costing report: ${reportResult.msg}", field: 'costingReport']
 					}
 				}
 				else {
-					rtn.error = [msg: "Unable to update costing bucket policy for ${bucket.bucketName} due to error: ${updatePolicyResult.msg}", field: 'costingBucket']
+					rtn.error = [msg: "Unable to update costing bucket policy for ${bucket.bucketName}: ${updatePolicyResult.msg}", field: 'costingBucket']
 				}
 			}
 			else {
-				rtn.error = [msg: "Unable to retrieve costing bucket policy for ${bucket.bucketName} due to error: ${bucketPolicyResult.msg}", field: 'costingBucket']
+				rtn.error = [msg: "Unable to use bucket for costing report: ${bucketPolicyResult.msg}", field: 'costingBucket']
 			}
 		} catch(e) {
 			log.error("error creating costing report: ${e}", e)
 			rtn.error = [msg: "Unable to create costing report due to error: ${e.message}", field: 'costingReport']
 		}
 		log.info("create costing report results: $rtn")
-
-		if(rtn.error) {
-			startCostingAlarm(cloud, rtn.error.msg)
-		}
-		return rtn
+		rtn
 	}
 
-	def createReportBucket(Cloud zone, String bucketName, Map opts = [:]) {
+	def createReportBucket(Cloud zone, String bucketName, String regionCode, Map opts = [:]) {
 		def rtn = [success:false, bucket:null]
 		try {
+			StorageServer storageServer = morpheusContext.services.storageServer.find(new DataQuery().withFilter('refType', 'ComputeZone').withFilter('refId', zone.id))
 			def storageBucketOpts = [
-					account: zone.account, providerType: 's3', name: bucketName, bucketName: bucketName, active: true,
-					storageServer: StorageServer.findByRefTypeAndRefId('Cloud', zone.id)?.id?.toString()
+				account: zone.account, providerType: 's3', name: bucketName, bucketName: bucketName, active: true,
+				storageServer: storageServer
 			]
 			def storageBucket = new StorageBucket(storageBucketOpts)
-			storageBucket.setConfigProperty('region', opts.region ?: zone.getConfigProperty('costingRegion') ?: AmazonComputeUtility.getAmazonEndpointRegion(AmazonComputeUtility.getAmazonEndpoint(zone)))
-			def createResult = storageServerService.createBucket(storageBucket, [:])
+			storageBucket.regionCode = regionCode
+			def createResult = plugin.storageProvider.createBucket(storageBucket)
 
 			if(createResult.success) {
 				rtn.success = true
 				rtn.bucket = storageBucket
 			}
 			else {
-				rtn.msg = createResult.msg
+				rtn.msg = "Unable to create costing report bucket: ${createResult.msg}"
 
 				if(rtn.msg?.contains('(Service:')) {
 					rtn.msg = rtn.msg.substring(0, rtn.msg.indexOf('(Service:'))
@@ -3129,9 +3143,6 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			}
 		} catch(e) {
 			log.error("error creating costing report bucket: ${e}", e)
-		}
-		if(!rtn.success && rtn.msg) {
-//			startCostingAlarm(zone, rtn.msg)
 		}
 		rtn
 	}
