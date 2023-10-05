@@ -1055,10 +1055,9 @@ class CloudFormationResourceMappingUtility  {
 			extraConfig.networkConfig = [category:"amazon.ec2.subnet.${targetZone.id}", type: new NetworkType(code: 'amazonSubnet'), externalType: 'subnet']
 		} else if(config.morpheusType == 'instanceScale') {
 			extraConfig.create = true
-			extraConfig.instanceScale = [ type: new InstanceScaleType(code: 'awsscalegroup') ]
+			extraConfig.instanceScale = [ type: new InstanceScaleType(code: 'plugin.awsscalegroup') ]
 		} else if(config.morpheusType == 'securityGroupLocation') {
 			extraConfig.create = true
-			extraConfig.securityGroupLocation = [ type: new InstanceScaleType(code: 'awsscalegroup') ]
 		}
 		return ServiceResponse.success(extraConfig)
 	}
