@@ -1271,10 +1271,57 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				def newCounter = server.volumes?.size()
 				def availabilityZone
 				def allStorageVolumeTypes
-				if (resizeRequest.volumesUpdate) {
+				if (resizeRequest.volumesUpdate || resizeRequest.volumesAdd) {
 					def serverDetails = AmazonComputeUtility.getServerDetail(amazonOpts)
 					availabilityZone = serverDetails.server.getPlacement().getAvailabilityZone()
 					allStorageVolumeTypes = morpheusContext.async.storageVolume.storageVolumeType.listAll().toMap { it.id }.blockingGet()
+				}
+
+				resizeRequest.volumesAdd?.each {newVolumeProps ->
+					log.info("Adding New Volume")
+					//new disk add it
+					if (!newVolumeProps.maxStorage) {
+						newVolumeProps.maxStorage = newVolumeProps.size ? (newVolumeProps.size.toDouble() * ComputeUtility.ONE_GIGABYTE).toLong() : 0
+					}
+					def volumeType = allStorageVolumeTypes[newVolumeProps.storageType?.toInteger()]
+					def diskType = volumeType ? volumeType?.name : 'gp2'
+					def addDiskResults = AmazonComputeUtility.addVolume([name: newVolumeProps.name, size: newVolumeProps.size, iops: newVolumeProps.maxIOPS ? newVolumeProps.maxIOPS.toInteger() : null,
+																		 amazonClient: amazonOpts.amazonClient, availabilityId: availabilityZone, encryptEbs: encryptEbs, diskType: diskType, kmsKeyId: server.getConfigProperty('kmsKeyId')])
+					if (!addDiskResults.success)
+						throw new Exception("Error in creating new volume: ${addDiskResults}")
+					def newVolumeId = addDiskResults.volume.volumeId
+					def checkReadyResult = AmazonComputeUtility.checkVolumeReady([volumeId: newVolumeId, amazonClient: amazonOpts.amazonClient])
+					if (!checkReadyResult.success)
+						throw new Exception("Volume never became ready: ${checkReadyResult}")
+					// Attach the new one
+					def attachResults = AmazonComputeUtility.attachVolume([volumeId: newVolumeId, serverId: amazonOpts.server.externalId, amazonClient: amazonOpts.amazonClient])
+					if (!attachResults.success)
+						throw new Exception("Volume failed to attach: ${attachResults}")
+					def waitAttachResults = AmazonComputeUtility.waitForVolumeState([volumeId: newVolumeId, requestedState: 'in-use', amazonClient: amazonOpts.amazonClient])
+					if (!waitAttachResults.success)
+						throw new Exception("Volume never attached: ${waitAttachResults}")
+
+					def deviceName = waitAttachResults.results?.volume?.getAttachments()?.find { it.instanceId == amazonOpts.server.externalId }?.getDevice()
+					def newVolume = new StorageVolume(
+							refType: 'ComputeZone',
+							refId: cloud.id,
+							regionCode: server.region?.regionCode,
+							account: server.account,
+							maxStorage: newVolumeProps.maxStorage,
+							maxIOPS: newVolumeProps.maxIops,
+							type: volumeType,
+							externalId: newVolumeId,
+							deviceName: deviceName,
+							deviceDisplayName: extractDiskDisplayName(deviceName),
+							name: newVolumeProps.name,
+							displayOrder: newCounter,
+							status: 'provisioned',
+							rootVolume: ['/dev/sda1','/dev/xvda','xvda','sda1','sda'].contains(deviceName)
+					)
+					log.info("Saving Volume")
+					morpheusContext.async.storageVolume.create([newVolume], server).blockingGet()
+					server = morpheusContext.async.computeServer.get(server.id).blockingGet()
+					newCounter++
 				}
 
 				resizeRequest.volumesUpdate?.each { volumeUpdate ->
@@ -1333,7 +1380,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 								externalId: newVolumeId,
 								deviceName: deviceName,
 								deviceDisplayName: extractDiskDisplayName(deviceName),
-								name: newVolumeId,
+								name: updateProps.name,
 								displayOrder: newCounter,
 								status: 'provisioned',
 								rootVolume: ['/dev/sda1','/dev/xvda','xvda','sda1','sda'].contains(deviceName)
