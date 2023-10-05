@@ -164,7 +164,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 	@Override
 	List<OptionType> getIntegrationOptionTypes() {
 		return [
-			new OptionType(code: 'accountIntegration.amazon.dns.serviceUrl', name: 'Region', inputType: OptionType.InputType.SELECT, optionSourceType: null, optionSource: 'awsPluginRegions', fieldName: 'serviceUrl', fieldLabel: 'Region', fieldContext: 'domain', required: false, noSelection: "gomorpheus.label.all", displayOrder: 0),
+			new OptionType(code: 'accountIntegration.amazon.dns.serviceUrl', name: 'Region', inputType: OptionType.InputType.SELECT, optionSourceType: null, optionSource: 'awsPluginEndpoints', fieldName: 'serviceUrl', fieldLabel: 'Region', fieldContext: 'domain', required: false, noSelection: "gomorpheus.label.all", displayOrder: 0),
 			new OptionType(code: 'accountIntegration.amazon.dns.credentials', name: 'Credentials', inputType: OptionType.InputType.CREDENTIAL, fieldName: 'type', fieldLabel: 'Credentials', fieldContext: 'credential', required: true, displayOrder: 1, defaultValue: 'local',optionSource: 'credentials',config: '{"credentialTypes":["access-key-secret"]}'),
 			new OptionType(code: 'accountIntegration.amazon.dns.serviceUsername', name: 'Access Key', inputType: OptionType.InputType.TEXT, fieldName: 'serviceUsername', fieldLabel: 'Access Key', fieldContext: 'domain', required: true, displayOrder: 2,localCredential: true),
 			new OptionType(code: 'accountIntegration.amazon.dns.servicePassword', name: 'Secret Key', inputType: OptionType.InputType.PASSWORD, fieldName: 'servicePassword', fieldLabel: 'Secret Key', fieldContext: 'domain', required: true, displayOrder: 3,localCredential: true)

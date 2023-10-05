@@ -46,15 +46,19 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 	@Override
 	List<String> getMethodNames() {
 		return new ArrayList<String>([
-			'awsPluginVpc', 'awsPluginEndpoints', 'awsPluginRegions', 'awsPluginAvailabilityZones', 'awsRouteTable',
+			'awsPluginVpc', 'awsPluginAllEndpoints', 'awsPluginEndpoints', 'awsPluginRegions', 'awsPluginAvailabilityZones', 'awsRouteTable',
 			'awsRouteDestinationType', 'awsRouteDestination', 'awsPluginEc2SecurityGroup', 'awsPluginEc2PublicIpType',
 			'awsPluginInventoryLevels', 'awsPluginStorageProvider', 'awsPluginEbsEncryption', 'awsPluginCostingReports',
 			'awsPluginCostingBuckets', 'awsPluginInventoryLevels', 's3Regions', 'amazonEc2NodeAmiImage'
 		])
 	}
 
+	def awsPluginAllEndpoints(args) {
+		[[name: 'All', value: '']] + awsPluginEndpoints(args)
+	}
+
 	def awsPluginEndpoints(args) {
-		def rtn = [[name: 'All', value: '']]
+		def rtn = []
 		def refDataIds = morpheusContext.services.referenceData.list(new DataQuery().withFilter('category', 'amazon.ec2.region')).collect { it.id }
 		if(refDataIds.size() > 0) {
 			morpheusContext.services.referenceData.listById(refDataIds).sort { it.name }.each {
@@ -67,13 +71,12 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 	def awsPluginRegions(args) {
 		def rtn = []
 		def refDataIds = morpheus.services.referenceData.list(new DataQuery().withFilter("category", "amazon.ec2.region")).collect { it.id }
-		log.debug("refDataIds: ${refDataIds}")
 		if(refDataIds.size() > 0) {
-			rtn = morpheus.services.referenceData.listById(refDataIds).sort { it.name }.collect { [value: it.value, name: it.name] }
+			rtn = morpheus.services.referenceData.listById(refDataIds).sort { it.name }.collect {
+				[value: it.keyValue, name: it.name]
+			}
 		}
-
-		log.debug("results: ${rtn}")
-		return rtn
+		rtn
 	}
 
 	def awsPluginVpc(args) {
