@@ -758,7 +758,7 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 			switch(cloudFormationOpts.configType) {
 				case 'git':
 					def codeRepositoryId = cloudFormationOpts.git.repoId
-					def codeRepository = morpheusContext.async.codeRepository.fetchCodeRepository(codeRepositoryId, cloudFormationOpts.git.branch)
+					def codeRepository = morpheusContext.async.codeRepository.fetchCodeRepository(codeRepositoryId, cloudFormationOpts.git.branch).blockingGet()
 					templateJson = loadCloudFormationConfigFromRepo(codeRepository, cloudFormationOpts)?.template
 					break
 				case 'yaml':
@@ -818,7 +818,7 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 			switch(configType) {
 				case 'git':
 					def codeRepositoryId = cloudFormationOpts.git.repoId
-					def codeRepository = morpheusContext.async.codeRepository.fetchCodeRepository(codeRepositoryId, cloudFormationOpts.git.branch)
+					def codeRepository = morpheusContext.async.codeRepository.fetchCodeRepository(codeRepositoryId, cloudFormationOpts.git.branch).blockingGet()
 					templateJson = loadCloudFormationConfigFromRepo(codeRepository, cloudFormationOpts)?.template
 					break
 				case 'yaml':
@@ -897,7 +897,7 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 			switch(configType) {
 				case 'git':
 					def codeRepositoryId = cloudFormationOpts.git.repoId
-					def codeRepository = morpheusContext.async.codeRepository.fetchCodeRepository(codeRepositoryId, cloudFormationOpts.git.branch)
+					def codeRepository = morpheusContext.async.codeRepository.fetchCodeRepository(codeRepositoryId, cloudFormationOpts.git.branch).blockingGet()
 					def loadResults = loadCloudFormationConfigFromRepo(codeRepository, cloudFormationOpts)
 					templateJson = loadResults?.template
 					isYaml = loadResults?.isYaml
@@ -1810,7 +1810,7 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 				template = CloudFormationResourceMappingUtility.loadYamlOrJsonMap(cloudFormationYaml)
 			} else if(configType == 'git') {
 				def codeRepositoryId = cloudFormationOpts.git.repoId
-				def codeRepository = morpheusContext.async.codeRepository.fetchCodeRepository(codeRepositoryId, cloudFormationOpts?.git?.branch)
+				def codeRepository = morpheusContext.async.codeRepository.fetchCodeRepository(codeRepositoryId, cloudFormationOpts?.git?.branch).blockingGet()
 				if (codeRepository) {
 					def gitCloudFormationConfig = loadCloudFormationConfigFromRepo(codeRepository, cloudFormationOpts)
 					if(!gitCloudFormationConfig.success) {
