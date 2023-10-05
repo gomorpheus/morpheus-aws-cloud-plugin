@@ -6,6 +6,7 @@ import com.morpheusdata.aws.backup.AWSSnapshotBackupProvider
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.AbstractProvisionProvider
 import com.morpheusdata.core.MorpheusContext
+import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.providers.HostProvisionProvider
 import com.morpheusdata.core.providers.ProvisionProvider
 import com.morpheusdata.core.providers.VmProvisionProvider
@@ -13,6 +14,7 @@ import com.morpheusdata.core.providers.WorkloadProvisionProvider
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.model.Account
 import com.morpheusdata.model.Cloud
+import com.morpheusdata.model.CloudPool
 import com.morpheusdata.model.CloudRegion
 import com.morpheusdata.model.ComputeCapacityInfo
 import com.morpheusdata.model.ComputeServer
@@ -592,15 +594,56 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 
 		def rtn = [success: false, msg: null]
 		try {
+			def layout = server?.layout
+			def typeSet = server.typeSet
+			def config = server.getConfigMap()
+			def imageType = config.templateTypeSelect ?: 'default'
+			Cloud cloud = server.cloud
+			def cloudPoolId = server.resourcePool?.id ?: getCloudPoolId(cloud?.getConfigMap(), server?.getConfigMap())
+			CloudPool cloudPool
+			if(cloudPoolId instanceof String) {
+				cloudPool = morpheus.services.cloud.pool.find(new DataQuery().withFilter("cloud.id", cloud.id).withFilter("externalId", cloudPoolId))
+			} else if(cloudPoolId instanceof Number) {
+				cloudPool = morpheus.services.cloud.pool.get(cloudPoolId)
+			}
+			if(server.resourcePool == null && cloudPool) {
+				server.resourcePool = cloudPool
+			}
+			AmazonEC2 amazonClient = plugin.getAmazonClient(cloud,false, server.resourcePool?.regionCode)
+
 			VirtualImage virtualImage
-			Long computeTypeSetId = server.typeSet?.id
-			if(computeTypeSetId) {
-				ComputeTypeSet computeTypeSet = morpheus.computeTypeSet.get(computeTypeSetId).blockingGet()
-				if(computeTypeSet.containerType) {
-					ContainerType containerType = morpheus.containerType.get(computeTypeSet.containerType.id).blockingGet()
-					virtualImage = containerType.virtualImage
+
+			if(layout && typeSet) {
+				Long computeTypeSetId = server.typeSet?.id
+				if(computeTypeSetId) {
+					ComputeTypeSet computeTypeSet = morpheus.services.computeTypeSet.get(computeTypeSetId)
+					if(computeTypeSet.containerType) {
+						ContainerType containerType = morpheus.services.containerType.get(computeTypeSet.containerType.id)
+						virtualImage = containerType.virtualImage
+						if(virtualImage) {
+							ensureVirtualImageLocation(amazonClient, server.resourcePool?.regionCode, virtualImage, cloud)
+						}
+					}
+				}
+			} else if(imageType == 'custom') {
+				// TODO Handle custom images for hosts
+				// if(config.publicImageId) {
+				// 	def saveResults = amazonProvisionService.saveAccountImage(opts.amazonClient, opts.account, opts.zone, config.publicImageId)
+				// 	imageId = saveResults.imageId
+				// 	virtualImage = saveResults.image
+				// 	virtualImageLocation = amazonProvisionService.ensureVirtualImageLocation(endpoint, virtualImage, opts)
+				// } else if(config.imageId) {
+				// 	imageId = config.imageId?.toLong()
+				// 	virtualImage = VirtualImage.read(imageId)
+				// 	virtualImageLocation = amazonProvisionService.ensureVirtualImageLocation(endpoint, virtualImage, opts)
+				// }
+			} else {
+				virtualImage = morpheus.services.virtualImage.find(new DataQuery().withFilter("code", "amazon.ec2.image.morpheus.ubuntu.20.04.4-v1.ubuntu.20.04.4.amd64"))
+				if(virtualImage) {
+					ensureVirtualImageLocation(amazonClient, server.resourcePool?.regionCode, virtualImage, cloud)
 				}
 			}
+
 			if(!virtualImage) {
 				rtn.msg = "No virtual image selected"
 			} else {
@@ -1646,7 +1689,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		return rtn
 	}
 
-	private static getResourceGroupId(zoneConfig, containerConfig) {
+	private static getCloudPoolId(zoneConfig, containerConfig) {
 		def rtn = zoneConfig['vpc']
 		if(!rtn)
 			rtn = containerConfig['resourcePool']

@@ -32,7 +32,7 @@ import com.morpheusdata.aws.sync.VpnGatewaySync
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.core.backup.AbstractBackupProvider
-import com.morpheusdata.core.CloudProvider
+import com.morpheusdata.core.providers.CloudProvider
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
 import com.morpheusdata.core.providers.CloudCostingProvider
@@ -147,11 +147,11 @@ class AWSCloudProvider implements CloudProvider {
 			inputType: OptionType.InputType.TEXT,
 		)
 		OptionType inventoryLevel = new OptionType(
-			name: 'Inventory Level',
+			name: 'Inventory',
 			code: 'aws-plugin-inventory-level',
 			displayOrder: 70,
 			fieldContext: 'config',
-			fieldLabel: 'Inventory Level',
+			fieldLabel: 'Inventory',
 			fieldName: 'inventoryLevel',
 			inputType: OptionType.InputType.SELECT,
 			optionSource:'awsPluginInventoryLevels',
@@ -228,6 +228,7 @@ class AWSCloudProvider implements CloudProvider {
 	@Override
 	Collection<ComputeServerType> getComputeServerTypes() {
 		def options = []
+
 		options << new OptionType([
 				name : 'publicIP',
 				code : 'amazon-ec2-provision-public-id',
@@ -242,6 +243,7 @@ class AWSCloudProvider implements CloudProvider {
 				optionSource: 'awsPluginEc2PublicIpType'
 
 		])
+
 		ComputeServerType unmanaged = new ComputeServerType()
 		unmanaged.name = 'Amazon Instance'
 		unmanaged.code = 'amazonUnmanaged'
@@ -265,6 +267,9 @@ class AWSCloudProvider implements CloudProvider {
 		dockerType.managed = true
 		dockerType.provisionTypeCode = 'amazon'
 		dockerType.optionTypes = options
+		dockerType.agentType = ComputeServerType.AgentType.node
+		dockerType.containerHypervisor = true
+		dockerType.containerEngine = ComputeServerType.ContainerEngine.docker
 
 		ComputeServerType vmType = new ComputeServerType()
 		vmType.name = 'Amazon Instance'
@@ -296,7 +301,7 @@ class AWSCloudProvider implements CloudProvider {
 	}
 
 	@Override
-	Collection<com.morpheusdata.core.ProvisionProvider> getAvailableProvisionProviders() {
+	Collection<ProvisionProvider> getAvailableProvisionProviders() {
 		return plugin.getProvidersByType(ProvisionProvider) as Collection<com.morpheusdata.core.ProvisionProvider>
 	}
 
