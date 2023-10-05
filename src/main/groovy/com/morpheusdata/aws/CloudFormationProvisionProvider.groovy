@@ -2,6 +2,7 @@ package com.morpheusdata.aws
 
 import com.amazonaws.services.cloudformation.model.StackEvent
 import com.amazonaws.services.cloudformation.model.StackResource
+import com.amazonaws.services.ec2.AmazonEC2Client
 import com.amazonaws.services.migrationhubstrategyrecommendations.model.OSType
 import com.bertramlabs.plugins.karman.network.SecurityGroupInterface
 import com.morpheusdata.aws.sync.VirtualMachineSync
@@ -953,7 +954,7 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 								if(resourceConfig.key_name) {
 									// Use the key pair specified (exception if we do not know about the key pair)
 									def keyNameValue = getValueForProperty(resourceConfig.key_name, templateParameters)
-									def keyConfig = [:]
+									def keyConfig = [publicKeyName: keyNameValue]
 									def key = morpheusContext.async.keyPair.find(new DataQuery().withFilters([
 									        new DataFilter('accountId', app.account.id),
 											new DataFilter('name', keyNameValue)
@@ -961,8 +962,7 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 									if (!key) {
 										failedList << [msg: "KeyName of (${keyNameValue}) specified but no key by that name exists in Morpheus."] + newResource
 									} else {
-
-										EC2ProvisionProvider.ensureAmazonKeyPair(keyConfig, amazonClient, app.account, cloud, key)
+										EC2ProvisionProvider.ensureAmazonKeyPair(keyConfig, amazonClient, app.account, cloud, key, morpheusContext)
 										// primaryKey is AccountKeyPair
 										resourceConfig.key_id = key.id
 										resourceConfig.key_name = keyConfig.publicKeyName
