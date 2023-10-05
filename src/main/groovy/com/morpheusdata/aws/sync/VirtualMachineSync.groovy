@@ -55,7 +55,7 @@ class VirtualMachineSync {
 		try {
 			def usageLists = [restartUsageIds: [], stopUsageIds: [], startUsageIds: [], updatedSnapshotIds: []]
 			def inventoryLevel = cloud.inventoryLevel ?: (cloud.getConfigProperty('importExisting') in [true, 'true', 'on'] ? 'basic' : 'off')
-			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+			morpheusContext.async.cloud.region.listIdentityProjectionsForRegionsWithCloudPools(cloud.id).blockingSubscribe { region ->
 				def amazonClient = plugin.getAmazonClient(cloud,false, region.externalId)
 				def vmList = AmazonComputeUtility.listVpcServers([amazonClient: amazonClient, cloud: cloud])
 				if(vmList.success) {

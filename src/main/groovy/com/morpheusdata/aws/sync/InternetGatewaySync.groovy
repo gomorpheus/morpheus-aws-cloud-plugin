@@ -4,6 +4,8 @@ import com.amazonaws.services.ec2.model.InternetGateway
 import com.morpheusdata.aws.AWSPlugin
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
+import com.morpheusdata.core.data.DataFilter
+import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.NetworkRouter
@@ -38,7 +40,8 @@ class InternetGatewaySync {
 				def amazonClient = plugin.getAmazonClient(cloud,false, regionCode)
 				def routerResults = AmazonComputeUtility.listInternetGateways([amazonClient: amazonClient])
 				if(routerResults.success) {
-					Observable<NetworkRouterIdentityProjection> domainRecords = morpheusContext.async.network.router.listIdentityProjections(cloud.id,'amazonInternetGateway')
+					Observable<NetworkRouterIdentityProjection> domainRecords = morpheusContext.async.network.router.listIdentityProjections(new DataQuery().withFilters(new DataFilter("zone.id",cloud.id), new DataFilter("type.code","amazonInternetGateway"), new DataFilter("regionCode",region.externalId)))
+					//Observable<NetworkRouterIdentityProjection> domainRecords = morpheusContext.async.network.router.listIdentityProjections(cloud.id,'amazonInternetGateway')
 					SyncTask<NetworkRouterIdentityProjection, InternetGateway, NetworkRouter> syncTask = new SyncTask<>(domainRecords, routerResults.internetGateways as Collection<InternetGateway>)
 					return syncTask.addMatchFunction { NetworkRouterIdentityProjection domainObject, InternetGateway data ->
 						domainObject.externalId == data.getInternetGatewayId()

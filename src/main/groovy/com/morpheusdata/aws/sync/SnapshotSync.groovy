@@ -33,7 +33,7 @@ class SnapshotSync {
 	def execute() {
 		try {
 			def updatedSnapshotIds = []
-			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+			morpheusContext.async.cloud.region.listIdentityProjectionsForRegionsWithVolumes(cloud.id).blockingSubscribe { region ->
 				def volumes = morpheusContext.async.storageVolume.listIdentityProjections(cloud.id, region.externalId).toMap { it.externalId }.blockingGet()
 				def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
 				def cloudItems = AmazonComputeUtility.listSnapshots([amazonClient: amazonClient, zone: cloud]).snapshotList
