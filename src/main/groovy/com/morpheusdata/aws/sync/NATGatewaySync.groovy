@@ -24,7 +24,7 @@ class NATGatewaySync extends InternalResourceSync {
 
 	def execute() {
 		try {
-			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).concatMap { region ->
+			morpheusContext.async.cloud.region.listIdentityProjectionsForRegionsWithCloudPools(cloud.id).concatMap { region ->
 				final String regionCode = region.externalId
 				def amazonClient = plugin.getAmazonClient(cloud,false, region.externalId)
 				def apiList = AmazonComputeUtility.listNatGateways([amazonClient: amazonClient],[:])
