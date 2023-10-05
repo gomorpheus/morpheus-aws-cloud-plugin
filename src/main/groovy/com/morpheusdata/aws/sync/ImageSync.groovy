@@ -37,7 +37,7 @@ class ImageSync {
 
 	def execute() {
 		try {
-			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+			morpheusContext.async.cloud.region.listIdentityProjectionsForRegionsWithCloudPools(cloud.id).blockingSubscribe { region ->
 				def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
 				def cloudItems = AmazonComputeUtility.listImages([amazonClient: amazonClient, zone: cloud]).imageList
 				Observable<VirtualImageLocationIdentityProjection> existingRecords = morpheusContext.async.virtualImage.location.listIdentityProjections(cloud.id, region.externalId)

@@ -4246,6 +4246,7 @@ class AmazonComputeUtility {
 			rtn.success = true
 		} catch(e) {
 			log.debug("getBucketPolicy error: ${e}", e)
+			rtn.msg = e.errorMessage
 		}
 		rtn
 	}

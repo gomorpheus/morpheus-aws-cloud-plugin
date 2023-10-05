@@ -129,7 +129,8 @@ class S3StorageProvider implements StorageProvider, StorageProviderBuckets, Clou
         try {
             StorageServer storageServer = new StorageServer(
                 name: cloud.name,
-                type: getStorageServerType()
+                type: getStorageServerType(),
+                enabled: true
             )
             morpheus.async.integration.registerCloudIntegration(cloud.id, storageServer).blockingGet()
             rtn.success = true
@@ -232,7 +233,7 @@ class S3StorageProvider implements StorageProvider, StorageProviderBuckets, Clou
         }
         def apiConfig = getApiConfig(storageServer, region)
         // log.debug("Caching buckets for storageServer: ${storageServer.name}, endpoint: ${apiConfig.endpoint}, region: ${apiConfig.region}")
-        
+
         def bucketResults = listBuckets(storageServer, opts, apiConfig)
         if(bucketResults.success) {
             log.debug("Found ${bucketResults.buckets?.size()} buckets in S3 to sync for storage server ${storageServer.name}")

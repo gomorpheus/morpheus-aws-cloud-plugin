@@ -64,7 +64,7 @@ class AWSPlugin extends Plugin {
 			"application.ComputeServerTypeAmazonSeed",
 			"application.AmazonComputeTypeSeed"
 		]
-		morpheus.async.seed.reinstallSeedData(seedsToRun).subscribe()
+		morpheus.services.seed.reinstallSeedData(seedsToRun) // needs to be synchronous to prevent seeds from running during plugin install
 	}
 
 	def MorpheusContext getMorpheusContext() {

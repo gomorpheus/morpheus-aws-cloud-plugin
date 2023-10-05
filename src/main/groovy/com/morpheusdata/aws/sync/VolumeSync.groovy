@@ -28,7 +28,7 @@ class VolumeSync {
 
 	def execute() {
 		try {
-			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+			morpheusContext.async.cloud.region.listIdentityProjectionsForRegionsWithCloudPools(cloud.id).blockingSubscribe { region ->
 				def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
 				def cloudItems = AmazonComputeUtility.listVolumes([amazonClient: amazonClient, zone: cloud]).volumeList
 				Observable<StorageVolumeIdentityProjection> existingRecords =  morpheusContext.async.storageVolume.listIdentityProjections(cloud.id, region.externalId)

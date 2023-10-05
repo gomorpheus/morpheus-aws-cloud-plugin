@@ -23,6 +23,7 @@ import com.morpheusdata.model.ComputeServerInterfaceType
 import com.morpheusdata.model.ComputeTypeLayout
 import com.morpheusdata.model.ComputeTypeSet
 import com.morpheusdata.model.ContainerType
+import com.morpheusdata.model.WorkloadType
 import com.morpheusdata.model.HostType
 import com.morpheusdata.model.ImageType
 import com.morpheusdata.model.Instance
@@ -617,9 +618,13 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				Long computeTypeSetId = server.typeSet?.id
 				if(computeTypeSetId) {
 					ComputeTypeSet computeTypeSet = morpheus.services.computeTypeSet.get(computeTypeSetId)
-					if(computeTypeSet.containerType) {
-						ContainerType containerType = morpheus.services.containerType.get(computeTypeSet.containerType.id)
-						virtualImage = containerType.virtualImage
+					WorkloadType workloadType = computeTypeSet.getWorkloadType()
+
+					if(workloadType) {
+						Long workloadTypeId = workloadType.Id
+						WorkloadType containerType = morpheus.services.containerType.get(workloadTypeId)
+						Long virtualImageId = containerType.virtualImage.id
+						virtualImage = morpheus.services.virtualImage.get(virtualImageId)   
 						if(virtualImage) {
 							ensureVirtualImageLocation(amazonClient, server.resourcePool?.regionCode, virtualImage, cloud)
 						}
@@ -645,7 +650,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 					ensureVirtualImageLocation(amazonClient, server.resourcePool?.regionCode, virtualImage, cloud)
 				}
 			}
-
 			if(!virtualImage) {
 				rtn.msg = "No virtual image selected"
 			} else {
@@ -720,7 +724,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		}
 		return new ServiceResponse(rtn.success, rtn.msg, null, null)
 	}
-
 
 	protected buildHostRunConfig(ComputeServer server, HostRequest hostRequest, VirtualImage virtualImage, AmazonEC2 amazonClient, Map opts) {
 
