@@ -626,17 +626,19 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 					}
 				}
 			} else if(imageType == 'custom') {
-				// TODO Handle custom images for hosts
-				// if(config.publicImageId) {
-				// 	def saveResults = amazonProvisionService.saveAccountImage(opts.amazonClient, opts.account, opts.zone, config.publicImageId)
-				// 	imageId = saveResults.imageId
-				// 	virtualImage = saveResults.image
-				// 	virtualImageLocation = amazonProvisionService.ensureVirtualImageLocation(endpoint, virtualImage, opts)
-				// } else if(config.imageId) {
-				// 	imageId = config.imageId?.toLong()
-				// 	virtualImage = VirtualImage.read(imageId)
-				// 	virtualImageLocation = amazonProvisionService.ensureVirtualImageLocation(endpoint, virtualImage, opts)
-				// }
+				if(config.publicImageId) {
+					def saveResults = saveAccountImage(amazonClient, server.account, cloud, server.resourcePool?.regionCode, config.publicImageId, morpheusContext)
+					virtualImage = saveResults.image
+					if(virtualImage) {
+						ensureVirtualImageLocation(amazonClient, server.resourcePool?.regionCode, virtualImage, cloud)
+					}
+				} else if(config.imageId) {
+					Long imageId = config.imageId?.toLong()
+					virtualImage = morpheus.services.virtualImage.get(imageId)
+					if(virtualImage) {
+						ensureVirtualImageLocation(amazonClient, server.resourcePool?.regionCode, virtualImage, cloud)
+					}
+				}
 			} else {
 				virtualImage = morpheus.services.virtualImage.find(new DataQuery().withFilter("code", "amazon.ec2.image.morpheus.ubuntu.20.04.4-v1.ubuntu.20.04.4.amd64"))
 				if(virtualImage) {
