@@ -794,6 +794,16 @@ class AWSCloudProvider implements CloudProvider {
 	}
 
 	@Override
+	Boolean canCreateCloudPools() {
+		return true
+	}
+
+	@Override
+	Boolean canDeleteCloudPools() {
+		return true
+	}
+
+	@Override
 	ServiceResponse initializeCloud(Cloud cloud) {
 		ServiceResponse rtn = new ServiceResponse(success: false)
 		log.debug("Refreshing Cloud: ${cloud.code}")
