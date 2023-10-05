@@ -82,7 +82,7 @@ class AWSCloudProvider implements CloudProvider {
 			fieldCode: 'gomorpheus.optiontype.Region',
 			fieldName: 'endpoint',
 			inputType: OptionType.InputType.SELECT,
-			optionSource: 'awsPluginEndpoints',
+			optionSource: 'awsPluginAllEndpoints',
 			required: true
 		)
 		OptionType credentials = new OptionType(
