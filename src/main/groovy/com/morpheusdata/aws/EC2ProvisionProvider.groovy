@@ -23,6 +23,7 @@ import com.morpheusdata.model.ComputeServerInterfaceType
 import com.morpheusdata.model.ComputeTypeLayout
 import com.morpheusdata.model.ComputeTypeSet
 import com.morpheusdata.model.ContainerType
+import com.morpheusdata.model.NetAddress
 import com.morpheusdata.model.WorkloadType
 import com.morpheusdata.model.HostType
 import com.morpheusdata.model.ImageType
@@ -696,13 +697,13 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	@Override
 	ServiceResponse finalizeHost(ComputeServer server) {
 		def rtn = [success: true, msg: null]
-		log.debug "finalizeHost: ${workload?.id}"
+		log.debug("finalizeHost: ${server?.id}")
 		return finalizeServer(server)
 	}
 
 	private finalizeServer(ComputeServer server) {
 		def rtn = [success: true, msg: null]
-		log.debug "finalizeWorkload: ${server?.id}"
+		log.debug("finalizeServer: ${server?.id}")
 		try {
 			if(server && server.uuid && server.resourcePool?.externalId) {
 				def amazonClient = plugin.getAmazonClient(server.cloud, false, server.resourcePool.regionCode)
@@ -720,7 +721,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		} catch(e) {
 			rtn.success = false
 			rtn.msg = "Error in finalizing server: ${e.message}"
-			log.error "Error in finalizeWorkload: ${e}", e
+			log.error("Error in finalizeServer: ${e}", e)
 		}
 		return new ServiceResponse(rtn.success, rtn.msg, null, null)
 	}
@@ -1065,7 +1066,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	 */
 	@Override
 	ServiceResponse startWorkload(Workload workload) {
-		log.debug("stopWorkload: ${workload}")
+		log.debug("startWorkload: ${workload}")
 		startServer(workload.server)
 	}
 
@@ -1443,10 +1444,11 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 									displayOrder    : newIndex,
 									primaryInterface: networkAdd?.network?.isPrimary ? true : false
 							])
-							morpheusContext.async.computeServer.computeServerInterface.create([newInterface], server).blockingGet()
-							// Need to refetch the server
-							server = morpheusContext.async.computeServer.get(server.id).blockingGet()
+							newInterface.addresses += new NetAddress(type: NetAddress.AddressType.IPV4, address: nic?.getPrivateIpAddress())
 
+							newInterface = morpheusContext.async.computeServer.computeServerInterface.create(newInterface).blockingGet()
+							server.interfaces += newInterface
+							server = saveAndGet(server)
 						}
 					}
 
@@ -1590,7 +1592,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 					def imageResults = AmazonComputeUtility.loadImage([amazonClient:amazonClient, imageId:publicImageId])
 					if(imageResults.success == true && imageResults.image)	{
 						existing.externalDiskId = imageResults.image.blockDeviceMappings.find{ mapping -> mapping.deviceName == imageResults.image.rootDeviceName}?.ebs?.snapshotId
-						morpheus.aysnc.virtualImage.location.save([existing]).blockingGet()
+						morpheus.async.virtualImage.location.save([existing]).blockingGet()
 						rtn.awsImage = imageResults.image
 					}
 				}
@@ -1656,7 +1658,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 
 
 	protected VirtualImageLocation ensureVirtualImageLocation(AmazonEC2 amazonClient, String region, VirtualImage virtualImage, Cloud cloud) {
-
 		def rtn = virtualImage.imageLocations?.find{it.refType == 'ComputeZone' && it.refId == cloud.id && it.imageRegion == region}
 		if(!rtn) {
 			rtn = virtualImage.imageLocations?.find{it.refType == 'ComputeZone' && it.refId == cloud.id}
@@ -1671,12 +1672,15 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				if(publicImageResults.success && publicImageResults.image) {
 					def diskId = publicImageResults.image.blockDeviceMappings.find{ mapping -> mapping.deviceName == publicImageResults.image.rootDeviceName}?.ebs?.snapshotId
 					def newLocation = new VirtualImageLocation(virtualImage: virtualImage,imageName: virtualImage.name, externalId: publicImageResults.image.getImageId(), imageRegion: region, externalDiskId: diskId)
-					newLocation = morpheus.virtualImage.location.create(newLocation, cloud).blockingGet()
+					newLocation = morpheus.async.virtualImage.location.create(newLocation, cloud).blockingGet()
 					return newLocation
 				}
 			}
 			if(!virtualImage.externalDiskId && virtualImage.externalId) {
 				def imageResults = AmazonComputeUtility.loadImage([amazonClient:amazonClient, imageId:virtualImage.externalId])
+				if(imageResults.success == true && imageResults.image)	{
+					virtualImage.externalDiskId = imageResults.image.blockDeviceMappings.find{ mapping -> mapping.deviceName == imageResults.image.rootDeviceName}?.ebs?.snapshotId
+				}
 			}
 			rtn = new VirtualImageLocation([externalId:virtualImage.externalId, externalDiskId:virtualImage.externalDiskId])
 		}
@@ -1868,7 +1872,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		configOpts.each { k,v ->
 			server.setConfigProperty(k, v)
 		}
-		def network
+		ComputeServerInterface network
 		if(privateIp) {
 			privateIp = privateIp?.toString().contains("\n") ? privateIp.toString().replace("\n", "") : privateIp.toString()
 			def newInterface = false
@@ -1888,7 +1892,8 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 			if(network == null) {
 				def interfaceName = server.sourceImage?.interfaceName ?: 'eth0'
 				network = new ComputeServerInterface(name:interfaceName, ipAddress:privateIp, primaryInterface:true,
-						displayOrder:(server.interfaces?.size() ?: 0) + 1)
+						displayOrder:(server.interfaces?.size() ?: 0) + 1, externalId: networkOpts.externalId)
+				network.addresses += new NetAddress(type: NetAddress.AddressType.IPV4, address: privateIp)
 				newInterface = true
 			} else {
 				network.ipAddress = privateIp
@@ -1915,7 +1920,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 			if(newInterface == true)
 				morpheusContext.async.computeServer.computeServerInterface.create([network], server).blockingGet()
 			else
-				morpheusContext.async.computeServer.computeServerInterface.save([network])
+				morpheusContext.async.computeServer.computeServerInterface.save([network]).blockingGet()
 		}
 		saveAndGet(server)
 		return network
