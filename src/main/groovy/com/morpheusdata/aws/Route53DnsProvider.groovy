@@ -341,21 +341,13 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
                 SyncTask<NetworkDomainRecord, Map, NetworkDomainRecord> syncTask = new SyncTask<NetworkDomainRecord, Map, NetworkDomainRecord>(domainRecords, apiItems)
                 return syncTask.addMatchFunction {  NetworkDomainRecord domainObject, Map apiItem ->
                     domainObject.externalId == apiItem['externalId']
-
                 }.onDelete {removeItems ->
-                	log.debug("Removing ${removeItems.size()} network domain records for domain ${domain.externalId}")
                     morpheus.async.network.domain.record.remove(domain, removeItems).blockingGet()
                 }.onAdd { itemsToAdd ->
-                	log.debug("Adding ${itemsToAdd.size()} network domain records for domain ${domain.externalId}")
                     addMissingDomainRecords(domain, itemsToAdd)
-                }.withLoadObjectDetails { List<SyncTask.UpdateItemDto<NetworkDomainRecord,Map>> updateItems ->
-                    Map<Long, SyncTask.UpdateItemDto<NetworkDomainRecord, Map>> updateItemMap = updateItems.collectEntries { [(it.existingItem.id): it]}
-                    return morpheus.async.network.domain.record.listById(updateItems.collect{it.existingItem.id} as Collection<Long>).map { NetworkDomainRecord domainRecord ->
-                        SyncTask.UpdateItemDto<NetworkDomainRecordIdentityProjection, Map> matchItem = updateItemMap[domainRecord.id]
-                        return new SyncTask.UpdateItem<NetworkDomainRecord,Map>(existingItem:domainRecord, masterItem:matchItem.masterItem)
-                    }
-                }.onUpdate { List<SyncTask.UpdateItem<NetworkDomainRecord,Map>> updateItems ->
-                	log.debug("Updating ${updateItems.size()} network domain records for domain ${domain.externalId}")
+                }.withLoadObjectDetailsFromFinder {List<SyncTask.UpdateItemDto<NetworkDomainRecord,Map>> updateItems ->
+					return morpheus.async.network.domain.record.listById(updateItems.collect{it.existingItem.id})
+				}.onUpdate { List<SyncTask.UpdateItem<NetworkDomainRecord,Map>> updateItems ->
                     updateMatchedDomainRecords(updateItems)
                 }.observe()
             } else {
@@ -392,7 +384,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
             }
         }
         if(records.size() > 0) {
-            morpheus.network.domain.record.save(records).blockingGet()
+			morpheus.services.network.domain.bulkSave(records)
         }
     }
 
@@ -401,7 +393,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 
         addList?.each {record ->
             if(record['name']) {
-                def addConfig = [networkDomain:new NetworkDomain(id: domain.id), fqdn:record['fqdn'],
+                def addConfig = [networkDomain:domain, fqdn:record['fqdn'],
                                  type:record['type']?.toUpperCase(), comments:record['comments'], ttl:record['ttl'],
                                  externalId:record['externalId'], internalId:record['content'], source:'sync',
                                  recordData:record['recordData'], content:record['content']]
@@ -414,7 +406,10 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
             }
 
         }
-        morpheus.network.domain.record.create(domain,records).blockingGet()
+		if(records) {
+			morpheus.services.network.domain.record.bulkSave(records)
+		}
+
     }
 
 	/**
