@@ -696,13 +696,13 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	@Override
 	ServiceResponse finalizeHost(ComputeServer server) {
 		def rtn = [success: true, msg: null]
-		log.debug "finalizeHost: ${workload?.id}"
+		log.debug("finalizeHost: ${server?.id}")
 		return finalizeServer(server)
 	}
 
 	private finalizeServer(ComputeServer server) {
 		def rtn = [success: true, msg: null]
-		log.debug "finalizeWorkload: ${server?.id}"
+		log.debug("finalizeServer: ${server?.id}")
 		try {
 			if(server && server.uuid && server.resourcePool?.externalId) {
 				def amazonClient = plugin.getAmazonClient(server.cloud, false, server.resourcePool.regionCode)
@@ -720,7 +720,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		} catch(e) {
 			rtn.success = false
 			rtn.msg = "Error in finalizing server: ${e.message}"
-			log.error "Error in finalizeWorkload: ${e}", e
+			log.error("Error in finalizeServer: ${e}", e)
 		}
 		return new ServiceResponse(rtn.success, rtn.msg, null, null)
 	}
@@ -1590,7 +1590,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 					def imageResults = AmazonComputeUtility.loadImage([amazonClient:amazonClient, imageId:publicImageId])
 					if(imageResults.success == true && imageResults.image)	{
 						existing.externalDiskId = imageResults.image.blockDeviceMappings.find{ mapping -> mapping.deviceName == imageResults.image.rootDeviceName}?.ebs?.snapshotId
-						morpheus.aysnc.virtualImage.location.save([existing]).blockingGet()
+						morpheus.async.virtualImage.location.save([existing]).blockingGet()
 						rtn.awsImage = imageResults.image
 					}
 				}
@@ -1656,7 +1656,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 
 
 	protected VirtualImageLocation ensureVirtualImageLocation(AmazonEC2 amazonClient, String region, VirtualImage virtualImage, Cloud cloud) {
-
 		def rtn = virtualImage.imageLocations?.find{it.refType == 'ComputeZone' && it.refId == cloud.id && it.imageRegion == region}
 		if(!rtn) {
 			rtn = virtualImage.imageLocations?.find{it.refType == 'ComputeZone' && it.refId == cloud.id}
@@ -1671,12 +1670,15 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				if(publicImageResults.success && publicImageResults.image) {
 					def diskId = publicImageResults.image.blockDeviceMappings.find{ mapping -> mapping.deviceName == publicImageResults.image.rootDeviceName}?.ebs?.snapshotId
 					def newLocation = new VirtualImageLocation(virtualImage: virtualImage,imageName: virtualImage.name, externalId: publicImageResults.image.getImageId(), imageRegion: region, externalDiskId: diskId)
-					newLocation = morpheus.virtualImage.location.create(newLocation, cloud).blockingGet()
+					newLocation = morpheus.async.virtualImage.location.create(newLocation, cloud).blockingGet()
 					return newLocation
 				}
 			}
 			if(!virtualImage.externalDiskId && virtualImage.externalId) {
 				def imageResults = AmazonComputeUtility.loadImage([amazonClient:amazonClient, imageId:virtualImage.externalId])
+				if(imageResults.success == true && imageResults.image)	{
+					virtualImage.externalDiskId = imageResults.image.blockDeviceMappings.find{ mapping -> mapping.deviceName == imageResults.image.rootDeviceName}?.ebs?.snapshotId
+				}
 			}
 			rtn = new VirtualImageLocation([externalId:virtualImage.externalId, externalDiskId:virtualImage.externalDiskId])
 		}
