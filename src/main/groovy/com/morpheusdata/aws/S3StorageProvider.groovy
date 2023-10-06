@@ -214,7 +214,7 @@ class S3StorageProvider implements StorageProvider, StorageProviderBuckets, Clou
          return rtn
     }
 
-    def cacheBuckets(StorageServer storageServer, opts) {
+    void cacheBuckets(StorageServer storageServer, opts) {
         log.debug("cacheBuckets() ${storageServer.name}")
         // This is not region scoped, so we only need to use the first region to get all the buckets for all regions in the aws partition
         String endpoint
@@ -257,35 +257,21 @@ class S3StorageProvider implements StorageProvider, StorageProviderBuckets, Clou
             syncTask.addMatchFunction { StorageBucketIdentityProjection domainObject, Map apiItem ->
                 domainObject.externalId == apiItem['name']
             }.onDelete {removeItems ->
-                while (removeItems?.size() > 0) {
-                    List chunkedRemoveList = removeItems.take(50)
-                    removeItems = removeItems.drop(50)
-                    removeMissingBuckets(chunkedRemoveList)
-                }
+                removeMissingBuckets(removeItems)
             }.onAdd { itemsToAdd ->
-                while (itemsToAdd?.size() > 0) {
-                    List chunkedAddList = itemsToAdd.take(50)
-                    itemsToAdd = itemsToAdd.drop(50)
-                    addMissingBuckets(storageServer,chunkedAddList,apiConfig)
-                }
-            }.withLoadObjectDetails { List<SyncTask.UpdateItemDto<StorageBucketIdentityProjection,Map>> updateItems ->
-                Map<Long, SyncTask.UpdateItemDto<StorageBucketIdentityProjection, Map>> updateItemMap = updateItems.collectEntries { [(it.existingItem.id): it]}
-                return morpheus.async.storageBucket.listById(updateItems.collect{it.existingItem.id} as Collection<Long>).map { StorageBucket storageBucket ->
-                    SyncTask.UpdateItemDto<StorageBucketIdentityProjection, Map> matchItem = updateItemMap[storageBucket.id]
-                    return new SyncTask.UpdateItem<StorageBucket,Map>(existingItem:storageBucket, masterItem:matchItem.masterItem)
-                }
+                addMissingBuckets(storageServer,itemsToAdd,apiConfig)
+            }.withLoadObjectDetailsFromFinder { List<UpdateItemDto<StorageBucketIdentityProjection,Map>> updateItems ->
+                return morpheus.async.storageBucket.listById(updateItems.collect{it.existingItem.id})
+
             }.onUpdate { List<SyncTask.UpdateItem<StorageBucket,Map>> updateItems ->
-                while (updateItems?.size() > 0) {
-                    List chunkedUpdateList = updateItems.take(50)
-                    updateItems = updateItems.drop(50)
-                    updateMatchedBuckets(storageServer, chunkedUpdateList, apiConfig)
-                }
+                updateMatchedBuckets(storageServer, updateItems, apiConfig)
             }.start()
         }
-        return
+
     }
 
-    protected void addMissingBuckets(StorageServer storageServer, List addList, Map apiConfig) {
+    protected void addMissingBuckets(StorageServer storageServer, Collection addList, Map apiConfig) {
+        def adds = []
         for(bucket in addList) {
             // configure
             def addConfig = [
@@ -302,18 +288,15 @@ class S3StorageProvider implements StorageProvider, StorageProviderBuckets, Clou
             // need to make another api request to get bucket region
             // todo: make region lookup async and/or on demand.
             setBucketLocation(storageBucket, apiConfig)
-            // save
-            StorageBucket savedBucket = morpheusContext.async.storageBucket.create(storageBucket).blockingGet()
-            if (!savedBucket) {
-                log.error "Error creating storage bucket ${storageBucket.name} for storage server ${storageServer.name}"
-            } else {
-                log.debug "Added storage bucket ${storageBucket.name} for storage server ${storageServer.name}"
-                // post save sync..
-            }
+            adds << storageBucket
+        }
+
+        if(adds) {
+            morpheusContext.services.storageBucket.bulkCreate(adds)
         }
     }
 
-    protected void updateMatchedBuckets(StorageServer storageServer, List updateList, Map apiConfig) {
+    protected void updateMatchedBuckets(StorageServer storageServer, List<SyncTask.UpdateItem<StorageBucket,Map>> updateList, Map apiConfig) {
         def updates = []
         for(update in updateList) {
             def bucket = update.masterItem
@@ -381,7 +364,7 @@ class S3StorageProvider implements StorageProvider, StorageProviderBuckets, Clou
         }
         if(updates) {
             log.debug("Updating ${updates.size()} storage buckets")
-            morpheusContext.async.storageBucket.save(updates).blockingGet()
+            morpheusContext.services.storageBucket.bulkSave(updates)
         }
     }
 
