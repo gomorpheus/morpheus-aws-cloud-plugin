@@ -922,6 +922,7 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 				def resourceData = newResource.data
 				if(resourceData.newResource && resourceConfig.type == 'aws::ec2::instance') {
 					resourceConfig.installAgent = cloudFormationOpts.installAgent ?: false
+					response.installAgent = resourceConfig.installAgent
 					resourceConfig.cloudInitEnabled = cloudFormationOpts.applyCloudInit
 					Workload workload = resourceData.containerIds.size() > 0 ? morpheusContext.async.workload.get(resourceData.containerIds.first().toLong()).blockingGet() : null
 					if(!workload) {
