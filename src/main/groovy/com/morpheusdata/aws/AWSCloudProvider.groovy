@@ -374,6 +374,7 @@ class AWSCloudProvider implements CloudProvider {
 		dockerType.agentType = ComputeServerType.AgentType.node
 		dockerType.containerHypervisor = true
 		dockerType.containerEngine = ComputeServerType.ContainerEngine.docker
+		dockerType.computeTypeCode = 'docker-host'
 
 		ComputeServerType vmType = new ComputeServerType()
 		vmType.name = 'Amazon Instance'
