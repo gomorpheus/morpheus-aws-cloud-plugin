@@ -1,0 +1,107 @@
+resource "virtual-image" "aws-image-morpheus-ubuntu-20_04" {
+  code               = "aws.image.morpheus.ubuntu.20.04"
+  category           = "amazon.ec2.image.morpheus.ubuntu"
+  sshUsername        = "cloud-user"
+  sshPassword        = null
+  name               = "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-20220419"
+  imageType          = "ami"
+  remotePath         = ""
+  imagePath          = ""
+  systemImage        = true
+  installAgent       = true
+  computeServerImage = true
+  isCloudInit        = true
+  uniqueId           = "ami-0487b1fe60c1fd1a2"
+  externalId         = "ami-0487b1fe60c1fd1a2"
+  osType             = "ubuntu.20.04.64"
+  zoneType           = "amazon"
+  isPublic           = true
+}
+
+resource "compute-server-type" "amazon-linux" {
+  code = "amazon-linux" 
+  name = "Amazon Docker Host" 
+  description = "" 
+  platform = "linux" 
+  nodeType = "morpheus-node"
+  enabled = true 
+  selectable = false 
+  externalDelete = true 
+  managed = true 
+  controlPower = true 
+  controlSuspend = false 
+  creatable = false 
+  computeService = "amazonComputeService"
+  displayOrder =  0
+  hasAutomation = true
+  reconfigureSupported =  true
+  hasAgent = true 
+  containerHypervisor = true 
+  bareMetalHost = false 
+  vmHypervisor = false
+  agentType = "node" 
+  containerEngine = "docker"
+  viewSet = "docker"
+  containerMode = "docker"
+  isEmbedded =  true
+  provisionType = "amazon"
+  computeType = "docker-host"
+  optionTypes = [
+    option-type.aws-linux-public-ip-type
+  ]
+}
+
+resource "workload-type" "amazon-docker-ubuntu-20-04" {
+  code            = "amazon-docker-ubuntu-20-04"
+  shortName       = "ubuntu"
+  name            = "Docker Ubuntu 20.04"
+  ports           = [22]
+  containerVersion = "20.04"
+  repositoryImage = ""
+  imageCode       = "morpheus ubuntu 20.04"
+  entryPoint      = ""
+  mountLogs       = "/var/log"
+  statTypeCode    = "server"
+  logTypeCode     = "ubuntu"
+  showServerLogs  = "true"
+  category        = "ubuntu"
+  cloneType       = "ubuntu"
+  priorityOrder   = 0
+  serverType      = "vm"
+  providerType    = "amazon"
+  checkTypeCode   = "vmCheck"
+  virtualImage = virtual-image.aws-image-morpheus-ubuntu-20_04
+  containerPorts = ["ubuntu.22"]
+  provisionType = "amazon"
+}
+
+resource "compute-type-set" "amazon-docker-ubuntu-20-04-set" {
+  code                = "amazon-docker-ubuntu-20-04-set"
+  name                = "docker host"
+  workloadType       = workload-type.amazon-docker-ubuntu-20-04
+  computeServerType   = compute-server-type.amazon-linux
+  category            = "ubuntu"
+  priorityOrder       = 0
+  dynamicCount        = true
+  nodeCount           = 1
+  nodeType            = "worker"
+  canAddNodes         = true
+  installContainerRuntime = true
+  installStorageRuntime   = true
+}
+
+resource "compute-type-layout" "amazon-docker-ubuntu-20.04-single" {
+  code              = "amazon-docker-ubuntu-20-04-single"
+  name              = "Amazon Docker Host on Ubuntu 20.04"
+  sortOrder         = 5
+  enabled           = true
+  computeVersion    = "20.04"
+  description       = "This will provision a single docker host vm in Amazon"
+  type              = compute-server-type.amazon-linux
+  serverCount       = 1
+  memoryRequirement = 1024 * 1024 * 1024
+  hasAutoScale      = true
+  groupType         = "docker-cluster"
+  computeServers    = [ compute-type-set.amazon-docker-ubuntu-20-04-set ]
+  provisionType     = "amazon"
+}
