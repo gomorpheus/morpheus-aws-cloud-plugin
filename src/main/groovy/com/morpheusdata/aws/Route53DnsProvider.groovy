@@ -384,7 +384,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
             }
         }
         if(records.size() > 0) {
-			morpheus.services.network.domain.bulkSave(records)
+			morpheus.services.network.domain.record.bulkSave(records)
         }
     }
 
