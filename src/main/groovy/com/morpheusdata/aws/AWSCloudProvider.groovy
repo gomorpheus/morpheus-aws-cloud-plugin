@@ -203,7 +203,8 @@ class AWSCloudProvider implements CloudProvider {
 			fieldName: 'ebsEncryption',
 			fieldGroup: 'Advanced',
 			inputType: OptionType.InputType.SELECT,
-			optionSource: 'awsPluginEbsEncryption'
+			optionSource: 'awsPluginEbsEncryption',
+			noBlank:true
 		)
 		OptionType costingReport = new OptionType(
 			name: 'Costing Report',
