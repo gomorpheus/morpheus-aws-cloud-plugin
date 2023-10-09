@@ -54,3 +54,25 @@ resource "option-type" "aws-public-image-id" {
   required = false
   dependsOnCode = "containerType.amazon.imageType:public"
 }
+
+resource "option-type" "aws-linux-public-ip-type" {
+  name = "public ip"
+  code = "aws-linux-public-ip-type"
+  category = "computeServerType.amazonLinux"
+  fieldName = "publicIpType"
+  fieldContext = "config"
+  fieldCode = "gomorpheus.optiontype.PublicIp"
+  fieldLabel = "Public IP"
+  fieldGroup = "Options"
+  type = "select"
+  displayOrder = 103
+  required = false
+  editable = false
+  enabled = true
+  global = false
+  defaultValue = "subnet"
+  custom = false
+  noBlank = true
+  optionSource = "amazonPublicIpTypes"
+  optionSourceType = "amazon"
+}

@@ -161,7 +161,7 @@ class AWSCloudProvider implements CloudProvider {
 			name: 'Inventory',
 			code: 'aws-plugin-inventory-level',
 			displayOrder: displayOrder += 10,
-			fieldContext: 'config',
+			fieldContext: 'domain',
 			fieldLabel: 'Inventory',
 			fieldCode: 'gomorpheus.label.inventory',
 			fieldName: 'inventoryLevel',
@@ -203,7 +203,8 @@ class AWSCloudProvider implements CloudProvider {
 			fieldName: 'ebsEncryption',
 			fieldGroup: 'Advanced',
 			inputType: OptionType.InputType.SELECT,
-			optionSource: 'awsPluginEbsEncryption'
+			optionSource: 'awsPluginEbsEncryption',
+			noBlank:true
 		)
 		OptionType costingReport = new OptionType(
 			name: 'Costing Report',

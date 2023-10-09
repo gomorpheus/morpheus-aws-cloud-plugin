@@ -4,6 +4,8 @@ import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.AbstractOptionSourceProvider
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
+import com.morpheusdata.core.data.DataFilter
+import com.morpheusdata.core.data.DataOrFilter
 import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.CloudRegion
@@ -49,7 +51,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 			'awsPluginVpc', 'awsPluginAllEndpoints', 'awsPluginEndpoints', 'awsPluginRegions', 'awsPluginAvailabilityZones', 'awsRouteTable',
 			'awsRouteDestinationType', 'awsRouteDestination', 'awsPluginEc2SecurityGroup', 'awsPluginEc2PublicIpType',
 			'awsPluginInventoryLevels', 'awsPluginStorageProvider', 'awsPluginEbsEncryption', 'awsPluginCostingReports',
-			'awsPluginCostingBuckets', 'awsPluginInventoryLevels', 's3Regions', 'amazonEc2NodeAmiImage'
+			'awsPluginCostingBuckets', 'awsPluginInventoryLevels', 's3Regions', 'amazonEc2NodeAmiImage', 'amazonInstanceProfiles'
 		])
 	}
 
@@ -370,6 +372,38 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 			}
 		}
 		rtn
+	}
+
+	def amazonInstanceProfiles(args) {
+		args = args instanceof Object[] ? args.getAt(0) : args
+		def tmpZone = morpheus.services.cloud.get(args.zoneId?.toLong())
+		def poolId = args?.poolId ?: args?.server?.poolId
+		def regionCode = null
+		if(tmpZone && poolId) {
+			def pool = morpheus.services.cloud.pool.get(poolId, tmpZone.account.id, args.siteId?.toLong(), tmpZone?.id)
+			regionCode = pool.regionCode
+		}
+		def rtn = null
+		if(tmpZone?.cloudType?.code == 'amazon') {
+			def refDataResults = morpheus.services.referenceData.search(
+				new DataQuery().withFilters(
+					new DataOrFilter(
+						new DataFilter('account.id', tmpZone.account.id),
+						new DataFilter('account.id', tmpZone.owner.id)
+					),
+					new DataOrFilter(
+						new DataFilter('category', "amazon.ec2.profiles.${tmpZone.id}.${regionCode}"),
+						new DataFilter('category', "amazon.ec2.profiles.${tmpZone.id}")
+					)
+				).withSort('name')
+			)
+
+			if(refDataResults.success) {
+				rtn = refDataResults.items?.collect { row -> [name:row.name, value:row.keyValue] }
+			}
+		}
+
+		return rtn
 	}
 
 	private static getCloudId(args) {
