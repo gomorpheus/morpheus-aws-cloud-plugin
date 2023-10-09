@@ -161,7 +161,7 @@ class AWSCloudProvider implements CloudProvider {
 			name: 'Inventory',
 			code: 'aws-plugin-inventory-level',
 			displayOrder: displayOrder += 10,
-			fieldContext: 'config',
+			fieldContext: 'domain',
 			fieldLabel: 'Inventory',
 			fieldCode: 'gomorpheus.label.inventory',
 			fieldName: 'inventoryLevel',
