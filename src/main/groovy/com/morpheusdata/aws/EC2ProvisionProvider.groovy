@@ -396,6 +396,15 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	}
 
 	/**
+	 * Indicates if a ComputeZonePool is required during provisioning
+	 * @return Boolean
+	 */
+	@Override
+	Boolean computeZonePoolRequired() {
+		return true
+	}
+
+	/**
 	 * Determines if this provision type allows the rot volume to be renamed.
 	 * @return Boolean representation of whether or not this provision type allows the rot volume to be renamed
 	 */
