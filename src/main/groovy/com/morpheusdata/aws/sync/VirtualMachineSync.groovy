@@ -187,10 +187,7 @@ class VirtualMachineSync {
 
 	def updateMatchedVirtualMachines(List<SyncTask.UpdateItem<ComputeServer, Instance>> updateList, CloudRegionIdentity region, Map<String, Volume> volumeMap, Map usageLists, String inventoryLevel) {
 		def statsData = []
-		def managedServerIds = updateList.findAll { it.existingItem.computeServerType?.managed && it.existingItem.status != 'provisioning' }.findAll { it.existingItem.computeServerType?.managed }.collect{it.existingItem.id}
-		def workloads = managedServerIds ? morpheusContext.async.workload.list(
-			new DataQuery().withFilter('server.id', 'in', managedServerIds)
-		).toMap {it.serverId}.blockingGet() : [:]
+
 		List<ComputeServer> saves = []
 
 		for(update in updateList) {
@@ -244,11 +241,7 @@ class VirtualMachineSync {
 						currentServer.powerState = powerState
 						save = true
 					}
-					if (inventoryLevel == 'full' && currentServer.status != 'provisioning' &&
-						(currentServer.agentInstalled == false || currentServer.powerState == ComputeServer.PowerState.off || currentServer.powerState == ComputeServer.PowerState.paused)) {
-						statsData += updateVirtualMachineStats(currentServer, workloads)
-						save = true
-					}
+
 					if (save) {
 						saves << currentServer
 					}
@@ -278,11 +271,6 @@ class VirtualMachineSync {
 
 		if(saves) {
 			morpheusContext.async.computeServer.bulkSave(saves).blockingGet()
-		}
-		if(statsData) {
-			for(statData in statsData) {
-				morpheusContext.async.stats.updateWorkloadStats(new WorkloadIdentityProjection(id: statData.workload.id), statData.maxMemory, statData.maxUsedMemory, statData.maxStorage, statData.maxUsedStorage, statData.cpuPercent, statData.running)
-			}
 		}
 	}
 
@@ -706,31 +694,6 @@ class VirtualMachineSync {
 		}
 	}
 
-	private def updateVirtualMachineStats(ComputeServer server, Map<Long, WorkloadIdentityProjection> workloads = [:]) {
-		def statsData = []
-		try {
-			def maxUsedStorage = 0
-			if (server.agentInstalled && server.usedStorage) {
-				maxUsedStorage = server.usedStorage
-			}
-
-			def workload = workloads[server.id]
-			if (workload) {
-				statsData << [
-					workload      : workload,
-					maxMemory     : server.maxMemory,
-					maxStorage    : server.maxStorage,
-					maxUsedStorage: maxUsedStorage,
-					cpuPercent    : server.usedCpu,
-					running       : server.powerState == ComputeServer.PowerState.on
-				]
-			}
-		} catch (e) {
-			log.warn("error updating vm stats: ${e}", e)
-			return []
-		}
-		return statsData
-	}
 
 	private getWorkloadsForServer(ComputeServer currentServer) {
 		def workloads = []
