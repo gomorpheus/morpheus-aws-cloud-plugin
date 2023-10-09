@@ -60,7 +60,7 @@ class TransitGatewayVpcAttachmentSync extends InternalResourceSync {
 
 	protected void addMissingTransitGatewayVpcAttachment(Collection<TransitGatewayVpcAttachment> addList, CloudRegionIdentity region) {
 		def adds = []
-
+		log.info("Adding Missing Transit Gateway attachments")
 		for(TransitGatewayVpcAttachment cloudItem in addList) {
 			def name = cloudItem.tags?.find { it.key == 'Name' }?.value ?: cloudItem.transitGatewayAttachmentId
 			adds << new AccountResource(
@@ -71,7 +71,7 @@ class TransitGatewayVpcAttachmentSync extends InternalResourceSync {
 			)
 		}
 		if(adds) {
-			morpheusContext.async.cloud.resource.create(adds).blockingGet()
+			morpheusContext.services.cloud.resource.bulkCreate(adds)
 		}
 	}
 
@@ -98,10 +98,12 @@ class TransitGatewayVpcAttachmentSync extends InternalResourceSync {
 				save = true
 			}
 			if(save) {
+
 				updates << existingItem
 			}
 		}
 		if(updates) {
+			log.info("Updating transit gateway attachments")
 			morpheusContext.async.cloud.resource.save(updates).blockingGet()
 		}
 	}

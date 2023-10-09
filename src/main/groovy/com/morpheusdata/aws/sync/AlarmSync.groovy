@@ -93,7 +93,7 @@ class AlarmSync {
 
 	protected void updateMatchedAlarms(List<SyncTask.UpdateItem<OperationNotification, MetricAlarm>> updateList, String region) {
 		def updates = []
-		def instanceIds = updateList.findAll{it.masterItem.dimensions?.find{it.name == 'InstanceId'}}.collect{it.masterItem.dimensions?.findAll{d -> d.name == 'InstanceId'}.collect{d -> d.value}}.flatten()
+		def instanceIds = updateList.findAll{it.masterItem.dimensions?.find{it.name == 'InstanceId'} && it.existingItem.refType == null}.collect{it.masterItem.dimensions?.findAll{d -> d.name == 'InstanceId'}.collect{d -> d.value}}.flatten()
 		Map<String, ComputeServer> associatedResources = [:]
 		if(instanceIds) {
 			associatedResources = morpheusContext.async.computeServer.listByCloudAndExternalIdIn(cloud.id,instanceIds).toList().blockingGet().collectEntries{[(it.externalId):it]}
