@@ -67,6 +67,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		options << new OptionType([
 				name : 'securityGroup',
 				code : 'amazon-ec2-provision-security-group',
+				category:'provisionType.amazon',
 				fieldName : 'securityId',
 				fieldContext : 'config',
 				fieldLabel : 'Security Groups',
@@ -79,6 +80,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		options << new OptionType([
 				name : 'publicIP',
 				code : 'amazon-ec2-provision-public-id',
+				category:'provisionType.amazon',
 				fieldName : 'publicIpType',
 				fieldContext : 'config',
 				fieldLabel : 'Public IP',
@@ -94,6 +96,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		options << new OptionType([
 				name:'skip agent install',
 		        code: 'provisionType.general.noAgent',
+				category:'provisionType.amazon',
 				fieldName: 'noAgent',
 				fieldCode: 'gomorpheus.optiontype.SkipAgentInstall',
 				fieldLabel: 'Skip Agent Install',
@@ -103,10 +106,55 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				enabled: true,
 				editable: false,
 				global: false,
-				displayOrder: 4,
+				displayOrder: 104,
 				inputType: OptionType.InputType.CHECKBOX,
 				helpBlock: 'Skipping Agent installation will result in a lack of logging and guest operating system statistics. Automation scripts may also be adversely affected.'
 		])
+
+		options << new OptionType(
+			code:'provisionType.amazon.instanceProfile',
+			inputType: OptionType.InputType.SELECT,
+			name:'iam profile',
+			category:'provisionType.amazon',
+			fieldName:'instanceProfile',
+			fieldCode: 'gomorpheus.optiontype.IamProfile',
+			fieldLabel:'IAM Profile',
+			fieldContext:'config',
+			fieldGroup:'Advanced Options',
+			required:false,
+			enabled:true,
+			optionSource:'amazonInstanceProfiles',
+			editable:false,
+			global:false,
+			placeHolder:null,
+			helpBlock:'',
+			defaultValue:null,
+			custom:false,
+			displayOrder:106,
+			fieldClass:null
+		)
+
+		options << new OptionType(
+			code:'provisionType.amazon.kmsKeyId',
+			inputType: OptionType.InputType.TEXT,
+			name:'KMS Key ID',
+			category:'provisionType.amazon',
+			fieldName:'kmsKeyId',
+			fieldCode: 'gomorpheus.optiontype.kmsKeyId',
+			fieldLabel:'KMS Key ID',
+			fieldContext:'config',
+			fieldGroup:'Advanced Options',
+			required:false,
+			enabled:true,
+			editable:false,
+			global:false,
+			placeHolder:null,
+			helpBlock:'',
+			defaultValue:null,
+			custom:false,
+			displayOrder:107,
+			fieldClass:null
+		)
 
 		return options
 	}
