@@ -216,6 +216,7 @@ class AWSCloudProvider implements CloudProvider {
 			fieldGroup: 'Advanced',
 			inputType: OptionType.InputType.SELECT,
 			optionSource: 'awsPluginCostingReports',
+			visibleOnCode: 'aws-plugin-endpoint',
 			dependsOnCode: 'config.endpoint, endpoint, config.accessKey, accessKey, config.secretKey, secretKey, credential, credential.type'
 		)
 		OptionType costingReportName = new OptionType(
