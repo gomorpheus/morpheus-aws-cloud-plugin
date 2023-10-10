@@ -56,7 +56,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 		try {
 			AccountIntegration integration = new AccountIntegration(
 				name: cloud.name,
-				integrationType: new AccountIntegrationType(code:"amazonDns"),
+				integrationType: new AccountIntegrationType(code: this.code),
 				serviceUrl: cloud.regionCode
 			)
 			morpheus.async.integration.registerCloudIntegration(cloud.id, integration).blockingGet()
@@ -64,6 +64,28 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 		} catch (Exception e) {
 			rtn.success = false
 			log.error("initializeProvider error: {}", e, e)
+		}
+
+		return rtn
+	}
+
+	@Override
+	ServiceResponse deleteProvider(Cloud cloud) {
+		log.debug("Deleting dns provider for ${cloud.name}")
+		ServiceResponse rtn = ServiceResponse.prepare()
+		try {
+			// cleanup is done by type, so we do not need to load the record
+			// AccountIntegration integration = morpheusContext.services.integration.find(new DataQuery().withFilters([new DataFilter('type.code', this.code), new DataFilter('refType', 'ComputeZone'), new DataFilter('refId', cloud.id)]))
+			AccountIntegration integration = new AccountIntegration(
+				name: cloud.name,
+				integrationType: new AccountIntegrationType(code: this.code),
+				serviceUrl: cloud.regionCode
+			)
+			morpheus.async.integration.deleteCloudIntegration(cloud.id, integration).blockingGet()
+			rtn.success = true
+		} catch (Exception e) {
+			rtn.success = false
+			log.error("deleteProvider error: {}", e, e)
 		}
 
 		return rtn

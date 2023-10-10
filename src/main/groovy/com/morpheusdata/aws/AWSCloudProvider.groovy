@@ -821,7 +821,20 @@ class AWSCloudProvider implements CloudProvider {
 
 	@Override
 	ServiceResponse deleteCloud(Cloud cloudInfo) {
-		return new ServiceResponse(success: true)
+		ServiceResponse rtn = new ServiceResponse(success: false)
+		try {
+			// cleanup all the providers associated with this cloud.
+			// delete amazon network server, route53 dns integration, s3 storage server
+			plugin.getNetworkProvider().deleteProvider(cloudInfo)
+			plugin.getDnsProvider().deleteProvider(cloudInfo)
+			plugin.getStorageProvider().deleteProvider(cloudInfo)
+			
+			// todo: anything else to delete? KeyPairs or ReferenceData maybe?
+			rtn.success = true
+		} catch (e) {
+			log.error("delete cloud error: ${e}", e)
+		}
+		rtn
 	}
 
 	@Override
@@ -958,6 +971,7 @@ class AWSCloudProvider implements CloudProvider {
 
 			refreshDaily(cloud)
 			refresh(cloud)
+			rtn.success = true
 		} catch (e) {
 			log.error("refresh cloud error: ${e}", e)
 		}

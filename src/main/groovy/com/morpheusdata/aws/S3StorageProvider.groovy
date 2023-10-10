@@ -142,6 +142,28 @@ class S3StorageProvider implements StorageProvider, StorageProviderBuckets, Clou
         return rtn
     }
 
+    @Override
+    ServiceResponse deleteProvider(Cloud cloud) {
+        log.debug("Deleting storage provider for ${cloud.name}")
+        ServiceResponse rtn = ServiceResponse.prepare()
+        try {
+            // cleanup is done by type, so we do not need to load the record
+            // StorageServer storageServer = morpheusContext.services.storageServer.find(new DataQuery().withFilters([new DataFilter('type.code', PROVIDER_CODE), new DataFilter('refType', 'ComputeZone'), new DataFilter('refId', cloud.id)]))
+            StorageServer storageServer = new StorageServer(
+                name: cloud.name,
+                type: getStorageServerType(),
+                enabled: true
+            )
+            morpheus.async.integration.deleteCloudIntegration(cloud.id, storageServer).blockingGet()
+            rtn.success = true
+        } catch (Exception e) {
+            rtn.success = false
+            log.error("deleteProvider error: {}", e, e)
+        }
+
+        return rtn
+    }
+
     ServiceResponse verifyStorageServer(StorageServer storageServer, Map opts) {
         log.debug("verifyStorageServer: {}", storageServer)
         ServiceResponse rtn = ServiceResponse.prepare()
