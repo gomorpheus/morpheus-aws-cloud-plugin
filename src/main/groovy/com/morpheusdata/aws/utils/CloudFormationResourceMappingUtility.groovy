@@ -1364,7 +1364,7 @@ class CloudFormationResourceMappingUtility  {
 		return rtn
 	}
 
-	static mapResources(App app, Cloud cloud, Map config, Map opts) {
+	static mapResources(App app, Cloud cloud, Map config, Map opts, MorpheusContext morpheusContext) {
 		def rtn = []
 
 		config?.Resources?.each { logicalId, v ->
@@ -1384,7 +1384,7 @@ class CloudFormationResourceMappingUtility  {
 				rtn << mappedResource
 			} else {
 				def type = v['Type']
-				def typeMatch = findAwsResourceType(type)
+				def typeMatch = findAwsResourceType(type as String, morpheusContext)
 				if(typeMatch && typeMatch instanceof AccountResourceType) {
 					def row = [type:typeMatch.type, apiType:typeMatch.apiType, enabled:typeMatch.enabled,
 							   morpheusType:typeMatch.morpheusType, name: logicalId,

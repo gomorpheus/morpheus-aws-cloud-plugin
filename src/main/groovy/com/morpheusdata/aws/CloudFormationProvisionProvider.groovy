@@ -832,7 +832,7 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 			// Create the resources on our end
 			def resources = []
 			opts.defaultLayout = morpheusContext.async.instanceTypeLayout.find(new DataQuery().withFilter('code', 'amazon-1.0-single')).blockingGet()
-			def resourceList = CloudFormationResourceMappingUtility.mapResources(app, cloud, templateJson, opts)
+			def resourceList = CloudFormationResourceMappingUtility.mapResources(app, cloud, templateJson, opts, morpheusContext)
 			resourceList?.each { resourceConfig ->
 				if(resourceConfig.needsProvision) {
 					def resourceResults = CloudFormationResourceMappingUtility.createAppTemplateResource(app, cloud, resourceConfig as Map, opts, morpheusContext, opts)
