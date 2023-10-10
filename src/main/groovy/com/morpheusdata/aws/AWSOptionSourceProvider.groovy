@@ -271,9 +271,11 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		Cloud cloud = loadCloud(args)
 
 		try {
-			String regionCode = args.config?.costingRegion ?: AmazonComputeUtility.getAmazonEndpointRegion(args.config?.endpoint ?: cloud.regionCode)
-			AmazonComputeUtility.listBuckets(AmazonComputeUtility.getAmazonS3Client(cloud, regionCode)).buckets?.sort { it.name }.each {
-				rtn << [name: it.name, value: it.name]
+			if(cloud && cloud.accountCredentialLoaded) {
+				String regionCode = args.config?.costingRegion ?: AmazonComputeUtility.getAmazonEndpointRegion(args.config?.endpoint ?: cloud.regionCode)
+				AmazonComputeUtility.listBuckets(AmazonComputeUtility.getAmazonS3Client(cloud, regionCode)).buckets?.sort { it.name }.each {
+					rtn << [name: it.name, value: it.name]
+				}
 			}
 		} catch(e) {
 		}
@@ -356,7 +358,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		def rtn = [[name:'Create New',value:'create-report']]
 		Cloud cloud = loadCloud(args)
 
-		if(cloud) {
+		if(cloud && cloud.accountCredentialLoaded == true) {
 			plugin.cloudProvider.cloudCostingProvider.loadAwsReportDefinitions(cloud).reports?.each { report ->
 				rtn << [name: report.reportName, value: report.reportName]
 			}
