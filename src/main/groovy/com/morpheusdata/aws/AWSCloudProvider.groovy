@@ -307,6 +307,7 @@ class AWSCloudProvider implements CloudProvider {
 			name: 'Linked Account ID',
 			code: 'aws-plugin-linked-account',
 			displayOrder: displayOrder += 10,
+			fieldContext: 'domain',
 			fieldLabel: 'Linked Account ID',
 			fieldCode: 'gomorpheus.label.linkedAccountId',
 			fieldName: 'linkedAccountId',
