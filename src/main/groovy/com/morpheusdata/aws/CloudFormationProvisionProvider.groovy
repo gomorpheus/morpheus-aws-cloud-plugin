@@ -1078,7 +1078,6 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 							morpheusContext.async.cloud.pool.save(cloudPool).blockingGet()
 						}
 					} else if(resourceConfig?.morpheusType == 'network') {
-						//TODO - this is aspirational data services
 						Network network = morpheusContext.async.network.get(resourceData.id?.toLong()).blockingGet()
 						if(network) {
 							network.status = 'failed'
