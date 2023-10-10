@@ -4,6 +4,7 @@ import com.amazonaws.services.ec2.model.InstanceTypeInfo
 import com.morpheusdata.aws.AWSPlugin
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
+import com.morpheusdata.core.data.DataFilter
 import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.core.util.SyncTask
@@ -28,6 +29,7 @@ class ServicePlanSync {
 
 	def execute() {
 		try {
+			log.info("Syncing Plans for AWS")
 			// Get map of instance types to regions
 			def instanceTypeRegions = [:]
 			morpheusContext.async.cloud.region.list(new DataQuery().withFilter('cloud.id', cloud.id)).blockingSubscribe { region ->
@@ -55,6 +57,26 @@ class ServicePlanSync {
 			}.onDelete { removeItems ->
 				removeMissingServicePlans(removeItems)
 			}.start()
+
+			//Fix Plan Sorting
+			List<ServicePlan> existingItems = morpheusContext.services.servicePlan.list(new DataQuery().withFilters(new DataFilter<Boolean>("deleted","false"),new DataFilter<String>("provisionType.code","amazon")))
+
+			existingItems.sort { a, b ->
+				return comparePlans(a, b)
+			}
+			List<ServicePlan> updateList = [] as List<ServicePlan>
+			def sortId = 0
+			existingItems.each { ServicePlan p ->
+				if(p.sortOrder != sortId) {
+					p.sortOrder = sortId
+					updateList << p
+				}
+				sortId++
+			}
+			if(updateList) {
+				morpheusContext.services.servicePlan.bulkSave(updateList)
+			}
+
 		} catch(Exception ex) {
 			log.error("ServicePlanSync error: {}", ex, ex)
 		}
@@ -194,5 +216,32 @@ class ServicePlanSync {
 			memVal = new BigDecimal(memVal).setScale(1, BigDecimal.ROUND_HALF_UP )
 		}
 		"${legacy ? 'Legacy ' : ''}${serverClass.toString().toUpperCase()} ${parts[1].toString().capitalize()} - ${maxCores} Core, ${memVal.toString()}GB Memory"
+	}
+
+	private comparePlans(ServicePlan a, ServicePlan b) {
+		// We want all t, m, c at the beginning.. then the rest alphabetically
+		def serverClassA = getServerClassSortValue(a.serverClass)
+		def serverClassB = getServerClassSortValue(b.serverClass)
+		def compareValue = serverClassA <=> serverClassB
+		if(compareValue == 0) {
+			compareValue = a?.maxMemory?.toLong() <=> b?.maxMemory?.toLong()
+			if(compareValue == 0) {
+				compareValue = a?.maxCores?.toLong() <=> b?.maxCores?.toLong()
+			}
+		}
+		return compareValue
+	}
+
+	private getServerClassSortValue(String serverClass) {
+		if(serverClass?.startsWith('t')) {
+			return "1${serverClass}"
+		}
+		if(serverClass?.startsWith('m')){
+			return "2${serverClass}"
+		}
+		if(serverClass?.startsWith('c')){
+			return "3${serverClass}"
+		}
+		return serverClass
 	}
 }

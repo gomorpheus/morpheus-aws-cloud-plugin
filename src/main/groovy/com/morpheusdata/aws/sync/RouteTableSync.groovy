@@ -5,9 +5,12 @@ import com.amazonaws.services.ec2.model.RouteTable
 import com.morpheusdata.aws.AWSPlugin
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
+import com.morpheusdata.core.data.DataFilter
+import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.CloudPool
+import com.morpheusdata.model.MorpheusModel
 import com.morpheusdata.model.NetworkRoute
 import com.morpheusdata.model.NetworkRouteTable
 import com.morpheusdata.model.NetworkRouter
@@ -35,9 +38,18 @@ class RouteTableSync {
 
 	def execute() {
 		try {
-			routers = morpheusContext.async.network.router.listIdentityProjections(cloud.id).toList().blockingGet()
-			morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id, null, null).blockingSubscribe { CloudPoolIdentity zonePool ->
-				def router = morpheusContext.async.network.router.listById([routers.find { it.refType == 'ComputeZonePool' && it.refId == zonePool.id }?.id ?: 0L]).blockingFirst()
+			morpheusContext.async.cloud.pool.listIdentityProjections(cloud.id, null, null).buffer(50).concatMap {List<CloudPoolIdentity> zonePools ->
+				Map<Long,CloudPoolIdentity> pools = zonePools.collectEntries{[(it.id):it]}
+				morpheusContext.async.network.router.list(new DataQuery().withFilters(
+						new DataFilter<String>("refType","ComputeZonePool"),
+						new DataFilter<List<Long>>("refId","in",zonePools.collect{it.id}
+						)
+				)).map { NetworkRouter router ->
+					return [router: router, zonePool: pools[router.refId]]
+				}
+			}.blockingSubscribe { LinkedHashMap<String, MorpheusModel> poolRouter ->
+				NetworkRouter router = poolRouter.router as NetworkRouter
+				CloudPoolIdentity zonePool = poolRouter.zonePool as CloudPoolIdentity
 				def amazonClient = plugin.getAmazonClient(cloud, false, zonePool.regionCode)
 				def cloudItems = AmazonComputeUtility.listRouteTables(amazonClient: amazonClient, filterVpcId: zonePool.externalId).routeTableList
 				Observable<NetworkRouteTableIdentityProjection> existingRecords = morpheusContext.async.network.routeTable.listIdentityProjections(zonePool.id)
