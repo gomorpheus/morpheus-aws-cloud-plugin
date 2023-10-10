@@ -651,8 +651,7 @@ class AmazonComputeUtility {
 		try {
 			def amazonClient = opts.amazonClient
 			def vpcId = opts.zone.getConfigProperty('vpc')
-			def isVpc = opts.zone.getConfigProperty('isVpc')
-			if(vpcId || isVpc) {
+			if(vpcId) {
 				def securityRequest = new DescribeSecurityGroupsRequest().withFilters(new LinkedList<Filter>())
 				if(vpcId) {
 					securityRequest.getFilters().add(new Filter().withName("vpc-id").withValues(vpcId))	
@@ -1005,7 +1004,6 @@ class AmazonComputeUtility {
 		try {
 			def amazonClient = opts.amazonClient
 			def vpcId = opts.zone.getConfigProperty('vpc')
-			def isVpc = opts.zone.getConfigProperty('isVpc')
 			def subnetId = opts.subnetId
 			def subnetRequest = new DescribeSubnetsRequest().withFilters(new LinkedList<Filter>())
 			if(subnetId) {
@@ -1016,9 +1014,6 @@ class AmazonComputeUtility {
 			}
 			
 			rtn.subnetList =  amazonClient.describeSubnets(subnetRequest).getSubnets()
-			if(!vpcId && !isVpc) {
-				rtn.subnetList = rtn.subnetList?.findAll{it.getVpcId() == null}
-			}
 			rtn.success = true
 		} catch(e) {
 			log.debug("listSubnets error: ${e}", e)
@@ -1839,7 +1834,6 @@ class AmazonComputeUtility {
 		try {
 			AmazonEC2Client amazonClient = opts.amazonClient
 			def vpcId = opts.zone.getConfigProperty('vpc')
-			def isVpc = opts.zone.getConfigProperty('isVpc')
 			def volumesRequest = new DescribeVolumesRequest().withFilters(new LinkedList<Filter>())
 			
 			
