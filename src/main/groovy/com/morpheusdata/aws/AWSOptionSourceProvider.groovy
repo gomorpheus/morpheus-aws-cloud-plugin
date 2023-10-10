@@ -7,6 +7,7 @@ import com.morpheusdata.core.Plugin
 import com.morpheusdata.core.data.DataFilter
 import com.morpheusdata.core.data.DataOrFilter
 import com.morpheusdata.core.data.DataQuery
+import com.morpheusdata.model.AccountCredential
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.CloudRegion
 import com.morpheusdata.model.NetworkRouteTable
@@ -48,42 +49,31 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 	@Override
 	List<String> getMethodNames() {
 		return new ArrayList<String>([
-			'awsPluginVpc', 'awsPluginAllEndpoints', 'awsPluginEndpoints', 'awsPluginRegions', 'awsPluginAvailabilityZones', 'awsRouteTable',
+			'awsPluginVpc', 'awsPluginAllRegions', 'awsPluginRegions', 'awsPluginAvailabilityZones', 'awsRouteTable',
 			'awsRouteDestinationType', 'awsRouteDestination', 'awsPluginEc2SecurityGroup', 'awsPluginEc2PublicIpType',
 			'awsPluginInventoryLevels', 'awsPluginStorageProvider', 'awsPluginEbsEncryption', 'awsPluginCostingReports',
 			'awsPluginCostingBuckets', 'awsPluginInventoryLevels', 's3Regions', 'amazonEc2NodeAmiImage', 'amazonInstanceProfiles'
 		])
 	}
 
-	def awsPluginAllEndpoints(args) {
-		[[name: 'All', value: '']] + awsPluginEndpoints(args)
-	}
-
-	def awsPluginEndpoints(args) {
-		def rtn = []
-		def refDataIds = morpheusContext.services.referenceData.list(new DataQuery().withFilter('category', 'amazon.ec2.region')).collect { it.id }
-		if(refDataIds.size() > 0) {
-			morpheusContext.services.referenceData.listById(refDataIds).sort { it.name }.each {
-				rtn << [value: it.value, name: it.name]
-			}
-		}
-		rtn
+	def awsPluginAllRegions(args) {
+		[[name: morpheusContext.services.localization.get('gomorpheus.label.all'), value: '']] + awsPluginRegions(args)
 	}
 
 	def awsPluginRegions(args) {
 		def rtn = []
-		def refDataIds = morpheus.services.referenceData.list(new DataQuery().withFilter("category", "amazon.ec2.region")).collect { it.id }
-		if(refDataIds.size() > 0) {
-			rtn = morpheus.services.referenceData.listById(refDataIds).sort { it.name }.collect {
-				[value: it.keyValue, name: it.name]
-			}
+		morpheusContext.services.referenceData.list(
+			new DataQuery().withFilter('category', 'amazon.ec2.region').withSort("name")
+		).each {
+			rtn << [value: it.value, name: it.name]
 		}
-		rtn
+
+		return rtn
 	}
 
 	def awsPluginVpc(args) {
 		Cloud cloud = loadCloud(args)
-		def rtn = [[name:'All', value:'']]
+		def rtn = [[name:morpheusContext.services.localization.get('gomorpheus.label.all'), value:'']]
 		if(cloud.accountCredentialLoaded && AmazonComputeUtility.testConnection(cloud).success) {
 			def amazonClient = plugin.getAmazonClient(cloud, true)
 			def vpcResult = AmazonComputeUtility.listVpcs([amazonClient:amazonClient])
@@ -428,6 +418,11 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		Cloud rtn = args.zoneId ? morpheusContext.async.cloud.getCloudById(args.zoneId.toLong()).blockingGet() : null
 		if(!rtn) {
 			rtn = new Cloud()
+		} else {
+			//we need to load full creds
+			AccountCredential credentials = morpheusContext.services.accountCredential.loadCredentials(rtn)
+			rtn.accountCredentialData = credentials?.data
+			rtn.accountCredentialLoaded = true
 		}
 
 		def config = [
@@ -440,13 +435,16 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		if (config.secretKey == '*' * 12) {
 			config.remove('secretKey')
 		}
-
 		rtn.setConfigMap(rtn.getConfigMap() + config)
-		rtn.accountCredentialData = morpheusContext.services.accountCredential.loadCredentialConfig(args.credential, config).data
-		rtn.accountCredentialLoaded = (rtn.accountCredentialData.username && rtn.accountCredentialData.password) || (rtn.accountCredentialData.accessKey && rtn.accountCredentialData.secretKey)
+
+		if(rtn.accountCredentialLoaded == false) {
+			rtn.accountCredentialData = morpheusContext.services.accountCredential.loadCredentialConfig(args.credential, config).data
+			rtn.accountCredentialLoaded = (rtn.accountCredentialData.username && rtn.accountCredentialData.password) || (rtn.accountCredentialData.accessKey && rtn.accountCredentialData.secretKey)
+		}
 
 		def proxy = args.apiProxy ? morpheusContext.async.network.networkProxy.getById(args.long('apiProxy')).blockingGet() : null
 		rtn.apiProxy = proxy
-		rtn
+
+		return rtn
 	}
 }

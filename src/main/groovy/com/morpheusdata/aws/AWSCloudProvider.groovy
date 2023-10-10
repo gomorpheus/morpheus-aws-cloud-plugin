@@ -78,14 +78,13 @@ class AWSCloudProvider implements CloudProvider {
 		OptionType apiUrl = new OptionType(
 			name: 'Region',
 			code: 'aws-plugin-endpoint',
-			defaultValue: 'ec2.us-east-1.amazonaws.com',
 			displayOrder: displayOrder,
 			fieldContext: 'config',
 			fieldLabel: 'Region',
 			fieldCode: 'gomorpheus.optiontype.Region',
 			fieldName: 'endpoint',
 			inputType: OptionType.InputType.SELECT,
-			optionSource: 'awsPluginAllEndpoints',
+			optionSource: 'awsPluginAllRegions',
 			required: true
 		)
 		OptionType credentials = new OptionType(
@@ -179,6 +178,7 @@ class AWSCloudProvider implements CloudProvider {
 			fieldName: 'vpc',
 			inputType: OptionType.InputType.SELECT,
 			optionSource: 'awsPluginVpc',
+			noBlank: true,
 			dependsOnCode: 'config.endpoint, endpoint, config.accessKey, accessKey, config.secretKey, secretKey, credential, credential.type'
 		)
 		OptionType imageTransferStore = new OptionType(
