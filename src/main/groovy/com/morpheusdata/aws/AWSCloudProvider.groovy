@@ -352,13 +352,25 @@ class AWSCloudProvider implements CloudProvider {
 
 		ComputeServerType unmanagedWindows = new ComputeServerType()
 		unmanagedWindows.name = 'Amazon Windows Node'
-		unmanagedWindows.code = 'amazonUnmanagedWindows'
+		unmanagedWindows.code = 'amazonWindows'
 		unmanagedWindows.description = 'Amazon Instance'
-		unmanagedWindows.reconfigureSupported = false
-		unmanagedWindows.hasAutomation = false
-		unmanagedWindows.supportsConsoleKeymap = false
 		unmanagedWindows.platform = PlatformType.windows
+		unmanagedWindows.nodeType = 'morpheus-windows-node'
+		unmanagedWindows.enabled = true
+		unmanagedWindows.selectable = false
+		unmanagedWindows.externalDelete = true
 		unmanagedWindows.managed = false
+		unmanagedWindows.controlPower = true
+		unmanagedWindows.controlSuspend = false
+		unmanagedWindows.displayOrder = 1
+		unmanagedWindows.hasAutomation = true
+		unmanagedWindows.reconfigureSupported = false
+		unmanagedWindows.containerHypervisor = false
+		unmanagedWindows.bareMetalHost = false
+		unmanagedWindows.vmHypervisor = false
+		unmanagedWindows.agentType = ComputeServerType.AgentType.node
+		unmanagedWindows.guestVm = true
+		unmanagedWindows.supportsConsoleKeymap = false
 		unmanagedWindows.provisionTypeCode = 'amazon'
 
 		ComputeServerType dockerType = new ComputeServerType()
