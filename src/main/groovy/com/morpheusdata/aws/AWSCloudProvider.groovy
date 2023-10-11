@@ -685,8 +685,6 @@ class AWSCloudProvider implements CloudProvider {
 	@Override
 	ServiceResponse refresh(Cloud cloudInfo) {
 		ServiceResponse rtn = new ServiceResponse(success: false)
-		log.info "Initializing Cloud: ${cloudInfo.code}"
-		log.info "config: ${cloudInfo.configMap}"
 
 		try {
 			def networkProxy

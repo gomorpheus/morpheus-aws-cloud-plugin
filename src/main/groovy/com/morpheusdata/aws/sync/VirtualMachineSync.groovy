@@ -53,7 +53,6 @@ class VirtualMachineSync {
 
 	def execute() {
 		try {
-			def usageLists = [restartUsageIds: [], stopUsageIds: [], startUsageIds: [], updatedSnapshotIds: []]
 			def inventoryLevel = cloud.inventoryLevel ?: (cloud.getConfigProperty('importExisting') in [true, 'true', 'on'] ? 'basic' : 'off')
 			morpheusContext.async.cloud.region.listIdentityProjectionsForRegionsWithCloudPools(cloud.id).blockingSubscribe { region ->
 				def amazonClient = plugin.getAmazonClient(cloud,false, region.externalId)
@@ -75,19 +74,13 @@ class VirtualMachineSync {
 						morpheusContext.async.computeServer.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 					}.onAdd { itemsToAdd ->
 						if(inventoryLevel in ['basic', 'full']) {
-							addMissingVirtualMachines(itemsToAdd, region, vmList.volumeList, usageLists)
+							addMissingVirtualMachines(itemsToAdd, region, vmList.volumeList)
 						}
 					}.onUpdate { List<SyncTask.UpdateItem<ComputeServer, Instance>> updateItems ->
-						updateMatchedVirtualMachines(updateItems, region, vmList.volumeList, usageLists, inventoryLevel)
+						updateMatchedVirtualMachines(updateItems, region, vmList.volumeList, inventoryLevel)
 					}.onDelete { removeItems ->
 						removeMissingVirtualMachines(removeItems)
-					}.observe().blockingSubscribe { completed ->
-						log.debug "sending usage start/stop/restarts: ${usageLists}"
-						morpheusContext.async.usage.startServerUsage(usageLists.startUsageIds).blockingGet()
-						morpheusContext.async.usage.stopServerUsage(usageLists.stopUsageIds).blockingGet()
-						morpheusContext.async.usage.restartServerUsage(usageLists.restartUsageIds).blockingGet()
-						morpheusContext.async.usage.restartSnapshotUsage(usageLists.updatedSnapshotIds).blockingGet()
-					}
+					}.observe().blockingSubscribe()
 				} else {
 					log.error("Error Caching VMs for Region: {}", region.externalId)
 				}
@@ -97,7 +90,7 @@ class VirtualMachineSync {
 		}
 	}
 
-	def addMissingVirtualMachines(List<Instance> addList, CloudRegionIdentity region, Map<String, Volume> volumeMap, Map usageLists = null, String defaultServerType = null) {
+	def addMissingVirtualMachines(List<Instance> addList, CloudRegionIdentity region, Map<String, Volume> volumeMap, String defaultServerType = null) {
 		while (addList) {
 			Map<String, Instance> cloudItems = [:]
 			List<ComputeServer> adds = []
@@ -185,7 +178,7 @@ class VirtualMachineSync {
 		}
 	}
 
-	def updateMatchedVirtualMachines(List<SyncTask.UpdateItem<ComputeServer, Instance>> updateList, CloudRegionIdentity region, Map<String, Volume> volumeMap, Map usageLists, String inventoryLevel) {
+	void updateMatchedVirtualMachines(List<SyncTask.UpdateItem<ComputeServer, Instance>> updateList, CloudRegionIdentity region, Map<String, Volume> volumeMap, String inventoryLevel) {
 		def statsData = []
 
 		List<ComputeServer> saves = []
@@ -242,29 +235,33 @@ class VirtualMachineSync {
 						save = true
 					}
 
+					def cacheVolumesResults = cacheVirtualMachineVolumes(cloudItem, currentServer, volumeMap)
+
+					if(cacheVolumesResults.maxStorage && server.maxStorage != cacheVolumesResults.maxStorage) {
+						currentServer.maxStorage = cacheVolumesResults.maxStorage
+						//planChanged = true
+						save = true
+					}
+
+					// Set the plan on the server
+					if(currentServer.plan?.code != "amazon-${cloudItem.getInstanceType()}") {
+						ServicePlan servicePlan = amazonServicePlans["amazon-${cloudItem.getInstanceType()}".toString()]
+						if(servicePlan) {
+							applyServicePlan(currentServer, servicePlan)
+							save = true
+						}
+					}
+
+					//security groups
+					if(currentServer.computeServerType?.managed) {
+						syncSecurityGroups(currentServer, cloudItem.getSecurityGroups()?.collect { it.groupId })
+					}
+
 					if (save) {
 						saves << currentServer
 					}
 				} catch(e) {
 					log.warn("Error Updating Virtual Machine ${currentServer?.name} - ${currentServer.externalId} - ${e}", e)
-				}
-			}
-		}
-
-		if(saves) {
-			BulkSaveResult<ComputeServer> saveResult = morpheusContext.async.computeServer.bulkSave(saves).blockingGet()
-			saves = []
-
-			for(ComputeServer currentServer : saveResult.persistedItems) {
-				Instance cloudItem = updateList.find { it.existingItem.id == currentServer.id }.masterItem
-				def postSaveResults = performPostSaveSync(cloudItem, currentServer, volumeMap)
-
-				//check for restart usage records
-				if(postSaveResults.saveRequired) {
-					if (!usageLists.stopUsageIds.contains(currentServer.id) && !usageLists.startUsageIds.contains(currentServer.id)) {
-						usageLists.restartUsageIds << currentServer.id
-					}
-					saves << currentServer
 				}
 			}
 		}
@@ -494,7 +491,7 @@ class VirtualMachineSync {
 					ipAddress:server.internalIp,
 					publicIpAddress:server.externalIp,
 					primaryInterface:true,
-					subnet:subnet,
+					network:subnet,
 					displayOrder:(server.interfaces?.size() ?: 0) + 1
 				)
 				morpheusContext.async.computeServer.computeServerInterface.create([nic], server)
@@ -506,7 +503,7 @@ class VirtualMachineSync {
 					doSave = true
 				}
 				if(subnet && nic.subnet?.id != subnet.id) {
-					nic.subnet = subnet
+					nic.network = subnet
 					doSave = true
 				}
 				if(doSave) {
