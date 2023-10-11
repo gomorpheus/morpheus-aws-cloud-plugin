@@ -237,7 +237,7 @@ class VirtualMachineSync {
 
 					def cacheVolumesResults = cacheVirtualMachineVolumes(cloudItem, currentServer, volumeMap)
 
-					if(cacheVolumesResults.maxStorage && server.maxStorage != cacheVolumesResults.maxStorage) {
+					if(cacheVolumesResults.maxStorage && currentServer.maxStorage != cacheVolumesResults.maxStorage) {
 						currentServer.maxStorage = cacheVolumesResults.maxStorage
 						//planChanged = true
 						save = true
@@ -256,6 +256,8 @@ class VirtualMachineSync {
 					if(currentServer.computeServerType?.managed) {
 						syncSecurityGroups(currentServer, cloudItem.getSecurityGroups()?.collect { it.groupId })
 					}
+
+					syncNetwork(currentServer,update.masterItem.getSubnetId())
 
 					if (save) {
 						saves << currentServer
@@ -324,10 +326,11 @@ class VirtualMachineSync {
 		}
 
 		//network
-		syncNetwork(server)
+		syncNetwork(server,cloudItem.getSubnetId())
 
 		[saveRequired:saveRequired, planChanged:planChanged, tagsChanged:tagsChanged]
 	}
+
 
 	private cacheVirtualMachineVolumes(Instance cloudItem, ComputeServer server, Map<String, Volume> volumeMap) {
 		def rtn = [success:false, saveRequired:false, maxStorage:0L]
@@ -502,7 +505,7 @@ class VirtualMachineSync {
 					nic.publicIpAddress = server.externalIp
 					doSave = true
 				}
-				if(subnet && nic.subnet?.id != subnet.id) {
+				if(subnet && nic.network?.id != subnet.id) {
 					nic.network = subnet
 					doSave = true
 				}
