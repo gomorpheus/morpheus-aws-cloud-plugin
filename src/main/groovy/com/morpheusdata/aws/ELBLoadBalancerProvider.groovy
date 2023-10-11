@@ -1,5 +1,6 @@
 package com.morpheusdata.aws
 
+import com.amazonaws.services.elasticloadbalancing.AmazonElasticLoadBalancingClient
 import com.amazonaws.services.elasticloadbalancing.model.ApplySecurityGroupsToLoadBalancerRequest
 import com.amazonaws.services.elasticloadbalancing.model.AttachLoadBalancerToSubnetsRequest
 import com.amazonaws.services.elasticloadbalancing.model.CreateLoadBalancerListenersRequest
@@ -12,8 +13,7 @@ import com.amazonaws.services.elasticloadbalancing.model.Listener
 import com.amazonaws.services.elasticloadbalancing.model.ListenerDescription
 import com.amazonaws.services.elasticloadbalancing.model.LoadBalancerDescription
 import com.amazonaws.services.elasticloadbalancing.model.RegisterInstancesWithLoadBalancerRequest
-import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingClient
-import com.amazonaws.services.elasticloadbalancingv2.model.DeleteLoadBalancerRequest
+import com.amazonaws.services.elasticloadbalancing.model.DeleteLoadBalancerRequest
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
@@ -42,7 +42,7 @@ class ELBLoadBalancerProvider implements LoadBalancerProvider {
     Plugin plugin
 
     private static final PROVIDER_CODE = 'amazon-elb'
-    private static final LOAD_BALANCER_TYPE_CODE = 'amazon'
+    private static final LOAD_BALANCER_TYPE_CODE = PROVIDER_CODE
 
     public ELBLoadBalancerProvider(Plugin plugin, MorpheusContext context) {
         super()
@@ -273,21 +273,29 @@ class ELBLoadBalancerProvider implements LoadBalancerProvider {
 
     @Override
     ServiceResponse addInstance(NetworkLoadBalancerInstance instance) {
+        ServiceResponse rtn = ServiceResponse.prepare()
         def opts = instance.getConfigProperty('options')
         log.debug "addInstance: ${instance}, ${opts}"
-        return updateOrCreateInstance(instance, opts)
+        def resp = updateOrCreateInstance(instance, opts)
+        if (resp.success) {
+            rtn.success = true
+        }
+        else {
+            rtn.errors = resp.errors
+        }
+        return rtn
     }
 
     @Override
     ServiceResponse removeInstance(NetworkLoadBalancerInstance instance) {
         log.debug "removeInstance: ${instance}"
-        def rtn = [success: false, deleted: false]
+        ServiceResponse rtn = ServiceResponse.prepare()
         try {
             def loadBalancer = instance.loadBalancer
             def lbName = loadBalancer.name
-            com.amazonaws.services.elasticloadbalancing.AmazonElasticLoadBalancingClient amazonClient = getAmazonElbClient(loadBalancer.zone, false, loadBalancer.region?.regionCode)
+            def amazonClient = getAmazonElbClient(loadBalancer.cloud, false, loadBalancer.region?.regionCode)
             //delete lb
-            def lbRequest = new com.amazonaws.services.elasticloadbalancing.model.DeleteLoadBalancerRequest()
+            def lbRequest = new DeleteLoadBalancerRequest()
             lbRequest.setLoadBalancerName(lbName)
             def lbResult = amazonClient.deleteLoadBalancer(lbRequest)
             rtn.success = true
@@ -306,22 +314,22 @@ class ELBLoadBalancerProvider implements LoadBalancerProvider {
 
     @Override
     ServiceResponse addLoadBalancer(NetworkLoadBalancer loadBalancer) {
-        return null
+        return ServiceResponse.success()
     }
 
     @Override
     ServiceResponse updateLoadBalancer(NetworkLoadBalancer loadBalancer) {
-        return null
+        return ServiceResponse.success()
     }
 
     @Override
     ServiceResponse deleteLoadBalancer(NetworkLoadBalancer loadBalancer) {
-        return null
+        return ServiceResponse.success()
     }
 
     @Override
     ServiceResponse setAdditionalConfiguration(NetworkLoadBalancer loadBalancer, Map opts) {
-        return null
+        return ServiceResponse.success()
     }
 
     @Override
@@ -375,7 +383,7 @@ class ELBLoadBalancerProvider implements LoadBalancerProvider {
             if(regionFromInstance && !loadBalancer.region?.regionCode) {
                 loadBalancer.region = regionFromInstance
             }
-            AmazonElasticLoadBalancingClient amazonClient = getAmazonElbClient(cloud,loadBalancer.region?.regionCode)
+            AmazonElasticLoadBalancingClient amazonClient = getAmazonElbClient(cloud, false, loadBalancer.region?.regionCode)
             log.debug "Opts: sslCert: ${opts.sslCert}"
             def certId
             if(opts.sslCert instanceof String && opts.sslCert.isLong()) {
@@ -385,7 +393,7 @@ class ELBLoadBalancerProvider implements LoadBalancerProvider {
                 certId = opts.sslCert && opts.sslCert?.id.toLong() > 0 ? opts.sslCert.id?.toLong() : loadBalancerInstance.sslCert?.id
             }
             def elbProtocol = getVipServiceMode(loadBalancerInstance)
-            def elbPort = opts.instance?.customPort ?: loadBalancerInstance.vipPort?.toString()
+            def elbPort = loadBalancerInstance.vipPort?.toString()
             def instanceProtocol = getBackendServiceMode(loadBalancerInstance)
             def instancePort = loadBalancerInstance.servicePort.toLong()
             def sslRedirectMode = loadBalancerInstance.sslRedirectMode
@@ -621,8 +629,8 @@ class ELBLoadBalancerProvider implements LoadBalancerProvider {
 
     private getLoadBalancerName(NetworkLoadBalancer loadBalancer) {
         // Must make sure it is unique within AWS
-        def zone = loadBalancer.zone
-        AmazonElasticLoadBalancingClient amazonClient = getAmazonElbClient(zone, false, loadBalancer.region?.regionCode)
+        def cloud = loadBalancer.cloud
+        AmazonElasticLoadBalancingClient amazonClient = getAmazonElbClient(cloud, false, loadBalancer.region?.regionCode)
 
         // Must contain only letters, numbers, dashes and start with an alpha character
         def currentName = loadBalancer.name.replaceAll(/[^a-zA-Z0-9\-]/, '')?.take(255)
@@ -832,6 +840,6 @@ class ELBLoadBalancerProvider implements LoadBalancerProvider {
     }
 
     protected getAmazonElbClient(Cloud cloud, Boolean fresh = false, String region = null) {
-        return this.@plugin.getAmazonElbClient(cloud, fresh, region)
+        return this.@plugin.getAmazonElbClassicClient(cloud, fresh, region)
     }
 }

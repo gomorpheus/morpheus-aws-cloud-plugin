@@ -510,7 +510,7 @@ class VirtualMachineSync {
 					doSave = true
 				}
 				if(doSave) {
-					morpheusContext.async.computeServer.computeServerInterface.save([nic])
+					//morpheusContext.async.computeServer.computeServerInterface.save([nic])
 				}
 			}
 		}
