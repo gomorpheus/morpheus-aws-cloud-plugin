@@ -2276,7 +2276,6 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 		opts.amazonClient = plugin.getAmazonClient(cloud, false, regionCode)
 		def serverResults = AmazonComputeUtility.listVpcServers(opts + [filterInstanceId: server.externalId, includeAllVPCs: true])
 		def masterItem = serverResults.serverList?.size() == 1 ? serverResults.serverList[0] : null
-		def usageLists = [restartUsageIds: [], stopUsageIds: [], startUsageIds: [], updatedSnapshotIds: [serverResults.snapshotList]]
 		if(serverResults.success == true && masterItem) {
 			CloudRegion region = morpheusContext.async.cloud.region.find(new DataQuery().withFilters([
 					new DataFilter('regionCode', regionCode),
@@ -2284,7 +2283,7 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 			])).blockingGet()
 			server.status = 'running'
 			List updateList = [[masterItem: masterItem, existingItem: server]]
-			new VirtualMachineSync(this.plugin, cloud).updateMatchedVirtualMachines(updateList, region, serverResults.volumeList, usageLists, 'full')
+			new VirtualMachineSync(this.plugin, cloud).updateMatchedVirtualMachines(updateList, region, serverResults.volumeList, 'full')
 		}
 	}
 
