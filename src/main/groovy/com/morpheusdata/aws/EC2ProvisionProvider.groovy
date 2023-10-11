@@ -623,7 +623,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	ServiceResponse<ProvisionResponse> runWorkload(Workload workload, WorkloadRequest workloadRequest, Map opts) {
 		log.debug "runWorkload: ${workload} ${workloadRequest} ${opts}"
 		AmazonEC2 amazonClient
-		ProvisionResponse provisionResponse = new ProvisionResponse(success: true, installAgent: false)
+		ProvisionResponse provisionResponse = new ProvisionResponse(success: true)
 		ComputeServer server = workload.server
 		try {
 			Cloud cloud = server.cloud
