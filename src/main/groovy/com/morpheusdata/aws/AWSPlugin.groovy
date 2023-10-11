@@ -58,7 +58,7 @@ class AWSPlugin extends Plugin {
 	@Override
 	void onDestroy() {
 		List<String> seedsToRun = [
-			"application.ZoneTypes",
+			"application.AmazonZoneTypeSeed",
 			"application.ProvisionTypeAmazonSeed",
 			"application.AmazonSeed",
 			"application.ComputeServerTypeAmazonSeed",
