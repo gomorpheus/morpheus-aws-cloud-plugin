@@ -78,14 +78,13 @@ class AWSCloudProvider implements CloudProvider {
 		OptionType apiUrl = new OptionType(
 			name: 'Region',
 			code: 'aws-plugin-endpoint',
-			defaultValue: 'ec2.us-east-1.amazonaws.com',
 			displayOrder: displayOrder,
 			fieldContext: 'config',
 			fieldLabel: 'Region',
 			fieldCode: 'gomorpheus.optiontype.Region',
 			fieldName: 'endpoint',
 			inputType: OptionType.InputType.SELECT,
-			optionSource: 'awsPluginAllEndpoints',
+			optionSource: 'awsPluginAllRegions',
 			required: true
 		)
 		OptionType credentials = new OptionType(
@@ -179,6 +178,7 @@ class AWSCloudProvider implements CloudProvider {
 			fieldName: 'vpc',
 			inputType: OptionType.InputType.SELECT,
 			optionSource: 'awsPluginVpc',
+			noBlank: true,
 			dependsOnCode: 'config.endpoint, endpoint, config.accessKey, accessKey, config.secretKey, secretKey, credential, credential.type'
 		)
 		OptionType imageTransferStore = new OptionType(
@@ -216,6 +216,7 @@ class AWSCloudProvider implements CloudProvider {
 			fieldGroup: 'Advanced',
 			inputType: OptionType.InputType.SELECT,
 			optionSource: 'awsPluginCostingReports',
+			visibleOnCode: 'aws-plugin-endpoint',
 			dependsOnCode: 'config.endpoint, endpoint, config.accessKey, accessKey, config.secretKey, secretKey, credential, credential.type'
 		)
 		OptionType costingReportName = new OptionType(
@@ -306,6 +307,7 @@ class AWSCloudProvider implements CloudProvider {
 			name: 'Linked Account ID',
 			code: 'aws-plugin-linked-account',
 			displayOrder: displayOrder += 10,
+			fieldContext: 'domain',
 			fieldLabel: 'Linked Account ID',
 			fieldCode: 'gomorpheus.label.linkedAccountId',
 			fieldName: 'linkedAccountId',
@@ -351,13 +353,25 @@ class AWSCloudProvider implements CloudProvider {
 
 		ComputeServerType unmanagedWindows = new ComputeServerType()
 		unmanagedWindows.name = 'Amazon Windows Node'
-		unmanagedWindows.code = 'amazonUnmanagedWindows'
+		unmanagedWindows.code = 'amazonWindows'
 		unmanagedWindows.description = 'Amazon Instance'
-		unmanagedWindows.reconfigureSupported = false
-		unmanagedWindows.hasAutomation = false
-		unmanagedWindows.supportsConsoleKeymap = false
 		unmanagedWindows.platform = PlatformType.windows
+		unmanagedWindows.nodeType = 'morpheus-windows-node'
+		unmanagedWindows.enabled = true
+		unmanagedWindows.selectable = false
+		unmanagedWindows.externalDelete = true
 		unmanagedWindows.managed = false
+		unmanagedWindows.controlPower = true
+		unmanagedWindows.controlSuspend = false
+		unmanagedWindows.displayOrder = 1
+		unmanagedWindows.hasAutomation = true
+		unmanagedWindows.reconfigureSupported = false
+		unmanagedWindows.containerHypervisor = false
+		unmanagedWindows.bareMetalHost = false
+		unmanagedWindows.vmHypervisor = false
+		unmanagedWindows.agentType = ComputeServerType.AgentType.node
+		unmanagedWindows.guestVm = true
+		unmanagedWindows.supportsConsoleKeymap = false
 		unmanagedWindows.provisionTypeCode = 'amazon'
 
 		ComputeServerType dockerType = new ComputeServerType()
@@ -805,7 +819,20 @@ class AWSCloudProvider implements CloudProvider {
 
 	@Override
 	ServiceResponse deleteCloud(Cloud cloudInfo) {
-		return new ServiceResponse(success: true)
+		ServiceResponse rtn = new ServiceResponse(success: false)
+		try {
+			// cleanup all the providers associated with this cloud.
+			// delete amazon network server, route53 dns integration, s3 storage server
+			plugin.getNetworkProvider().deleteProvider(cloudInfo)
+			plugin.getDnsProvider().deleteProvider(cloudInfo)
+			plugin.getStorageProvider().deleteProvider(cloudInfo)
+			
+			// todo: anything else to delete? KeyPairs or ReferenceData maybe?
+			rtn.success = true
+		} catch (e) {
+			log.error("delete cloud error: ${e}", e)
+		}
+		rtn
 	}
 
 	@Override
@@ -942,6 +969,7 @@ class AWSCloudProvider implements CloudProvider {
 
 			refreshDaily(cloud)
 			refresh(cloud)
+			rtn.success = true
 		} catch (e) {
 			log.error("refresh cloud error: ${e}", e)
 		}

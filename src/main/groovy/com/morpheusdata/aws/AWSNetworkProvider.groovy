@@ -189,15 +189,37 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 		log.info("Initializeing network provider for ${cloud.name}")
 		ServiceResponse rtn = ServiceResponse.prepare()
 		try {
-			NetworkServer integration = new NetworkServer(
+			NetworkServer networkServer = new NetworkServer(
 				name: cloud.name,
 				type: new NetworkServerType(code:"amazon")
 			)
-			morpheus.integration.registerCloudIntegration(cloud.id, integration).blockingGet()
+			morpheus.integration.registerCloudIntegration(cloud.id, networkServer).blockingGet()
 			rtn.success = true
 		} catch (Exception e) {
 			rtn.success = false
 			log.error("initializeProvider error: {}", e, e)
+		}
+
+		return rtn
+	}
+
+	@Override
+	ServiceResponse deleteProvider(Cloud cloud) {
+		log.info("Deleting network provider for ${cloud.name}")
+		ServiceResponse rtn = ServiceResponse.prepare()
+		try {
+			// cleanup is done by type, so we do not need to load the record
+			// NetworkServer networkServer = morpheusContext.services.networkServer.find(new DataQuery().withFilters([new DataFilter('type.code', "amazon"), new DataFilter('zoneId', cloud.id)]))
+			// NetworkServer networkServer = cloud.networkServer // this works too, ha
+			NetworkServer networkServer = new NetworkServer(
+				name: cloud.name,
+				type: new NetworkServerType(code:"amazon")
+			)
+			morpheus.integration.deleteCloudIntegration(cloud.id, networkServer).blockingGet()
+			rtn.success = true
+		} catch (Exception e) {
+			rtn.success = false
+			log.error("deleteProvider error: {}", e, e)
 		}
 
 		return rtn

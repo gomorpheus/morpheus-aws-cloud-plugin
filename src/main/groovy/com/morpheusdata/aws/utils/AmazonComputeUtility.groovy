@@ -651,8 +651,7 @@ class AmazonComputeUtility {
 		try {
 			def amazonClient = opts.amazonClient
 			def vpcId = opts.zone.getConfigProperty('vpc')
-			def isVpc = opts.zone.getConfigProperty('isVpc')
-			if(vpcId || isVpc) {
+			if(vpcId) {
 				def securityRequest = new DescribeSecurityGroupsRequest().withFilters(new LinkedList<Filter>())
 				if(vpcId) {
 					securityRequest.getFilters().add(new Filter().withName("vpc-id").withValues(vpcId))	
@@ -1005,7 +1004,6 @@ class AmazonComputeUtility {
 		try {
 			def amazonClient = opts.amazonClient
 			def vpcId = opts.zone.getConfigProperty('vpc')
-			def isVpc = opts.zone.getConfigProperty('isVpc')
 			def subnetId = opts.subnetId
 			def subnetRequest = new DescribeSubnetsRequest().withFilters(new LinkedList<Filter>())
 			if(subnetId) {
@@ -1016,9 +1014,6 @@ class AmazonComputeUtility {
 			}
 			
 			rtn.subnetList =  amazonClient.describeSubnets(subnetRequest).getSubnets()
-			if(!vpcId && !isVpc) {
-				rtn.subnetList = rtn.subnetList?.findAll{it.getVpcId() == null}
-			}
 			rtn.success = true
 		} catch(e) {
 			log.debug("listSubnets error: ${e}", e)
@@ -1839,7 +1834,6 @@ class AmazonComputeUtility {
 		try {
 			AmazonEC2Client amazonClient = opts.amazonClient
 			def vpcId = opts.zone.getConfigProperty('vpc')
-			def isVpc = opts.zone.getConfigProperty('isVpc')
 			def volumesRequest = new DescribeVolumesRequest().withFilters(new LinkedList<Filter>())
 			
 			
@@ -1908,7 +1902,6 @@ class AmazonComputeUtility {
 		try {
 			AmazonEC2Client amazonClient = opts.amazonClient
 			def vpcId = opts.cloud.getConfigProperty('vpc')
-			def isVpc = opts.cloud.getConfigProperty('isVpc')
 			def serverRequest = new DescribeInstancesRequest().withFilters(new LinkedList<Filter>())
 			if(!opts.includeAllVPCs && vpcId) {
 				serverRequest.getFilters().add(new Filter().withName("vpc-id").withValues(vpcId))
@@ -1925,7 +1918,7 @@ class AmazonComputeUtility {
 			def volumeIds = []
 			while(tmpReservations.size() > 0) {
 				tmpReservations.each { reservation ->
-					def instances = (!vpcId && !isVpc) ? reservation.getInstances().findAll{it.getVpcId() == null} : reservation.getInstances()
+					def instances = reservation.getInstances()
 					instances.each { resInstance ->
 						resInstance.getBlockDeviceMappings()?.each { block ->
 							volumeIds << block.getEbs().getVolumeId()
@@ -2730,7 +2723,7 @@ class AmazonComputeUtility {
 				// Setting for # of allowed elastic IPs is defined on VPC and classic.. determine which one to use
 				def maxElasticIPs = 0
 				def attributeValue
-				if(cloud.getConfigProperty('vpc') || cloud.getConfigProperty('isVpc') ) {
+				if(cloud.getConfigProperty('vpc') ) {
 					attributeValue = accountAttributesResult.results?.accountAttributes?.find { it.attributeName == 'vpc-max-elastic-ips' }?.attributeValues?.attributeValue
 				} else {
 					attributeValue = accountAttributesResult.results?.accountAttributes?.find { it.attributeName == 'max-elastic-ips' }?.attributeValues?.attributeValue

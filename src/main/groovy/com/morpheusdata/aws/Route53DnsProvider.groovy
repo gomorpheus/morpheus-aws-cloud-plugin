@@ -56,7 +56,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 		try {
 			AccountIntegration integration = new AccountIntegration(
 				name: cloud.name,
-				integrationType: new AccountIntegrationType(code:"amazonDns"),
+				integrationType: new AccountIntegrationType(code: this.code),
 				serviceUrl: cloud.regionCode
 			)
 			morpheus.async.integration.registerCloudIntegration(cloud.id, integration).blockingGet()
@@ -64,6 +64,28 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 		} catch (Exception e) {
 			rtn.success = false
 			log.error("initializeProvider error: {}", e, e)
+		}
+
+		return rtn
+	}
+
+	@Override
+	ServiceResponse deleteProvider(Cloud cloud) {
+		log.debug("Deleting dns provider for ${cloud.name}")
+		ServiceResponse rtn = ServiceResponse.prepare()
+		try {
+			// cleanup is done by type, so we do not need to load the record
+			// AccountIntegration integration = morpheusContext.services.integration.find(new DataQuery().withFilters([new DataFilter('type.code', this.code), new DataFilter('refType', 'ComputeZone'), new DataFilter('refId', cloud.id)]))
+			AccountIntegration integration = new AccountIntegration(
+				name: cloud.name,
+				integrationType: new AccountIntegrationType(code: this.code),
+				serviceUrl: cloud.regionCode
+			)
+			morpheus.async.integration.deleteCloudIntegration(cloud.id, integration).blockingGet()
+			rtn.success = true
+		} catch (Exception e) {
+			rtn.success = false
+			log.error("deleteProvider error: {}", e, e)
 		}
 
 		return rtn
@@ -164,7 +186,7 @@ class Route53DnsProvider implements DNSProvider, CloudInitializationProvider {
 	@Override
 	List<OptionType> getIntegrationOptionTypes() {
 		return [
-			new OptionType(code: 'accountIntegration.amazon.dns.serviceUrl', name: 'Region', inputType: OptionType.InputType.SELECT, optionSourceType: null, optionSource: 'awsPluginEndpoints', fieldName: 'serviceUrl', fieldLabel: 'Region', fieldContext: 'domain', required: false, noSelection: "gomorpheus.label.all", displayOrder: 0),
+			new OptionType(code: 'accountIntegration.amazon.dns.serviceUrl', name: 'Region', inputType: OptionType.InputType.SELECT, optionSourceType: null, optionSource: 'awsPluginRegions', fieldName: 'serviceUrl', fieldLabel: 'Region', fieldContext: 'domain', required: false, noSelection: "gomorpheus.label.all", displayOrder: 0),
 			new OptionType(code: 'accountIntegration.amazon.dns.credentials', name: 'Credentials', inputType: OptionType.InputType.CREDENTIAL, fieldName: 'type', fieldLabel: 'Credentials', fieldContext: 'credential', required: true, displayOrder: 1, defaultValue: 'local',optionSource: 'credentials',config: '{"credentialTypes":["access-key-secret"]}'),
 			new OptionType(code: 'accountIntegration.amazon.dns.serviceUsername', name: 'Access Key', inputType: OptionType.InputType.TEXT, fieldName: 'serviceUsername', fieldLabel: 'Access Key', fieldContext: 'domain', required: true, displayOrder: 2,localCredential: true),
 			new OptionType(code: 'accountIntegration.amazon.dns.servicePassword', name: 'Secret Key', inputType: OptionType.InputType.PASSWORD, fieldName: 'servicePassword', fieldLabel: 'Secret Key', fieldContext: 'domain', required: true, displayOrder: 3,localCredential: true)

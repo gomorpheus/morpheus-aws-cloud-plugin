@@ -42,6 +42,7 @@ class ELBLoadBalancerProvider implements LoadBalancerProvider {
     Plugin plugin
 
     private static final PROVIDER_CODE = 'amazon-elb'
+    private static final LOAD_BALANCER_TYPE_CODE = 'amazon'
 
     public ELBLoadBalancerProvider(Plugin plugin, MorpheusContext context) {
         super()
@@ -68,7 +69,7 @@ class ELBLoadBalancerProvider implements LoadBalancerProvider {
     Collection<NetworkLoadBalancerType> getLoadBalancerTypes() {
         NetworkLoadBalancerType type = new NetworkLoadBalancerType(
             code:getLoadBalancerTypeCode(),
-            name:'Amazon ELB - Plugin', // will change after testing
+            name:'Amazon ELB', // will change after testing
             internal:false,
             enabled:true,
             createType:'instance',
@@ -823,7 +824,7 @@ class ELBLoadBalancerProvider implements LoadBalancerProvider {
     }
 
     String getLoadBalancerTypeCode() {
-        return PROVIDER_CODE
+        return LOAD_BALANCER_TYPE_CODE
     }
 
     protected getAmazonClient(Cloud cloud, Boolean fresh = false, String region=null) {
