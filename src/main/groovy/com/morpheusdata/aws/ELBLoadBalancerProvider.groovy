@@ -41,8 +41,8 @@ class ELBLoadBalancerProvider implements LoadBalancerProvider {
     MorpheusContext morpheusContext
     Plugin plugin
 
-    private static final PROVIDER_CODE = 'amazon-elb'
-    private static final LOAD_BALANCER_TYPE_CODE = PROVIDER_CODE
+    public static final PROVIDER_CODE = 'amazon-elb'
+    public static final LOAD_BALANCER_TYPE_CODE = PROVIDER_CODE
 
     public ELBLoadBalancerProvider(Plugin plugin, MorpheusContext context) {
         super()
@@ -120,11 +120,6 @@ class ELBLoadBalancerProvider implements LoadBalancerProvider {
 
     @Override
     ServiceResponse initializeLoadBalancer(NetworkLoadBalancer loadBalancer, Map opts) {
-        return null
-    }
-
-    @Override
-    ServiceResponse refresh(NetworkLoadBalancer loadBalancer) {
         return null
     }
 

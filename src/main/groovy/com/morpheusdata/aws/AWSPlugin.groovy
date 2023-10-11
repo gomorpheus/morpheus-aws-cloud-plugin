@@ -62,7 +62,8 @@ class AWSPlugin extends Plugin {
 			"application.ProvisionTypeAmazonSeed",
 			"application.AmazonSeed",
 			"application.ComputeServerTypeAmazonSeed",
-			"application.AmazonComputeTypeSeed"
+			"application.AmazonComputeTypeSeed",
+			"application.AwsLoadBalancerTypeSeed"
 		]
 		morpheus.services.seed.reinstallSeedData(seedsToRun) // needs to be synchronous to prevent seeds from running during plugin install
 	}

@@ -2,6 +2,7 @@ package com.morpheusdata.aws.sync
 
 import com.amazonaws.services.elasticloadbalancing.model.LoadBalancerDescription
 import com.morpheusdata.aws.AWSPlugin
+import com.morpheusdata.aws.ELBLoadBalancerProvider
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.util.SyncTask
@@ -34,7 +35,7 @@ class ElbSync {
 				def amazonClient = AmazonComputeUtility.getAmazonElbClassicClient(cloud,false, region.externalId)
 				def elbList = AmazonComputeUtility.listElbs([amazonClient: amazonClient])
 				if(elbList.success) {
-					Observable<NetworkLoadBalancerIdentityProjection> domainRecords = morpheusContext.async.loadBalancer.listIdentityProjections(cloud.id, region.externalId,'amazon')
+					Observable<NetworkLoadBalancerIdentityProjection> domainRecords = morpheusContext.async.loadBalancer.listIdentityProjections(cloud.id, region.externalId, ELBLoadBalancerProvider.LOAD_BALANCER_TYPE_CODE)
 					SyncTask<NetworkLoadBalancerIdentityProjection, LoadBalancerDescription, NetworkLoadBalancer> syncTask = new SyncTask<>(domainRecords, elbList.elbList as Collection<LoadBalancerDescription>)
 					return syncTask.addMatchFunction { NetworkLoadBalancerIdentityProjection domainObject, LoadBalancerDescription data ->
 						domainObject.externalId == ':loadbalancer/' + data.getLoadBalancerName()
@@ -62,11 +63,11 @@ class ElbSync {
 		def adds = []
 		for(LoadBalancerDescription cloudItem in addList) {
 			def loadBalancerConfig = [
-				owner: cloud.owner, account: cloud.owner, visibility: 'private',
+				owner     : cloud.owner, account: cloud.owner, visibility: 'private',
 				externalId: ":loadbalancer/${cloudItem.getLoadBalancerName()}",
-				name: cloudItem.getLoadBalancerName(), sshHost: cloudItem.getDNSName(),
-				type: new NetworkLoadBalancerType(code:'amazon'), cloud: cloud,
-				region: new CloudRegion(id: region.id)
+				name      : cloudItem.getLoadBalancerName(), sshHost: cloudItem.getDNSName(),
+				type      : new NetworkLoadBalancerType(code:ELBLoadBalancerProvider.LOAD_BALANCER_TYPE_CODE), cloud: cloud,
+				region    : new CloudRegion(id: region.id)
 			]
 			NetworkLoadBalancer newLoadBalancer = new NetworkLoadBalancer(loadBalancerConfig)
 			adds << newLoadBalancer
@@ -85,6 +86,10 @@ class ElbSync {
 
 			if(existingItem.externalId != externalId) {
 				existingItem.externalId = externalId
+				save = true
+			}
+			if (existingItem.type.code != ELBLoadBalancerProvider.LOAD_BALANCER_TYPE_CODE) {
+				existingItem.type = morpheusContext.async.loadBalancer.type.findByCode(ELBLoadBalancerProvider.LOAD_BALANCER_TYPE_CODE).blockingGet()
 				save = true
 			}
 			if(save) {
