@@ -631,6 +631,10 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 			amazonClient = plugin.getAmazonClient(cloud,false, server.resourcePool.regionCode)
 			def runConfig = buildWorkloadRunConfig(workload, workloadRequest, virtualImage, amazonClient, opts)
 			runVirtualMachine(runConfig, provisionResponse, opts + [amazonClient: amazonClient])
+			log.info("Checking Server Interfaces....")
+			workload.server.interfaces?.each { netInt ->
+				log.info("Net Interface: ${netInt.id} -> Network: ${netInt.network?.id}")
+			}
 			provisionResponse.noAgent = opts.noAgent ?: false
 			return new ServiceResponse<ProvisionResponse>(success: true, data: provisionResponse)
 		} catch (e) {
@@ -1877,6 +1881,9 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 							networkInterface.description = matchNetwork.description
 						}
 					}
+				}
+				serverInterfaces?.each { netInt ->
+					log.info("Net Interface: ${netInt.id} -> Network: ${netInt.network?.id}")
 				}
 				morpheusContext.async.computeServer.computeServerInterface.save(serverInterfaces).blockingGet()
 			}

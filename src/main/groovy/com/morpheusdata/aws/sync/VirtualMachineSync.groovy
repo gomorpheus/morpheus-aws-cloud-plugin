@@ -162,13 +162,6 @@ class VirtualMachineSync {
 					if(performPostSaveSync(cloudItems[server.externalId], server, volumeMap).saveRequired) {
 						saves << server
 					}
-					if(usageLists) {
-						if (server.powerState == ComputeServer.PowerState.on) {
-							usageLists.startUsageIds << server.id
-						} else {
-							usageLists.stopUsageIds << server.id
-						}
-					}
 				}
 				if(saves) {
 					morpheusContext.async.computeServer.bulkSave(saves).blockingGet()
