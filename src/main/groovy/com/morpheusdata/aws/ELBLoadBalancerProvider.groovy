@@ -302,9 +302,18 @@ class ELBLoadBalancerProvider implements LoadBalancerProvider {
 
     @Override
     ServiceResponse updateInstance(NetworkLoadBalancerInstance instance) {
+        ServiceResponse rtn = ServiceResponse.prepare()
         def opts = instance.getConfigProperty('options')
         log.debug "updateInstance: ${instance}, ${opts}"
-        return updateOrCreateInstance(instance, opts)
+        def resp = updateOrCreateInstance(instance, opts)
+
+        if (resp.success) {
+            rtn.success = true
+        }
+        else {
+            rtn.errors = resp.errors
+        }
+        return rtn
     }
 
     @Override
