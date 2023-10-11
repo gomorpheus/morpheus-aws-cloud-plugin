@@ -383,7 +383,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	 */
 	@Override
 	Integer getMaxNetworks() {
-		null
+		return 0
 	}
 
 	/**
