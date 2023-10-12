@@ -68,7 +68,9 @@ class AWSPlugin extends Plugin {
 			"application.AmazonAccountIntegrationTypeSeed",
 			// s3
 			"application.AmazonStorageVolumeTypeSeed",
-			"application.AmazonStorageServerTypeSeed"
+			"application.AmazonStorageServerTypeSeed",
+			"application.AmazonNetworkTypeSeed"
+
 		]
 		morpheus.services.seed.reinstallSeedData(seedsToRun) // needs to be synchronous to prevent seeds from running during plugin install
 	}
