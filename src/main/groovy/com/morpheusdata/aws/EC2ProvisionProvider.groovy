@@ -220,6 +220,17 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				displayOrder : 104,
 				required : false,
 		])
+		OptionType statType = new OptionType([
+				name : 'statTypeCode',
+				code : 'amazon-ec2-node-stat-type-code',
+				fieldName : 'statTypeCode',
+				fieldContext : 'domain',
+				fieldLabel : 'statTypeCode',
+				inputType : OptionType.InputType.HIDDEN,
+				defaultValue: 'vm',
+				displayOrder : 104,
+				required : false,
+		])
 		OptionType serverType = new OptionType([
 				name : 'serverType',
 				code : 'amazon-ec2-node-server-type',
@@ -231,7 +242,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				displayOrder : 105,
 				required : false,
 		])
-		return [amiImage, logFolder, configFolder, deployFolder,checkType,serverType]
+		return [amiImage, logFolder, configFolder, deployFolder,checkType,serverType,statType]
 	}
 
 	/**
