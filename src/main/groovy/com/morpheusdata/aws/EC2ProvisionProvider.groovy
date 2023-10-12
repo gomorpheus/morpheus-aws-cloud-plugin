@@ -253,7 +253,18 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				displayOrder : 105,
 				required : false,
 		])
-		return [amiImage, logFolder, configFolder, deployFolder,checkType,serverType,statType,logType]
+		OptionType showServerLogs = new OptionType([
+				name : 'showServerLogs',
+				code : 'amazon-ec2-node-show-server-logs',
+				fieldName : 'showServerLogs',
+				fieldContext : 'domain',
+				fieldLabel : 'showServerLogs',
+				inputType : OptionType.InputType.HIDDEN,
+				defaultValue: 'true',
+				displayOrder : 105,
+				required : false,
+		])
+		return [amiImage, logFolder, configFolder, deployFolder,checkType,serverType,statType,logType,showServerLogs]
 	}
 
 	/**
