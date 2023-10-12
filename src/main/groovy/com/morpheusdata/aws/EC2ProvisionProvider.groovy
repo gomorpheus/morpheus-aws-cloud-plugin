@@ -209,7 +209,29 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				helpText: '(Optional) If using deployment services, this mount point will be replaced with the contents of said deployments.',
 				required : false,
 		])
-		return [amiImage, logFolder, configFolder, deployFolder]
+		OptionType checkType = new OptionType([
+				name : 'checkTypeCode',
+				code : 'amazon-ec2-node-check-type-code',
+				fieldName : 'checkTypeCode',
+				fieldContext : 'domain',
+				fieldLabel : 'CheckType',
+				inputType : OptionType.InputType.HIDDEN,
+				defaultValue: 'vmCheck',
+				displayOrder : 104,
+				required : false,
+		])
+		OptionType serverType = new OptionType([
+				name : 'serverType',
+				code : 'amazon-ec2-node-server-type',
+				fieldName : 'serverType',
+				fieldContext : 'domain',
+				fieldLabel : 'serverType',
+				inputType : OptionType.InputType.HIDDEN,
+				defaultValue: 'vm',
+				displayOrder : 105,
+				required : false,
+		])
+		return [amiImage, logFolder, configFolder, deployFolder,checkType,serverType]
 	}
 
 	/**
