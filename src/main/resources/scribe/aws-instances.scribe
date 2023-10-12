@@ -29,6 +29,7 @@ resource "workload-type" "amazon-1_0" {
 	ports = []
 	containerVersion = "1.0"
 	serverType = "vm"
+	checkTypeCode = 'vmCheck'
 	showServerLogs = true
 	statTypeCode = "vm"
 	logTypeCode = "amazon"
