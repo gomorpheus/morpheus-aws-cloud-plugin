@@ -657,7 +657,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		log.debug "prepareHost: ${server} ${hostRequest} ${opts}"
 
 		ServiceResponse<PrepareHostResponse> resp = new ServiceResponse<>()
-		resp.data = new PrepareHostResponse(computeServer: server, disableCloudInit: false,disableAutoUpdates: true, options: [sendIp: false])
+		resp.data = new PrepareHostResponse(computeServer: server, disableCloudInit: false, options: [sendIp: false])
 
 		try {
 			def layout = server?.layout
