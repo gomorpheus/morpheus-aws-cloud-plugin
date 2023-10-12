@@ -2,6 +2,7 @@ package com.morpheusdata.aws
 
 import com.amazonaws.services.ec2.AmazonEC2
 import com.amazonaws.services.ec2.AmazonEC2Client
+import com.morpheusdata.PrepareHostResponse
 import com.morpheusdata.aws.backup.AWSSnapshotBackupProvider
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.AbstractProvisionProvider
@@ -494,7 +495,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	 * @return Response from API
 	 */
 	@Override
-	ServiceResponse validateDockerHost(ComputeServer server, Map opts) {
+	ServiceResponse validateHost(ComputeServer server, Map opts) {
 		log.debug "validateDockerHost: ${server} ${opts}"
 		ServiceResponse.success()
 	}
@@ -652,10 +653,12 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	}
 
 	@Override
-	ServiceResponse prepareHost(ComputeServer server, HostRequest hostRequest, Map opts) {
+	ServiceResponse<PrepareHostResponse> prepareHost(ComputeServer server, HostRequest hostRequest, Map opts) {
 		log.debug "prepareHost: ${server} ${hostRequest} ${opts}"
 
-		def rtn = [success: false, msg: null]
+		ServiceResponse<PrepareHostResponse> resp = new ServiceResponse<>()
+		resp.data = new PrepareHostResponse(computeServer: server, disableCloudInit: false,disableAutoUpdates: true, options: [sendIp: false])
+
 		try {
 			def layout = server?.layout
 			def typeSet = server.typeSet
@@ -713,18 +716,18 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				}
 			}
 			if(!virtualImage) {
-				rtn.msg = "No virtual image selected"
+				resp.msg = "No virtual image selected"
 			} else {
 				server.sourceImage = virtualImage
 				saveAndGet(server)
-				rtn.success = true
+				resp.success = true
 			}
 		} catch(e) {
-			rtn.msg = "Error in prepareHost: ${e}"
-			log.error("${rtn.msg}, ${e}", e)
+			resp.msg = "Error in prepareHost: ${e}"
+			log.error("${resp.msg}, ${e}", e)
 
 		}
-		new ServiceResponse(rtn.success, rtn.msg, null, [options: [sendIp: false]])
+		return resp
 
 	}
 
