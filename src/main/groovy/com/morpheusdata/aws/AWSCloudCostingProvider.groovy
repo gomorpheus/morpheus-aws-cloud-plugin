@@ -119,7 +119,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 	void refreshDailyZoneCosting(Cloud cloud, Date costDate, CloudRefreshOptions cloudRefreshOptions) {
 		Date syncDate = new Date()
 		try {
-			morpheus.async.cloud.updateCloudCostStatus(cloud,Cloud.Status.syncing,null,syncDate)
+			morpheus.async.cloud.updateCloudCostStatus(cloud, Cloud.Status.syncing, null, null)
 
 			if(initializeCosting(cloud).success) {
 				if (cloud && cloud.costingMode in ['full', 'costing']) {
