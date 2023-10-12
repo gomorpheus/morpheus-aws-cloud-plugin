@@ -402,7 +402,6 @@ class AWSCloudProvider implements CloudProvider {
 		vmType.platform = PlatformType.linux
 		vmType.managed = true
 		vmType.provisionTypeCode = 'amazon'
-		vmType.optionTypes = options
 
 		ComputeServerType windwsVmType = new ComputeServerType()
 		windwsVmType.name = 'Amazon Windows Instance'
@@ -415,7 +414,6 @@ class AWSCloudProvider implements CloudProvider {
 		windwsVmType.platform = PlatformType.windows
 		windwsVmType.managed = true
 		windwsVmType.provisionTypeCode = 'amazon'
-		windwsVmType.optionTypes = options
 
 		[unmanaged, unmanagedWindows, dockerType, vmType, windwsVmType] //TODO: More types for RDS and K8s
 	}
