@@ -121,15 +121,17 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 	def awsRouteTable(args) {
 		args = args instanceof Object[] ? args.getAt(0) : args
 		log.info("awsRouteTable args: ${args}")
+		log.debug("awsRouteTable args.parentId: ${args.parentId}")
 		def rtn = []
-		def routerId = MorpheusUtils.parseLongConfig(args.routerId)
-		log.info("routerId: $routerId")
+		def routerId = MorpheusUtils.parseLongConfig(args.routerId ?: args.parentId)
+		log.debug("routerId: $routerId")
 		if(routerId) {
 			def router = morpheus.services.network.router.listById([routerId])?.getAt(0)
-			log.info("router: $router")
+			log.debug("router: $router")
 			if(router && router.refType == 'ComputeZonePool') {
-				def routeTableIds = morpheus.services.network.routeTable.listIdentityProjections(router.refId).collect { it.id }
-				log.info("routeTableIds: $routeTableIds")
+				def routeTableIds = morpheus.services.network.routeTable.listIdentityProjections(new DataQuery().withFilter("zonePool.id", router.refId)).collect { it.id }
+
+				log.debug("routeTableIds: $routeTableIds")
 				if(routeTableIds.size() > 0) {
 					rtn = morpheus.services.network.routeTable.listById(routeTableIds).collect {
 						[name: it.name, value: it.id]
@@ -163,6 +165,8 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 			NetworkRouteTable networkRouteTable = morpheus.services.network.routeTable.listById([networkRouteTableId])?.getAt(0)
 			if(networkRouteTable) {
 				def vpc = networkRouteTable?.zonePool
+				log.debug("VPC: ${vpc}")
+				vpc = morpheus.services.cloud.pool.get(vpc.id)
 				def account = vpc?.owner
 				def resourceType
 				switch(destinationType) {
@@ -170,7 +174,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 						resourceType = 'aws.cloudFormation.ec2.egressOnlyInternetGateway'
 						break
 					case 'INTERNET_GATEWAY':
-						List<Long> routerIds = morpheus.async.network.router.listIdentityProjections(vpc.cloud.id, 'amazonInternetGateway').collect { it.id }
+						List<Long> routerIds = morpheus.async.network.router.listIdentityProjections(vpc.cloud.id, 'amazonInternetGateway').toList().blockingGet().collect { it.id }
 						if(routerIds.size() > 0) {
 							rtn =  morpheus.services.network.router.listById(routerIds)?.collect { [name: it.name, value: it.externalId ]}?.sort{it.name } ?: []
 						}
@@ -204,7 +208,9 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 				}
 
 				if(resourceType && rtn.size == 0) {
+					log.debug("VPC Owner: ${account}, vpc cloud: ${vpc.cloud}")
 					def accountResourceIds = morpheus.async.cloud.resource.listIdentityProjections(vpc.cloud.id, resourceType, null, account.id).toList().blockingGet().collect { it.id }
+					log.debug("accountResourceIds: {}", accountResourceIds)
 					if(accountResourceIds.size() > 0) {
 						rtn = morpheus.services.cloud.resource.listById(accountResourceIds)?.collect {
 							[name: it.displayName ?: it.name, value: it.externalId]
