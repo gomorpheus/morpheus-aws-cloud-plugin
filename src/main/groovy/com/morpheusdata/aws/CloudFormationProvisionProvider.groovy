@@ -38,8 +38,10 @@ import com.morpheusdata.model.OptionType
 import com.morpheusdata.model.Process
 import com.morpheusdata.model.ProcessEvent
 import com.morpheusdata.model.ResourceSpec
+import com.morpheusdata.model.ResourceSpecTemplate
 import com.morpheusdata.model.SecurityGroupLocation
 import com.morpheusdata.model.ServicePlan
+import com.morpheusdata.model.TemplateParameter
 import com.morpheusdata.model.VirtualImage
 import com.morpheusdata.model.Workload
 import com.morpheusdata.model.WorkloadState
@@ -102,6 +104,68 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 	@Override
 	Collection<ComputeServerInterfaceType> getComputeServerInterfaceTypes() {
 		return null
+	}
+
+	@Override
+	Collection<TemplateParameter> getTemplateParameters(ResourceSpecTemplate specTemplate, String fileContent, Map opts) {
+		log.debug "getTemplateParameters ${specTemplate} ${opts}"
+		Collection<TemplateParameter> parameters = new ArrayList<TemplateParameter>()
+		try {
+			def specContent
+			if (opts.instanceId) {
+				Instance instance = morpheusContext.async.instance.get(opts.instanceId.toLong()).blockingGet()
+				ResourceSpec resourceSpec = instance.specs?.find { it.template.id == specTemplate.id }
+				if (resourceSpec?.isolated) {
+					specContent = resourceSpec.templateContent
+				}
+			}
+			if (!specContent) {
+				specContent = fileContent
+			}
+			log.debug "specContent: ${specContent}"
+			def template = CloudFormationResourceMappingUtility.loadYamlOrJsonMap(specContent)
+			log.debug "1 ${template}"
+			parameters = getTemplateParameters(template)
+		} catch(e) {
+			log.error "Error in getting params: ${e}", e
+		}
+		return parameters
+	}
+
+	Collection<TemplateParameter> getTemplateParameters(Map template) {
+		log.debug "getTemplateParameters ${template}"
+		Collection<TemplateParameter> parameters = new ArrayList<TemplateParameter>()
+		def parametersJson = template?.Parameters
+		parametersJson?.each { key, value ->
+			log.debug "key: ${key} value: ${value}"
+			def parameter = [name:key, displayName:key, required:true, options:[], description:value.Description,
+			                 defaultValue:value.Default, minLength:value.MinLength?.toInteger(), maxLength:value.MaxLength?.toInteger(),
+			                 minValue:value.MinValue?.toInteger(), maxValue:value.MaxValue?.toInteger()
+			]
+			switch(value.Type.toLowerCase()) {
+				case 'Number':
+					parameter.inputType = true
+					break
+				case 'String':
+				default:
+					if(value.AllowedValues) {
+						parameter.selectType = true
+						parameter.options = value.AllowedValues.collect {
+							[name:it, value:it, selected:(parameter.defaultValue != null && parameter.defaultValue == it)]
+						}
+					} else {
+						if(value.NoEcho?.toString()?.toLowerCase() == 'true') {
+							parameter.passwordType = true
+						} else {
+							parameter.inputType = true
+						}
+					}
+					break
+			}
+			parameters << new TemplateParameter(parameter)
+		}
+		log.debug "parameters: ${parameters}"
+		parameters
 	}
 
 	/**
