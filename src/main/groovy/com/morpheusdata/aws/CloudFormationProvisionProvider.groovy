@@ -124,7 +124,6 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 			}
 			log.debug "specContent: ${specContent}"
 			def template = CloudFormationResourceMappingUtility.loadYamlOrJsonMap(specContent)
-			log.debug "1 ${template}"
 			parameters = getTemplateParameters(template)
 		} catch(e) {
 			log.error "Error in getting params: ${e}", e
@@ -137,7 +136,6 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 		Collection<TemplateParameter> parameters = new ArrayList<TemplateParameter>()
 		def parametersJson = template?.Parameters
 		parametersJson?.each { key, value ->
-			log.debug "key: ${key} value: ${value}"
 			def parameter = [name:key, displayName:key, required:true, options:[], description:value.Description,
 			                 defaultValue:value.Default, minLength:value.MinLength?.toInteger(), maxLength:value.MaxLength?.toInteger(),
 			                 minValue:value.MinValue?.toInteger(), maxValue:value.MaxValue?.toInteger()
@@ -164,7 +162,6 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 			}
 			parameters << new TemplateParameter(parameter)
 		}
-		log.debug "parameters: ${parameters}"
 		parameters
 	}
 
@@ -383,7 +380,6 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 					opts.processError = rtn.msg
 				}
 			}
-			prepareInstanceResponse.workloadsToSave = rtn.data.containers
 			prepareInstanceResponse.resources = rtn.data.resources
 			rtn.success = allSuccess
 			//done
@@ -601,9 +597,11 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 				//update the status
 				if(row.resource) {
 					def resource = morpheusContext.async.cloud.resource.get(row.id).blockingGet()
-					resource.status = 'failed'
-					resource.statusMessage = rtn.msg
-					morpheusContext.async.cloud.resource.save(resource).blockingGet()
+					if(resource) {
+						resource?.status = 'failed'
+						resource.statusMessage = rtn.msg
+						morpheusContext.async.cloud.resource.save(resource).blockingGet()
+					}
 				}
 			}
 
