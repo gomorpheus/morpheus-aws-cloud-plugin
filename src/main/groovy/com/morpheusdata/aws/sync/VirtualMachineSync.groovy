@@ -452,7 +452,7 @@ class VirtualMachineSync {
 					securityGroupLocations << it
 				}
 			}
-			morpheusContext.async.securityGroup.location.syncAssociations(server, securityGroupLocations)
+			morpheusContext.async.securityGroup.location.syncAssociations(server, securityGroupLocations).blockingGet()
 		} catch(e) {
 			log.error "error in sync security groups: ${e}", e
 		}

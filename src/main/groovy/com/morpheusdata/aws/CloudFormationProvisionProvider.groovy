@@ -1682,6 +1682,8 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 
 				//wait for the server to launch
 				AmazonComputeUtility.waitForServerExists(runConfig)
+				updateVirtualMachine(server.cloud, server, server.resourcePool?.regionCode)
+
 
 				if(!opts.skipMetadataTags) {
 					//apply tags
