@@ -11,7 +11,7 @@ import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.*
 import com.morpheusdata.model.projection.StorageVolumeIdentityProjection
 import groovy.util.logging.Slf4j
-import io.reactivex.Observable
+import io.reactivex.rxjava3.core.Observable
 
 @Slf4j
 class VolumeSync {

@@ -17,7 +17,7 @@ import com.morpheusdata.model.projection.CloudRegionIdentity
 import com.morpheusdata.model.projection.SnapshotIdentityProjection
 import com.morpheusdata.model.projection.StorageVolumeIdentityProjection
 import groovy.util.logging.Slf4j
-import io.reactivex.Observable
+import io.reactivex.rxjava3.core.Observable
 
 @Slf4j
 class SnapshotSync {

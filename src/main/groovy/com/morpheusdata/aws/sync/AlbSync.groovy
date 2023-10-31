@@ -14,8 +14,8 @@ import com.morpheusdata.model.NetworkLoadBalancerType
 import com.morpheusdata.model.projection.CloudRegionIdentity
 import com.morpheusdata.model.projection.NetworkLoadBalancerIdentityProjection
 import groovy.util.logging.Slf4j
-import io.reactivex.Observable
-import io.reactivex.Single
+import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.core.Single
 
 @Slf4j
 class AlbSync {

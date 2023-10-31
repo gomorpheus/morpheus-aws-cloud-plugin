@@ -10,8 +10,8 @@ import com.morpheusdata.model.ComputeServer
 import com.morpheusdata.model.OperationNotification
 import com.morpheusdata.model.projection.OperationNotificationIdentityProjection
 import groovy.util.logging.Slf4j
-import io.reactivex.Observable
-import io.reactivex.Single
+import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.core.Single
 
 /**
  * Sync class for syncing VPCs within an AWS Cloud account

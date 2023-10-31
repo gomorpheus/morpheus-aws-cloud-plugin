@@ -12,7 +12,7 @@ import com.morpheusdata.model.NetworkRouterType
 import com.morpheusdata.model.projection.CloudPoolIdentity
 import com.morpheusdata.model.projection.NetworkRouterIdentityProjection
 import groovy.util.logging.Slf4j
-import io.reactivex.Observable
+import io.reactivex.rxjava3.core.Observable
 
 /**
  * Sync class for syncing VPCs within an AWS Cloud account

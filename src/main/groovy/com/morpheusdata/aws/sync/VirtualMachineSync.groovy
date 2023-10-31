@@ -32,7 +32,7 @@ import com.morpheusdata.model.projection.SecurityGroupLocationIdentityProjection
 import com.morpheusdata.model.projection.ServicePlanIdentityProjection
 import com.morpheusdata.model.projection.WorkloadIdentityProjection
 import groovy.util.logging.Slf4j
-import io.reactivex.Observable
+import io.reactivex.rxjava3.core.Observable
 
 @Slf4j
 class VirtualMachineSync {

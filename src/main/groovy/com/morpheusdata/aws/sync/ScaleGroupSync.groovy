@@ -11,7 +11,7 @@ import com.morpheusdata.model.InstanceThreshold
 import com.morpheusdata.model.projection.CloudRegionIdentity
 import com.morpheusdata.model.projection.InstanceScaleIdentityProjection
 import groovy.util.logging.Slf4j
-import io.reactivex.Observable
+import io.reactivex.rxjava3.core.Observable
 
 @Slf4j
 class ScaleGroupSync {

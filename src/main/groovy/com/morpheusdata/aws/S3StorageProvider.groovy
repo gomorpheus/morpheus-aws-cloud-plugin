@@ -24,7 +24,7 @@ import com.morpheusdata.response.ServiceResponse
 import com.bertramlabs.plugins.karman.StorageProvider as KarmanProvider
 import com.bertramlabs.plugins.karman.Directory
 import groovy.util.logging.Slf4j
-import io.reactivex.Observable
+import io.reactivex.rxjava3.core.Observable
 
 @Slf4j
 class S3StorageProvider implements StorageProvider, StorageProviderBuckets, CloudInitializationProvider {

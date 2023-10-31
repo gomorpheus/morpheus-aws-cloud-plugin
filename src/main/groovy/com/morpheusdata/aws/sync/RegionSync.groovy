@@ -9,7 +9,7 @@ import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.CloudRegion
 import com.morpheusdata.model.projection.CloudRegionIdentity
 import groovy.util.logging.Slf4j
-import io.reactivex.Observable
+import io.reactivex.rxjava3.core.Observable
 
 @Slf4j
 class RegionSync {

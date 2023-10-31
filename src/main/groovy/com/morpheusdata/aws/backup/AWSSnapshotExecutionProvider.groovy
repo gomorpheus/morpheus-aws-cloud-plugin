@@ -21,7 +21,7 @@ import com.morpheusdata.model.ComputeServer
 import com.morpheusdata.model.projection.BackupResultIdentityProjection
 import com.morpheusdata.response.ServiceResponse
 import groovy.util.logging.Slf4j
-import io.reactivex.schedulers.Schedulers
+import io.reactivex.rxjava3.schedulers.Schedulers
 import com.morpheusdata.core.util.DateUtility
 
 @Slf4j

@@ -2,15 +2,16 @@ buildscript {
 	repositories {
 		mavenLocal()
 		mavenCentral()
+        gradlePluginPortal()
 		maven { url "https://plugins.gradle.org/m2/" }
 		maven { url "https://nexus.bertramlabs.com/content/repositories/snapshots" }
 		maven { url "https://nexus.bertramlabs.com/content/repositories/releases" }
 		maven { url "https://nexus.bertramlabs.com/content/repositories/publicReleases" }
 	}
 	dependencies {
-		classpath "com.github.jengelman.gradle.plugins:shadow:6.0.0"
+        classpath 'com.github.johnrengelman:shadow:8.1.1'
 		classpath "io.github.gradle-nexus:publish-plugin:1.0.0"
-		classpath "com.morpheusdata:morpheus-plugin-gradle:0.14.3-SNAPSHOT"
+		classpath "com.morpheusdata:morpheus-plugin-gradle:$morphPluginGradleVersion"
 		classpath "com.bertramlabs.plugins:asset-pipeline-gradle:$assetPipelineVersion"
 	}
 }
@@ -20,10 +21,16 @@ apply plugin: 'groovy'
 apply plugin: 'idea'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'asset-pipeline'
+apply plugin: 'maven-publish'
 apply plugin: 'com.morpheusdata.morpheus-plugin-gradle'
 
 group = 'com.morpheusdata'
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
+
+java {
+    sourceCompatibility = JavaVersion.toVersion('1.11')
+    targetCompatibility = JavaVersion.toVersion('1.11')
+}
 
 repositories {
 	mavenLocal()
@@ -363,7 +370,7 @@ jar {
 				'Morpheus-Color': '#ffffff',
 				'Morpheus-Labels': 'Plugin, Cloud',
 				'Morpheus-Repo': 'https://github.com/gomorpheus/morpheus-aws-plugin',
-				'Morpheus-Min-Appliance-Version': "6.0.2"
+				'Morpheus-Min-Appliance-Version': "6.3.0"
 		)
 	}
 }

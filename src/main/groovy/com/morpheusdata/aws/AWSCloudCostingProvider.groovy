@@ -49,12 +49,13 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import io.reactivex.Completable
 import io.reactivex.Observable
+import io.reactivex.rxjava3.core.Observable
 import de.siegmar.fastcsv.reader.CsvReader
 import de.siegmar.fastcsv.reader.CsvRow
-import io.reactivex.ObservableEmitter
-import io.reactivex.ObservableOnSubscribe
-import io.reactivex.annotations.NonNull
-import io.reactivex.schedulers.Schedulers
+import io.reactivex.rxjava3.core.ObservableEmitter
+import io.reactivex.rxjava3.core.ObservableOnSubscribe
+import io.reactivex.rxjava3.annotations.NonNull
+import io.reactivex.rxjava3.schedulers.Schedulers
 
 import java.security.MessageDigest
 import java.util.zip.GZIPInputStream

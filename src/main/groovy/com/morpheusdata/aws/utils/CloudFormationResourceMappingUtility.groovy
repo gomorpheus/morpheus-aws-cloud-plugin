@@ -133,7 +133,7 @@ class CloudFormationResourceMappingUtility  {
 				rtn.success = true
 			}
 		} catch(e) {
-			rtn.msg = "error parsing cf resource: ${e}"
+			rtn.msg = "error parsing cf resource: ${e}".toString()
 			log.error(rtn.msg, e)
 		}
 		return ServiceResponse.create(rtn)
@@ -1293,7 +1293,7 @@ class CloudFormationResourceMappingUtility  {
 		return rtn
 	}
 
-	def processFunction(Map resourceSpec, Map functionMap, Map templateInput) {
+	static processFunction(Map resourceSpec, Map functionMap, Map templateInput) {
 		//see if its a ref
 		def rtn
 		def typeRef = functionMap['Ref']
@@ -1310,7 +1310,7 @@ class CloudFormationResourceMappingUtility  {
 		return rtn
 	}
 
-	def processFindRef(Map resourceSpec, Object refItem, Map templateInput) {
+	static processFindRef(Map resourceSpec, Object refItem, Map templateInput) {
 		def rtn
 		if(refItem instanceof CharSequence) {
 			rtn = templateInput[refItem]

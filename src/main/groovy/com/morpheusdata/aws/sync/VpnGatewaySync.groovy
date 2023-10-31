@@ -11,8 +11,8 @@ import com.morpheusdata.model.CloudRegion
 import com.morpheusdata.model.projection.AccountResourceIdentityProjection
 import com.morpheusdata.model.projection.CloudRegionIdentity
 import groovy.util.logging.Slf4j
-import io.reactivex.Observable
-import io.reactivex.Single
+import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.core.Single
 
 @Slf4j
 class VpnGatewaySync extends InternalResourceSync {
