@@ -74,8 +74,20 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 	*/
 	@Override
 	Collection<OptionType> getOptionTypes() {
-		//AC TODO - region?
-		return null
+		OptionType regionCode = new OptionType(
+				name: 'regionCode',
+				code: 'aws-plugin-cloudFormation-amazonRegion',
+				displayOrder: 105,
+				fieldContext: 'config',
+				fieldGroup:'Options',
+				fieldLabel: 'Region',
+				fieldCode: 'gomorpheus.optiontype.Region',
+				fieldName: 'regionCode',
+				inputType: OptionType.InputType.SELECT,
+				optionSource: 'awsPluginCloudRegions',
+				required: true
+		)
+		[regionCode]
 	}
 
 	/**

@@ -83,7 +83,7 @@ class CloudFormationResourceMappingUtility  {
 						 serverGroup:instance.serverGroup, resourcePool:instance.resourcePool, site:instance.site,
 						 plan:instance.plan, layout:instance.layout, instanceId:instance.id, instanceName:instance.name,
 						 user:instance.createdBy, refType:'instance', refId:instance.id, refObj:instance,
-						 refConfig:instance.getConfigMap(), region: opts.cloud.regionCode
+						 refConfig:instance.getConfigMap(), region: opts.config.regionCode
 		]
 		appConfig.defaultCloud = opts.cloud
 		//map it
@@ -646,7 +646,7 @@ class CloudFormationResourceMappingUtility  {
 		}
 
 		//update creds if creating
-		log.debug("container user data check: {} - username: {}", userData, newServer.sshUsername)
+		log.debug("container user data check: {} - username: {}", userData, newServer?.sshUsername)
 		if(newServer && userData?.found && newServer.sshUsername == 'root') {
 			if(resource.awsConfig) {
 				newServer.setConfigProperty('awsConfig', resource.awsConfig)
