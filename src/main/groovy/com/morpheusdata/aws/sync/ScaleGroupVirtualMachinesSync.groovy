@@ -30,7 +30,8 @@ class ScaleGroupVirtualMachinesSync {
 	private Cloud cloud
 	private MorpheusContext morpheusContext
 	private AWSPlugin plugin
-	private Map<String, ComputeServerType> computeServerTypes;
+	private Map<String, ComputeServerType> computeServerTypes
+	private List<ComputeSite> sites
 	private VirtualMachineSync vmSync
 
 	ScaleGroupVirtualMachinesSync(AWSPlugin plugin, Cloud cloud) {
@@ -149,12 +150,7 @@ class ScaleGroupVirtualMachinesSync {
 					}
 				}
 
-				ComputeSite site = app?.site
-
-				if (!site) {
-					def sites = morpheusContext.async.computeSite.list(new DataQuery()).toList().blockingGet()
-					site = sites.find { it.account.id == cloud.account.id } ?: sites.sort { it.id }.first()
-				}
+				ComputeSite site = app?.site ?: allSites.find { it.account.id == cloud.account.id } ?: allSites.first()
 
 				instance = new Instance(
 					name: existingItem.name,
@@ -310,5 +306,9 @@ class ScaleGroupVirtualMachinesSync {
 			log.error "Error in getNextComputeServerName: ${e}", e
 		}
 		return "${prefix}_${nextServerIndex}"
+	}
+
+	private List<ComputeSite> getAllSites() {
+		sites ?: (sites = morpheusContext.services.computeSite.list(new DataQuery()).sort { it.id })
 	}
 }

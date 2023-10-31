@@ -2,6 +2,7 @@ package com.morpheusdata.aws
 
 import com.morpheusdata.aws.sync.AlarmSync
 import com.morpheusdata.aws.sync.AlbSync
+import com.morpheusdata.aws.sync.CloudSync
 import com.morpheusdata.aws.sync.DbSubnetGroupSync
 import com.morpheusdata.aws.sync.EgressOnlyInternetGatewaySync
 import com.morpheusdata.aws.sync.ElbSync
@@ -706,10 +707,12 @@ class AWSCloudProvider implements CloudProvider {
 
 			def hostOnline = ConnectionUtils.testHostConnectivity(AmazonComputeUtility.getAmazonEndpoint(cloudInfo), 443, true, true, networkProxy)
 			if(hostOnline) {
-				def client = plugin.getAmazonClient(cloudInfo,true)
 				def testResults = AmazonComputeUtility.testConnection(cloudInfo)
 				if(testResults.success) {
 					def now = new Date().time
+					new CloudSync(this.plugin,cloudInfo).execute()
+					log.info("${cloudInfo.name}: Cloud Synced in ${new Date().time - now}ms")
+					now = new Date().time
 					new RegionSync(this.plugin,cloudInfo).execute()
 					log.info("${cloudInfo.name}: Region Synced in ${new Date().time - now}ms")
 					now = new Date().time
