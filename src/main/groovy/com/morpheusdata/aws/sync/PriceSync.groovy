@@ -1,5 +1,7 @@
 package com.morpheusdata.aws.sync
 
+import com.morpheusdata.aws.ALBLoadBalancerProvider
+import com.morpheusdata.aws.ELBLoadBalancerProvider
 import com.morpheusdata.model.NetworkLoadBalancerType
 import com.morpheusdata.model.PricePlanPriceSet
 import com.morpheusdata.model.projection.CloudTypeIdentityProjection
@@ -406,7 +408,7 @@ class PriceSync {
 		Map<String, AccountPriceSet> existingPriceSets = getPriceSets(loadBalancerPriceData.collect { it.priceSetCode })
 		Map<String, AccountPrice> existingPrices = morpheusContext.async.accountPrice.listByCode(loadBalancerPriceData.collect { it.priceCode }.unique()).toMap { it.code }.blockingGet()
 		Map<String, NetworkLoadBalancerType> lbTypes = morpheusContext.async.loadBalancer.type.list(
-			new DataQuery().withFilter('code', 'in', ['amazon', 'amazon-alb'])
+			new DataQuery().withFilter('code', 'in', [ELBLoadBalancerProvider.PROVIDER_CODE, ALBLoadBalancerProvider.PROVIDER_CODE])
 		).toMap{ it.code }.blockingGet()
 
 		// map of existing price plan / price sets
@@ -419,7 +421,7 @@ class PriceSync {
 		}
 
 		for(def priceData in loadBalancerPriceData) {
-			def refId = lbTypes[priceData.isELB ? 'amazon' : 'amazon-alb'].id
+			def refId = lbTypes[priceData.isELB ? ELBLoadBalancerProvider.PROVIDER_CODE : ALBLoadBalancerProvider.PROVIDER_CODE].id
 			String planCode = "amazon-${priceData.isELB ? 'elb' : 'alb'}".toString()
 			PricePlan pricePlan = pricePlans[planCode]
 			if(!pricePlan) {
