@@ -50,7 +50,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 	@Override
 	List<String> getMethodNames() {
 		return new ArrayList<String>([
-			'awsPluginVpc', 'awsPluginAllRegions', 'awsPluginRegions', 'awsPluginAvailabilityZones', 'awsRouteTable',
+			'awsPluginVpc', 'awsPluginAllRegions', 'awsPluginRegions', 'awsPluginCloudRegions', 'awsPluginAvailabilityZones', 'awsRouteTable',
 			'awsRouteDestinationType', 'awsRouteDestination', 'awsPluginEc2SecurityGroup', 'awsPluginEc2PublicIpType',
 			'awsPluginInventoryLevels', 'awsPluginStorageProvider', 'awsPluginEbsEncryption', 'awsPluginCostingReports',
 			'awsPluginCostingBuckets', 'awsPluginInventoryLevels', 's3Regions', 'amazonEc2NodeAmiImage', 'amazonInstanceProfiles'
@@ -71,6 +71,20 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 
 		return rtn
 	}
+
+	def awsPluginCloudRegions(args) {
+		log.debug "awsPluginCloudRegions args: ${args}"
+		def rtn = []
+		Cloud cloud = loadCloud(args)
+		if(cloud) {
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+				rtn << [value: region.externalId, name: region.externalId]
+			}
+		}
+
+		return rtn
+	}
+
 
 	def awsPluginVpc(args) {
 		Cloud cloud = loadCloud(args)

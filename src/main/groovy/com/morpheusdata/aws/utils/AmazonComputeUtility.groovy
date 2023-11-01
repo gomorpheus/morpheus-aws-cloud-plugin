@@ -1599,6 +1599,12 @@ class AmazonComputeUtility {
 			def pending = true
 			def attempts = 0
 			while(pending) {
+				if(opts.forceFetchAmazonClient?.enabled) {
+					def server = opts.forceFetchAmazonClient.server
+					def morpheusContext = opts.forceFetchAmazonClient.morpheusContext
+					def tmpServer = morpheusContext.async.computeServer.get(server.id).blockingGet()
+					opts.amazonClient = getAmazonClient(server.cloud, true, tmpServer.resourcePool?.regionCode ?: tmpServer.region?.regionCode)
+				}
 				def serverDetail = getServerDetail(opts)
 				if(serverDetail.success == true && serverDetail?.server?.getState()) {
 					rtn.success = true
@@ -1613,7 +1619,7 @@ class AmazonComputeUtility {
 				}
 			}
 		} catch(e) {
-			log.error(e)
+			log.error "Error in waitForServerExists: ${e}", e
 		}
 		return rtn
 	}

@@ -10,6 +10,7 @@ import com.morpheusdata.model.App
 import com.morpheusdata.model.AppInstance
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.CloudPool
+import com.morpheusdata.model.CloudRegion
 import com.morpheusdata.model.CloudType
 import com.morpheusdata.model.ComputeServer
 import com.morpheusdata.model.ComputeServerType
@@ -83,7 +84,7 @@ class CloudFormationResourceMappingUtility  {
 						 serverGroup:instance.serverGroup, resourcePool:instance.resourcePool, site:instance.site,
 						 plan:instance.plan, layout:instance.layout, instanceId:instance.id, instanceName:instance.name,
 						 user:instance.createdBy, refType:'instance', refId:instance.id, refObj:instance,
-						 refConfig:instance.getConfigMap(), region: opts.cloud.regionCode
+						 refConfig:instance.getConfigMap(), region: opts.config.regionCode
 		]
 		appConfig.defaultCloud = opts.cloud
 		//map it
@@ -642,11 +643,14 @@ class CloudFormationResourceMappingUtility  {
 			if(resource.awsConfig) {
 				newServer.setConfigProperty('awsConfig', resource.awsConfig)
 			}
+			if(appConfig.refConfig?.regionCode) {
+				newServer.region = new CloudRegion(code: appConfig.refConfig.regionCode)
+			}
 			newServer = morpheusContext.async.computeServer.create(newServer).blockingGet()
 		}
 
 		//update creds if creating
-		log.debug("container user data check: {} - username: {}", userData, newServer.sshUsername)
+		log.debug("container user data check: {} - username: {}", userData, newServer?.sshUsername)
 		if(newServer && userData?.found && newServer.sshUsername == 'root') {
 			if(resource.awsConfig) {
 				newServer.setConfigProperty('awsConfig', resource.awsConfig)
