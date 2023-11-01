@@ -633,6 +633,10 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 		//output the info
 		opts.processOutput = processOutputList?.size() > 0 ? processOutputList.join('\n') : ''
 
+		//preserve tags
+		def tmpInstance = morpheusContext.async.instance.get(instance.id).blockingGet()
+		instance.metadata = tmpInstance.metadata
+
 		instance = saveAndGet(instance)
 		//done
 		return new ServiceResponse(success: rtn.success, msg: rtn.msg, data: rtn.data + [instance: instance])
@@ -1715,8 +1719,9 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 
 				if(!opts.skipMetadataTags) {
 					//apply tags
-					//runConfig.tagList = buildMetadataTagList(server, [maxNameLength: 128, maxValueLength: 256])
-					//AmazonComputeUtility.applyEc2Tags(runConfig)
+					runConfig.tagList = EC2ProvisionProvider.buildMetadataTagList(server, workload, [maxNameLength: 128, maxValueLength: 256])
+					AmazonComputeUtility.applyEc2Tags(runConfig)
+
 				}
 
 				//wait for ready
@@ -2135,7 +2140,6 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 
 				updateVirtualMachine(cloud, server, regionCode)
 
-
 				instance.maxCores = server.maxCores
 				instance.maxMemory = server.maxMemory
 				instance.maxStorage = server.maxStorage
@@ -2419,4 +2423,6 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 		}
 		return network
 	}
+
+
 }
