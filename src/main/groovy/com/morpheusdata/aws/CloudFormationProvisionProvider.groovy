@@ -1683,19 +1683,28 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 
 	//applied on each container found during an app provision
 	def finalizeResourceWorkload(Workload workload, Map opts) {
+		log.debug "finalizeResourceWorkload: ${workload} ${opts}"
 		try {
 			def server = workload?.server
 			def rtn = [success: false, error: "", data: [:]]
 			if(server && server.externalId) {
-				//wait for it to finish
+				//wait for it to finish.. but always get the most recent version of the server
 				def amazonClient = plugin.getAmazonClient(server.cloud, server.resourcePool?.regionCode)
-				def runConfig = [amazonClient:amazonClient, serverId:server.externalId, name:server.name]
 
+				def runConfig = [
+						amazonClient:amazonClient,
+						serverId:server.externalId,
+						name:server.name,
+						forceFetchAmazonClient: [
+							enabled        : !server.resourcePool?.regionCode, // if we don't have a region code, need to refetch the amazonClient
+							server         : server,
+							morpheusContext: morpheusContext
+						]
+				]
 
 				//wait for the server to launch
 				AmazonComputeUtility.waitForServerExists(runConfig)
 				updateVirtualMachine(server.cloud, server, server.resourcePool?.regionCode)
-
 
 				if(!opts.skipMetadataTags) {
 					//apply tags

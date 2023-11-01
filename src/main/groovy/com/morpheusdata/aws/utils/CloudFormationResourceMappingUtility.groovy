@@ -10,6 +10,7 @@ import com.morpheusdata.model.App
 import com.morpheusdata.model.AppInstance
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.CloudPool
+import com.morpheusdata.model.CloudRegion
 import com.morpheusdata.model.CloudType
 import com.morpheusdata.model.ComputeServer
 import com.morpheusdata.model.ComputeServerType
@@ -641,6 +642,9 @@ class CloudFormationResourceMappingUtility  {
 			newServer = new ComputeServer(serverConfig)
 			if(resource.awsConfig) {
 				newServer.setConfigProperty('awsConfig', resource.awsConfig)
+			}
+			if(appConfig.refConfig?.regionCode) {
+				newServer.region = new CloudRegion(code: appConfig.refConfig.regionCode)
 			}
 			newServer = morpheusContext.async.computeServer.create(newServer).blockingGet()
 		}
