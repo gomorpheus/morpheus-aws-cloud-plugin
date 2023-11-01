@@ -223,6 +223,10 @@ class VirtualMachineSync {
 						currentServer.internalIp = cloudItem.privateIpAddress
 						save = true
 					}
+					def tagChanges = syncTags(currentServer, cloudItem.getTags()?.collect{[key:it.getKey(), value:it.getValue()]} ?: [], [maxNameLength: 128, maxValueLength: 256])
+					if(tagChanges) {
+						save = true
+					}
 					if (powerState != currentServer.powerState) {
 						currentServer.powerState = powerState
 						save = true
@@ -533,7 +537,7 @@ class VirtualMachineSync {
 			createList << new MetadataTag(name: tagMap.key, value: tagMap.value)
 		}
 		if(createList) {
-			morpheusContext.async.metadataTag.create(createList, server)
+			morpheusContext.async.metadataTag.create(createList, server).blockingGet()
 			changes = true
 		}
 
@@ -557,20 +561,23 @@ class VirtualMachineSync {
 			}
 		}
 		if(saveList) {
-			morpheusContext.async.metadataTag.save(saveList)
+			morpheusContext.async.metadataTag.bulkSave(saveList).blockingGet()
 			changes = true
 		}
 
 		// Process removes
 		if(syncLists.removeList) {
-			morpheusContext.async.metadataTag.remove(syncLists.removeList)
+			morpheusContext.async.metadataTag.bulkRemove(syncLists.removeList).blockingGet()
 			changes = true
 		}
+		
 
 		if(changes) {
 			//lets see if we have any instance metadata that needs updated
+			//re-fetch server
+			server = morpheusContext.async.computeServer.get(server.id).blockingGet()
 			if(server.computeServerType?.containerHypervisor != true && server.computeServerType?.vmHypervisor != true) {
-				def instanceIds = morpheusContext.async.cloud.getStoppedContainerInstanceIds(server.id).blockingSubscribe { it.id }
+				def instanceIds = morpheusContext.async.cloud.getStoppedContainerInstanceIds(server.id).map{it.id}.toList().blockingGet()
 
 				if(instanceIds) {
 					morpheusContext.async.instance.listById(instanceIds).blockingSubscribe { instance ->
@@ -584,7 +591,7 @@ class VirtualMachineSync {
 
 	private syncTags(com.morpheusdata.model.Instance instance, List<MetadataTag> serverTags, opts = [:]) {
 		def saveRequired = false
-		def matchMasterToValidFunc = { MetadataTag metadataTag, tagMap ->
+		SyncList.MatchFunction matchMasterToValidFunc = { MetadataTag metadataTag, tagMap ->
 			def internalName = metadataTag.name?.trim()
 			def externalName = tagMap.name?.toString()
 			//Match truncated names from cloud based on cloud
@@ -600,10 +607,10 @@ class VirtualMachineSync {
 		def createList = []
 		syncLists.addList?.each { tagMap ->
 			log.debug("adding tag: ${tagMap}")
-			createList << new MetadataTag(name: tagMap.key, value: tagMap.value)
+			createList << new MetadataTag(name: tagMap.name, value: tagMap.value)
 		}
 		if(createList) {
-			morpheusContext.async.metadataTag.create(createList, instance)
+			morpheusContext.async.metadataTag.create(createList, instance).blockingGet()
 			saveRequired = true
 		}
 
@@ -626,18 +633,14 @@ class VirtualMachineSync {
 			}
 		}
 		if(saveList) {
-			morpheusContext.async.metadataTag.save(saveList)
+			morpheusContext.async.metadataTag.bulkSave(saveList).blockingGet()
 			saveRequired = true
 		}
 
 		// Process removes
 		if(syncLists.removeList) {
-			morpheusContext.async.metadataTag.remove(syncLists.removeList)
+			morpheusContext.async.metadataTag.bulkRemove(syncLists.removeList).blockingGet()
 			saveRequired = true
-		}
-
-		if(saveRequired) {
-			morpheusContext.async.instance.save([instance])
 		}
 		return saveRequired
 	}

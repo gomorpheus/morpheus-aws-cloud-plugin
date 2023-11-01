@@ -2085,6 +2085,44 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		return rtn
 	}
 
+	static buildMetadataTagList(ComputeServer computeServer, Workload workload, opts = [:]) {
+		def rtn = []
+		try {
+			if(workload) {
+				rtn << [name:'Morpheus Id', value:"${workload.id}"]
+				if(workload.instance) {
+					rtn << [name:'Morpheus Instance Id', value:"${workload.instance.id}"]
+				}
+
+			}
+
+			if(computeServer) {
+				rtn << [name: 'Morpheus Server Id', value: "${computeServer.id}"]
+			}
+			if(workload?.instance?.instanceContext)
+				rtn << [name:'Morpheus Environment', value: workload.instance.instanceContext]
+			if(workload?.instance?.tags)
+				rtn << [name:'Morpheus Labels', value: workload.instance.tags]
+			computeServer.metadata?.each {
+				def truncatedName = it.name
+				if(opts?.maxNameLength) {
+					truncatedName = AmazonComputeUtility.truncateElipsis(it.name, opts.maxNameLength - 3)
+				}
+				def truncatedValue = it.value
+				if(opts?.maxValueLength) {
+					truncatedValue = AmazonComputeUtility.truncateElipsis(it.value, opts.maxValueLength - 3)
+				}
+				if(truncatedValue){
+					rtn << [name:truncatedName, value:truncatedValue]
+				}
+
+			}
+		} catch(e) {
+			log.error("error building metadata tag list: ${e}", e)
+		}
+		return rtn
+	}
+
 	/**
 	 * A unique shortcode used for referencing the provided provider provision type. Make sure this is going to be unique as any data
 	 * that is seeded or generated related to this provider will reference it by this code.
