@@ -1704,7 +1704,14 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 
 				//wait for the server to launch
 				AmazonComputeUtility.waitForServerExists(runConfig)
-				updateVirtualMachine(server.cloud, server, server.resourcePool?.regionCode)
+				updateVirtualMachine(server.cloud, server, server.resourcePool?.regionCode ?: server.region?.regionCode)
+
+				// Update the status
+				log.debug "Updating workload status to running ${workload.id}"
+				Workload tmpWorkload = morpheusContext.async.workload.get(workload.id).blockingGet()
+				tmpWorkload.status = Workload.Status.running
+				morpheusContext.async.workload.save(tmpWorkload).blockingGet()
+				log.debug "Complete"
 
 				if(!opts.skipMetadataTags) {
 					//apply tags
