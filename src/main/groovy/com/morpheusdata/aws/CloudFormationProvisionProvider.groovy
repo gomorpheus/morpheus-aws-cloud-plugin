@@ -1399,6 +1399,7 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 		if(instance.containers?.size() > 0) {
 			instance.containers?.each { container ->
 				def server = container.server
+				def saveNeeded = false
 				//get the matching image?
 				def awsConfig = server.getConfigProperty('awsConfig')
 				def amazonClient = plugin.getAmazonClient(server.cloud, false, regionCode)
@@ -1410,6 +1411,7 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 					if(imageResults.image) {
 						server.sourceImage = imageResults.image
 						awsImage = imageResults.awsImage
+						saveNeeded = true
 					}
 					//image config
 					if(awsImage == null) {
@@ -1422,6 +1424,7 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 						server.osType = awsImage.getPlatform() == 'windows' ? 'windows' : 'linux'
 						//server.isCloudInit = server.osType == 'windows' ? false : true
 						server.serverOs = new OsType(code:server.osType)
+						saveNeeded = true
 					}
 				}
 				//key
@@ -1437,11 +1440,14 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 						def serverAccess = new ComputeServerAccess(accessConfig)
 						serverAccess = morpheusContext.async.computeServer.access.create(serverAccess).blockingGet()
 						server.accesses += serverAccess
-						morpheusContext.async.computeServer.save(server)
+						saveNeeded = true
 					}
 				}
+				if(saveNeeded) {
+					morpheusContext.async.computeServer.save(server).blockingGet()
+				}
 
-				def cloudConfigUser = opts.cloudConfigUserData[container.id]
+				def cloudConfigUser = opts.cloudConfigUserData[container.id][server.osType]
 				addCloudInit(rtn, container.displayName, cloudConfigUser as String, server.osType)
 
 			}

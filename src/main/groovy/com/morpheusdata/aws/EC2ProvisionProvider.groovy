@@ -1737,7 +1737,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 									   kernelId:imageResults.image.getKernelId(), architecture:imageResults.image.getArchitecture(),
 									   description:imageResults.image.getDescription(), minDisk:10, minRam:512 * ComputeUtility.ONE_MEGABYTE, remotePath:imageResults.image.getImageLocation(),
 									   hypervisor:imageResults.image.getHypervisor(), platform:(imageResults.image.getPlatform() == 'windows' ? 'windows' : 'linux'),
-									   hypervisor:imageResults.image.getHypervisor(), platform:(imageResults.image.getPlatform() == 'windows' ? 'windows' : 'linux'),
 									   productCode:'', externalId:imageResults.image.getImageId(), ramdiskId:imageResults.image.getRamdiskId(), isCloudInit: (imageResults.image.getPlatform() == 'windows' && imageResults.image.getImageOwnerAlias() != 'amazon' ? false : true),
 									   rootDeviceName:imageResults.image.getRootDeviceName(), rootDeviceType:imageResults.image.getRootDeviceType(),
 									   enhancedNetwork:imageResults.image.getSriovNetSupport(), status:imageResults.image.getState(),
