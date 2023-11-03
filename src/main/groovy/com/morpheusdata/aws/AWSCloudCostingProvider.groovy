@@ -742,14 +742,16 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 									BigDecimal unblendedRate = MorpheusUtils.parseStringBigDecimal(row.lineItem['UnblendedRate'])
 									BigDecimal unblendedCost = row.lineItem['UnblendedCost']
 									AccountInvoiceItem invoiceItem = new AccountInvoiceItem(
-										invoice: invoiceMatch, refName:invoiceMatch.refName, refCategory:'invoice', refType: invoiceMatch.refType, refId: invoiceMatch.refId,
+										invoice: invoiceMatch, refCategory:'invoice',
+										refType: volMatch ? 'StorageVolume' : invoiceMatch.refType, refId: volMatch?.id ?: invoiceMatch.refId,
+										refName: volMatch?.name ?: invoiceMatch.refName, itemName: volMatch?.name ?: invoiceMatch.refName,
 										startDate:lineItemStartDate, endDate:lineItemEndDate, itemId:lineItemId, itemType:row.lineItem['LineItemType'],
-										itemName:invoiceMatch.refName, itemDescription:row.lineItem['LineItemDescription'], externalId: lineItemId,
+										itemDescription:row.lineItem['LineItemDescription'], externalId: lineItemId,
 										productCode:row.lineItem['ProductCode'], productName:row.lineItem['ProductName'],
 										itemSeller:row.lineItem['LegalEntity'], itemAction:row.lineItem['Operation'], usageType:row.lineItem['UsageType'],
 										usageService:row.product['servicecode'], rateId:row.pricing['RateId'], rateClass:row.lineItem['RateClass'],
 										rateUnit:row.pricing['unit'], rateTerm:row.pricing['LeaseContractLength'], itemUsage:row.lineItem['UsageAmount'],
-										itemRate:unblendedRate, itemCost:unblendedCost,
+										itemRate:unblendedRate, itemCost:unblendedCost, itemPrice:unblendedCost,
 										onDemandCost:row.lineItem['LineItemType'] != 'SavingsPlanNegation' ? row.pricing['publicOnDemandCost'] : 0.0,
 										amortizedCost: getAmortizedCost(row),
 										rateExternalId:row.savingsPlan['SavingsPlanARN'] ?: row.reservation['ReservationARN'],
@@ -831,7 +833,6 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 						log.error("Unable to create {} invoice items due to error: {}", createResult.failedItems.size(), createResult.msg)
 					}
 				}
-
 
 				if(invoiceItemUpdates) {
 					BulkSaveResult<AccountInvoiceItem> saveResult = morpheusContext.async.costing.invoiceItem.bulkSave(invoiceItemUpdates).blockingGet()
