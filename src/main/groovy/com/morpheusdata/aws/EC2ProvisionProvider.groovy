@@ -1737,7 +1737,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 									   kernelId:imageResults.image.getKernelId(), architecture:imageResults.image.getArchitecture(),
 									   description:imageResults.image.getDescription(), minDisk:10, minRam:512 * ComputeUtility.ONE_MEGABYTE, remotePath:imageResults.image.getImageLocation(),
 									   hypervisor:imageResults.image.getHypervisor(), platform:(imageResults.image.getPlatform() == 'windows' ? 'windows' : 'linux'),
-									   hypervisor:imageResults.image.getHypervisor(), platform:(imageResults.image.getPlatform() == 'windows' ? 'windows' : 'linux'),
 									   productCode:'', externalId:imageResults.image.getImageId(), ramdiskId:imageResults.image.getRamdiskId(), isCloudInit: (imageResults.image.getPlatform() == 'windows' && imageResults.image.getImageOwnerAlias() != 'amazon' ? false : true),
 									   rootDeviceName:imageResults.image.getRootDeviceName(), rootDeviceType:imageResults.image.getRootDeviceType(),
 									   enhancedNetwork:imageResults.image.getSriovNetSupport(), status:imageResults.image.getState(),
@@ -2082,6 +2081,44 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 
 	def getContainerDataDiskList(container) {
 		def rtn = container.server?.volumes?.findAll{it.rootVolume == false}?.sort{it.id}
+		return rtn
+	}
+
+	static buildMetadataTagList(ComputeServer computeServer, Workload workload, opts = [:]) {
+		def rtn = []
+		try {
+			if(workload) {
+				rtn << [name:'Morpheus Id', value:"${workload.id}"]
+				if(workload.instance) {
+					rtn << [name:'Morpheus Instance Id', value:"${workload.instance.id}"]
+				}
+
+			}
+
+			if(computeServer) {
+				rtn << [name: 'Morpheus Server Id', value: "${computeServer.id}"]
+			}
+			if(workload?.instance?.instanceContext)
+				rtn << [name:'Morpheus Environment', value: workload.instance.instanceContext]
+			if(workload?.instance?.tags)
+				rtn << [name:'Morpheus Labels', value: workload.instance.tags]
+			computeServer.metadata?.each {
+				def truncatedName = it.name
+				if(opts?.maxNameLength) {
+					truncatedName = AmazonComputeUtility.truncateElipsis(it.name, opts.maxNameLength - 3)
+				}
+				def truncatedValue = it.value
+				if(opts?.maxValueLength) {
+					truncatedValue = AmazonComputeUtility.truncateElipsis(it.value, opts.maxValueLength - 3)
+				}
+				if(truncatedValue){
+					rtn << [name:truncatedName, value:truncatedValue]
+				}
+
+			}
+		} catch(e) {
+			log.error("error building metadata tag list: ${e}", e)
+		}
 		return rtn
 	}
 
