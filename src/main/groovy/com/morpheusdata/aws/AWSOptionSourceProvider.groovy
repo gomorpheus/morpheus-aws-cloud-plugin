@@ -431,7 +431,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 
 	private static getCloudId(args) {
 		args = args instanceof Object[] ? args[0] : args
-		def cloudId = args.cloudId ?: args.zoneId ?: args.domain?.zone?.id
+		def cloudId = args.cloudId ?: args.zoneId // ?: args.domain?.id
 		cloudId ? cloudId.toLong() : null
 	}
 
