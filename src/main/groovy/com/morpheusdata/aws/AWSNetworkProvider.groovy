@@ -373,6 +373,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 			log.debug("route apiResults: {}", apiResults)
 			if(apiResults?.success && apiResults?.error != true) {
 				router.externalId = apiResults.internetGatewayId
+				router.regionCode = pool.regionCode
 				rtn.success = true
 			} else {
 				rtn.msg = apiResults.msg ?: 'error creating router'

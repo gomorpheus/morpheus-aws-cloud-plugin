@@ -207,7 +207,7 @@ class PriceSync {
 				updateStoragePricing(storagePriceData)
 			}
 
-			log.debug "about to iterate price data : ${priceData.size()}"
+			log.debug "about to iterate price data : ${instancePriceData.size()}"
 			while(instancePriceData) {
 				updateInstanceTypePricing(instancePriceData.take(50))
 				instancePriceData = instancePriceData.drop(50)
