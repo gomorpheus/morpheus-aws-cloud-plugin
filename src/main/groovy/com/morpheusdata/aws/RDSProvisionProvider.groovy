@@ -986,7 +986,9 @@ class RDSProvisionProvider extends AbstractProvisionProvider implements Workload
 
         volumeTypes << new StorageVolumeType([
             code: 'standard',
-            name: 'Standard'
+            name: 'Standard',
+            volumeType: 'disk',
+            description: 'Standard'
         ])
 
         return volumeTypes
