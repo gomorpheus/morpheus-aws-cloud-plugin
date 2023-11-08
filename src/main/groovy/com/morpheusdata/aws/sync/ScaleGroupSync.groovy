@@ -2,6 +2,7 @@ package com.morpheusdata.aws.sync
 
 import com.amazonaws.services.autoscaling.model.AutoScalingGroup
 import com.morpheusdata.aws.AWSPlugin
+import com.morpheusdata.aws.AWSScaleProvider
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.util.SyncTask
@@ -68,9 +69,9 @@ class ScaleGroupSync {
 				name: cloudItem.autoScalingGroupName,
 				externalId: cloudItem.autoScalingGroupName,
 				regionCode: region.externalId,
-				type: allScaleTypes['awsscalegroup'],
+				type: allScaleTypes[AWSScaleProvider.PROVIDER_CODE],
 				threshold: new InstanceThreshold(
-					type: 'awsscalegroup',
+					type: AWSScaleProvider.PROVIDER_CODE,
 					zoneId: cloud.id,
 					owner: cloud.account,
 					name: cloudItem.autoScalingGroupName,
@@ -102,7 +103,7 @@ class ScaleGroupSync {
 			}
 			if(!existingItem.threshold) {
 				existingItem.threshold = new InstanceThreshold(
-					type: 'awsscalegroup',
+					type: AWSScaleProvider.PROVIDER_CODE,
 					zoneId: cloud.id,
 					owner: cloud.account,
 					name: cloudItem.autoScalingGroupName,
