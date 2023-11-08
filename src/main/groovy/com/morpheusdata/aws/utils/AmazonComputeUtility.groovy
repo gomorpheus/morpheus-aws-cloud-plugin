@@ -651,20 +651,11 @@ class AmazonComputeUtility {
 		try {
 			def amazonClient = opts.amazonClient
 			def vpcId = opts.zone.getConfigProperty('vpc')
+			def securityRequest = new DescribeSecurityGroupsRequest().withFilters(new LinkedList<Filter>())
 			if(vpcId) {
-				def securityRequest = new DescribeSecurityGroupsRequest().withFilters(new LinkedList<Filter>())
-				if(vpcId) {
-					securityRequest.getFilters().add(new Filter().withName("vpc-id").withValues(vpcId))	
-				}
-				rtn.securityList =  amazonClient.describeSecurityGroups(securityRequest).getSecurityGroups()
-			} else {
-				def securityRequest = new DescribeSecurityGroupsRequest()
-				def securityList =  amazonClient.describeSecurityGroups(securityRequest).getSecurityGroups()
-				securityList?.each {
-					if(it.getVpcId() == null || it.getVpcId()?.length() < 1)
-						rtn.securityList << it
-				}
+				securityRequest.getFilters().add(new Filter().withName("vpc-id").withValues(vpcId))
 			}
+			rtn.securityList =  amazonClient.describeSecurityGroups(securityRequest).getSecurityGroups()
 			rtn.success = true
 		} catch(e) {
 			log.debug("listSecurityGroups error: ${e}", e)
