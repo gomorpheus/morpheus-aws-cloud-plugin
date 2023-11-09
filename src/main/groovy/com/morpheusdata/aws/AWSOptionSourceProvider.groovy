@@ -79,7 +79,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		log.debug "awsPluginCloudRegions args: ${args}"
 		def rtn = []
 		Cloud cloud = loadCloud(args)
-		if(cloud) {
+		if(cloud?.accountCredentialData) {
 			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
 				rtn << [value: region.externalId, name: region.externalId]
 			}
@@ -92,17 +92,17 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 	def awsPluginVpc(args) {
 		Cloud cloud = loadCloud(args)
 		def rtn
-		if(cloud.accountCredentialLoaded && AmazonComputeUtility.testConnection(cloud).success) {
+		if(cloud?.accountCredentialData && AmazonComputeUtility.testConnection(cloud).success) {
 			def amazonClient = plugin.getAmazonClient(cloud, true)
 			def vpcResult = AmazonComputeUtility.listVpcs([amazonClient:amazonClient])
 			if(vpcResult.success && vpcResult.vpcList) {
-				rtn = [[name:morpheusContext.services.localization.get('gomorpheus.label.all'), value:'']]
+				rtn = [[name:morpheusContext.services.localization.get('gomorpheus.label.all'), value:'all']]
 				vpcResult.vpcList.each {
 					rtn << [name:"${it.vpcId} - ${it.tags?.find { tag -> tag.key == 'Name' }?.value ?: 'default'}", value:it.vpcId]
 				}
 			}
 		}
-		rtn ?: [[name: 'No VPCs found: verify credentials above.', value: '', isDefault: true]]
+		rtn ?: [[name: 'No VPCs found: verify credentials above.', value: '-1', isDefault: true]]
 	}
 
 	def awsPluginInventoryLevels(args) {
@@ -303,7 +303,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		Cloud cloud = loadCloud(args)
 
 		try {
-			if(cloud && cloud.accountCredentialLoaded) {
+			if(cloud?.accountCredentialData) {
 				String regionCode = args.config?.costingRegion ?: AmazonComputeUtility.getAmazonEndpointRegion(args.config?.endpoint ?: cloud.regionCode)
 				AmazonComputeUtility.listBuckets(AmazonComputeUtility.getAmazonS3Client(cloud, regionCode)).buckets?.sort { it.name }.each {
 					rtn << [name: it.name, value: it.name]
@@ -390,7 +390,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		def rtn = [[name:'Create New',value:'create-report']]
 		Cloud cloud = loadCloud(args)
 
-		if(cloud && cloud.accountCredentialLoaded == true) {
+		if(cloud?.accountCredentialData) {
 			plugin.cloudProvider.cloudCostingProvider.loadAwsReportDefinitions(cloud).reports?.each { report ->
 				rtn << [name: report.reportName, value: report.reportName]
 			}

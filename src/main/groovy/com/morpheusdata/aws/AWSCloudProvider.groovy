@@ -180,7 +180,7 @@ class AWSCloudProvider implements CloudProvider {
 			inputType: OptionType.InputType.SELECT,
 			optionSource: 'awsPluginVpc',
 			noBlank: true,
-			dependsOnCode: 'config.endpoint, endpoint, config.accessKey, accessKey, config.secretKey, secretKey, credential, credential.type, credential.username, credential.password'
+			dependsOnCode: 'config.endpoint, endpoint, config.accessKey, accessKey, config.secretKey, secretKey, credential.type, credential.username, credential.password'
 		)
 		OptionType imageTransferStore = new OptionType(
 			name: 'Image Transfer Store',
@@ -217,7 +217,7 @@ class AWSCloudProvider implements CloudProvider {
 			fieldGroup: 'Advanced',
 			inputType: OptionType.InputType.SELECT,
 			optionSource: 'awsPluginCostingReports',
-			visibleOnCode: 'aws-plugin-endpoint',
+			visibleOnCode: 'config.vpc:^(?!\\-1)',
 			dependsOnCode: 'config.endpoint, endpoint, config.accessKey, accessKey, config.secretKey, secretKey, credential, credential.type'
 		)
 		OptionType costingReportName = new OptionType(
