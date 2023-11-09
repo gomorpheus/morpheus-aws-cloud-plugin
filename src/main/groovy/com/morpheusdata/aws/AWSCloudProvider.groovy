@@ -180,7 +180,7 @@ class AWSCloudProvider implements CloudProvider {
 			inputType: OptionType.InputType.SELECT,
 			optionSource: 'awsPluginVpc',
 			noBlank: true,
-			dependsOnCode: 'config.endpoint, endpoint, config.accessKey, accessKey, config.secretKey, secretKey, credential, credential.type'
+			dependsOnCode: 'config.endpoint, endpoint, config.accessKey, accessKey, config.secretKey, secretKey, credential, credential.type, credential.username, credential.password'
 		)
 		OptionType imageTransferStore = new OptionType(
 			name: 'Image Transfer Store',

@@ -91,17 +91,18 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 
 	def awsPluginVpc(args) {
 		Cloud cloud = loadCloud(args)
-		def rtn = [[name:morpheusContext.services.localization.get('gomorpheus.label.all'), value:'']]
+		def rtn
 		if(cloud.accountCredentialLoaded && AmazonComputeUtility.testConnection(cloud).success) {
 			def amazonClient = plugin.getAmazonClient(cloud, true)
 			def vpcResult = AmazonComputeUtility.listVpcs([amazonClient:amazonClient])
-			if(vpcResult.success) {
+			if(vpcResult.success && vpcResult.vpcList) {
+				rtn = [[name:morpheusContext.services.localization.get('gomorpheus.label.all'), value:'']]
 				vpcResult.vpcList.each {
 					rtn << [name:"${it.vpcId} - ${it.tags?.find { tag -> tag.key == 'Name' }?.value ?: 'default'}", value:it.vpcId]
 				}
 			}
 		}
-		rtn
+		rtn ?: [[name: 'No VPCs found: verify credentials above.', value: '', isDefault: true]]
 	}
 
 	def awsPluginInventoryLevels(args) {
@@ -441,29 +442,29 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		Cloud rtn = cloudId ? morpheusContext.async.cloud.getCloudById(cloudId).blockingGet() : null
 		if(!rtn) {
 			rtn = new Cloud()
+		}
+
+		// load existing credentials when not passed in
+		if(args.credential == null) {
+			if(!rtn.accountCredentialLoaded) {
+				AccountCredential credentials = morpheusContext.services.accountCredential.loadCredentials(rtn)
+				rtn.accountCredentialData = credentials?.data
+			}
 		} else {
-			//we need to load full creds
-			AccountCredential credentials = morpheusContext.services.accountCredential.loadCredentials(rtn)
-			rtn.accountCredentialData = credentials?.data
-			rtn.accountCredentialLoaded = true
-		}
-
-		def config = [
-			accessKey: args.accessKey ?: args.config?.accessKey ?: rtn.getConfigProperty('accessKey') ?: rtn.accountCredentialData?.username,
-			secretKey: args.secretKey ?: args.config?.secretKey ?: rtn.getConfigProperty('secretKey') ?: rtn.accountCredentialData?.password,
-			stsAssumeRole: (args.stsAssumeRole ?: args.config?.stsAssumeRole ?: rtn.getConfigProperty('stsAssumeRole')) in [true, 'true', 'on'],
-			useHostCredentials: (args.useHostCredentials ?: rtn.getConfigProperty('useHostCredentials')) in [true, 'true', 'on'],
-			endpoint: args.endpoint ?: args.config?.endpoint ?: rtn.getConfigProperty('endpoint')
-		]
-		if (config.secretKey == '*' * 12) {
-			config.remove('secretKey')
-		}
-		rtn.setConfigMap(rtn.getConfigMap() + config)
-
-		if(rtn.accountCredentialLoaded == false) {
+			def config = [
+				accessKey: args.accessKey ?: args.config?.accessKey,
+				secretKey: args.secretKey ?: args.config?.secretKey,
+				stsAssumeRole: (args.stsAssumeRole ?: args.config?.stsAssumeRole) in [true, 'true', 'on'],
+				useHostCredentials: args.useHostCredentials in [true, 'true', 'on'],
+				endpoint: args.endpoint ?: args.config?.endpoint
+			]
+			if (config.secretKey == '*' * 12) {
+				config.remove('secretKey')
+			}
+			rtn.setConfigMap(rtn.getConfigMap() + config)
 			rtn.accountCredentialData = morpheusContext.services.accountCredential.loadCredentialConfig(args.credential, config).data
-			rtn.accountCredentialLoaded = (rtn.accountCredentialData.username && rtn.accountCredentialData.password) || (rtn.accountCredentialData.accessKey && rtn.accountCredentialData.secretKey)
 		}
+		rtn.accountCredentialLoaded = true
 
 		def proxy = args.apiProxy ? morpheusContext.async.network.networkProxy.getById(args.long('apiProxy')).blockingGet() : null
 		rtn.apiProxy = proxy
