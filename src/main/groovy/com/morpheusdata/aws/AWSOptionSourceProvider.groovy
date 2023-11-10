@@ -96,7 +96,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 			def amazonClient = plugin.getAmazonClient(cloud, true)
 			def vpcResult = AmazonComputeUtility.listVpcs([amazonClient:amazonClient])
 			if(vpcResult.success && vpcResult.vpcList) {
-				rtn = [[name:morpheusContext.services.localization.get('gomorpheus.label.all'), value:'all']]
+				rtn = [[name:morpheusContext.services.localization.get('gomorpheus.label.all'), value:'']]
 				vpcResult.vpcList.each {
 					rtn << [name:"${it.vpcId} - ${it.tags?.find { tag -> tag.key == 'Name' }?.value ?: 'default'}", value:it.vpcId]
 				}
