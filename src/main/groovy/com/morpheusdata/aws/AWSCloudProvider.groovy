@@ -180,7 +180,7 @@ class AWSCloudProvider implements CloudProvider {
 			inputType: OptionType.InputType.SELECT,
 			optionSource: 'awsPluginVpc',
 			noBlank: true,
-			dependsOnCode: 'config.endpoint, endpoint, config.accessKey, accessKey, config.secretKey, secretKey, credential, credential.type'
+			dependsOnCode: 'config.endpoint, endpoint, config.accessKey, accessKey, config.secretKey, secretKey, credential.type, credential.username, credential.password'
 		)
 		OptionType imageTransferStore = new OptionType(
 			name: 'Image Transfer Store',
@@ -217,7 +217,7 @@ class AWSCloudProvider implements CloudProvider {
 			fieldGroup: 'Advanced',
 			inputType: OptionType.InputType.SELECT,
 			optionSource: 'awsPluginCostingReports',
-			visibleOnCode: 'aws-plugin-endpoint',
+			visibleOnCode: 'config.vpc:^(?!\\-1)',
 			dependsOnCode: 'config.endpoint, endpoint, config.accessKey, accessKey, config.secretKey, secretKey, credential, credential.type'
 		)
 		OptionType costingReportName = new OptionType(
@@ -568,96 +568,6 @@ class AWSCloudProvider implements CloudProvider {
 					}
 				}
 				return ServiceResponse.success()
-/*
-				if(config.costingReport) {
-					def loadReportsResult = amazonCostingService.loadReportDefinitions(zone)
-
-					if (loadReportsResult.success) {
-						def costingReport
-						if (config.costingReport == 'createReport') {
-							config.costingReportError = null
-
-							if (!config.costingReportName) {
-								rtn.success = false
-								rtn.errors.costingReportName = "Missing report name required to create a new report"
-							} else if(!configMap.costingFolder) {
-								rtn.success = false
-								rtn.errors.costingFolder = "Missing folder name required to create a new report"
-							} else {
-								costingReport = loadReportsResult.reports?.find { it.reportName == configMap.costingReportName }
-
-								if (!costingReport) {
-									if (!configMap.costingBucket) {
-										rtn.success = false
-										rtn.errors.costingBucket = 'Choose a costing report bucket'
-									} else {
-										def costingBucket
-
-										if (configMap.costingBucket == 'createBucket') {
-											if (!configMap.costingBucketName) {
-												rtn.success = false
-												rtn.errors.costingBucketName = 'Enter costing report bucket name'
-											}
-										} else {
-											costingBucket = StorageBucket.withCriteria(uniqueResult: true) {
-												eq('bucketName', configMap.costingBucket)
-												eq('account', zone.account)
-												storageServer {
-													eq('refType', 'ComputeZone')
-													eq('refId', zone.id)
-												}
-											}
-											if (!costingBucket) {
-												rtn.success = false
-												rtn.errors.costingBucket = "Costing report bucket ${configMap.costingBucket} not found"
-											}
-										}
-									}
-								}
-							}
-						} else {
-							if (!(costingReport = loadReportsResult.reports?.find { it.reportName == configMap.costingReport })) {
-								rtn.errors.costingReport = "Costing report ${configMap.costingReport} not found"
-								rtn.success = false
-							}
-						}
-						zone.setConfigMap(configMap)
-					}
-					else if(configMap.costingBucket) {
-						def costingBucket = StorageBucket.withCriteria(uniqueResult: true) {
-							eq('bucketName', configMap.costingBucket)
-							eq('account', zone.account)
-							storageServer {
-								eq('refType', 'ComputeZone')
-								eq('refId', zone.id)
-							}
-						}
-						if (!costingBucket) {
-							rtn.success = false
-							rtn.errors.costingBucket = "Costing report bucket ${configMap.costingBucket} not found"
-						}
-						else {
-							def bucketRegion = costingBucket.getConfigProperty('region')
-
-							if(!bucketRegion) {
-								def bucketLocationResult = AmazonComputeUtility.getBucketLocation(getAmazonS3Client(zone, null, false), costingBucket.bucketName)
-
-								if(bucketLocationResult.success) {
-									bucketRegion = bucketLocationResult.location
-								}
-								else {
-									rtn.success = false
-									rtn.errors.costingBucket = "Unable to get costing report bucket region"
-								}
-							}
-							if(rtn.success) {
-								configMap.costingRegion = bucketRegion
-								zone.setConfigMap(configMap)
-							}
-						}
-					}
-				}
-		*/
 			} else {
 				return new ServiceResponse(success: false, msg: 'No cloud found')
 			}

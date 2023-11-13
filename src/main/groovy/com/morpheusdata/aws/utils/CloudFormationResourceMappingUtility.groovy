@@ -642,6 +642,24 @@ class CloudFormationResourceMappingUtility  {
 			newServer = new ComputeServer(serverConfig)
 			if(resource.awsConfig) {
 				newServer.setConfigProperty('awsConfig', resource.awsConfig)
+				//get the matching image?
+				def awsConfig = resource.awsConfig
+				def amazonClient = opts.amazonClient
+				if (awsConfig?.imageId) {
+					//save the image
+					def awsImage
+					def awsResults = AmazonComputeUtility.loadImage([amazonClient: amazonClient, imageId: awsConfig.imageId])
+					if (awsResults.success == true && awsResults.image)
+						awsImage = awsResults.image
+
+					//set os info
+					if (awsImage) {
+						newServer.osType = awsImage.getPlatform() == 'windows' ? 'windows' : 'linux'
+						//server.isCloudInit = server.osType == 'windows' ? false : true
+						newServer.serverOs = new OsType(code: newServer.osType)
+					}
+				}
+
 			}
 			if(appConfig.refConfig?.regionCode) {
 				newServer.region = new CloudRegion(code: appConfig.refConfig.regionCode)

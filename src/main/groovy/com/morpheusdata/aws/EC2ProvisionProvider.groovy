@@ -4,9 +4,11 @@ import com.amazonaws.services.ec2.AmazonEC2
 import com.amazonaws.services.ec2.AmazonEC2Client
 import com.morpheusdata.PrepareHostResponse
 import com.morpheusdata.aws.backup.AWSSnapshotBackupProvider
+import com.morpheusdata.aws.sync.VirtualMachineSync
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.AbstractProvisionProvider
 import com.morpheusdata.core.MorpheusContext
+import com.morpheusdata.core.data.DataFilter
 import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.providers.HostProvisionProvider
 import com.morpheusdata.core.providers.ProvisionProvider
@@ -528,6 +530,11 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		try {
 			def cloud = morpheusContext.async.cloud.getCloudById(opts.cloud?.id ?: opts.zoneId).blockingGet()
 			def validateTemplate = opts.template != null
+			if(!opts.availabilityId) {
+				def networkId = opts.networkInterfaces[0]?.network?.id
+				def network = morpheusContext.async.network.get(networkId).blockingGet()
+				opts.availabilityId = network?.availabilityZone
+			}
 			def validationResults = AmazonComputeUtility.validateServerConfig(morpheusContext, [amazonClient:plugin.getAmazonClient(cloud, false, opts.resourcePool?.regionCode), validateTemplate:validateTemplate] + opts)
 			if(!validationResults.success) {
 				validationResults.errors?.each { it ->
@@ -1224,7 +1231,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 			def client = plugin.getAmazonClient(server.cloud, false, server.resourcePool?.regionCode)
 			def startResult = AmazonComputeUtility.startServer([amazonClient: client, server: server])
 
-			if (startResult.success) {
+			if(startResult.success == true) {
 				return ServiceResponse.success()
 			} else {
 				return ServiceResponse.error('Failed to start vm')
@@ -1585,8 +1592,13 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 						}
 					}
 				}
-
 				rtn.success = true
+			}
+			def vmOpts = [amazonClient:amazonOpts.amazonClient, server:server, externalId:server.externalId]
+			def startResult = AmazonComputeUtility.startServer(vmOpts)
+			def waitResults = AmazonComputeUtility.waitForServerStatus(vmOpts, 16)
+			if(waitResults.success == true) {
+				refreshServerIp(server, vmOpts)
 			}
 		} catch(ex) {
 			log.error("Error resizing amazon instance to ${plan.name}", ex)
@@ -2072,6 +2084,44 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		}
 
 		return rtn
+	}
+
+	def refreshServerIp(ComputeServer server, Map opts) {
+		try {
+			def serverDetails = AmazonComputeUtility.getServerDetail(opts)
+			log.info("refreshServerIp: ${serverDetails}")
+			if(serverDetails.success == true) {
+				//update public ip
+				def publicIp = serverDetails.server.getPublicIpAddress()
+				if(publicIp) {
+					def serverInterface = server.interfaces?.find{it.ipAddress == server.internalIp || it.publicIpAddress == server.externalIp}
+					if(serverInterface) {
+						log.info("refreshing instance public ip from: ${serverInterface.publicIpAddress} to: ${publicIp}")
+						if(server.sshHost == serverInterface.publicIpAddress || server.sshHost == server.externalIp) {
+							server.sshHost = publicIp
+						}
+						serverInterface.publicIpAddress = publicIp
+						server.externalIp = publicIp
+						morpheusContext.async.computeServer.computeServerInterface.save(serverInterface).blockingGet()
+					}
+				}
+				server.powerState =  'on'
+				def privateIp = serverDetails.server.getPrivateIpAddress()
+				if(publicIp != server.externalIp) {
+					if(server.externalIp == server.sshHost)
+						server.sshHost = publicIp
+					server.externalIp = publicIp
+				}
+				if(privateIp != server.internalIp) {
+					if(server.internalIp == server.sshHost)
+						server.sshHost = privateIp
+					server.internalIp = privateIp
+				}
+				morpheusContext.async.computeServer.save(server).blockingGet()
+			}
+		} catch(e) {
+			log.error("refreshServerIp error: ${e}", e)
+		}
 	}
 
 	def getContainerRootDisk(container) {

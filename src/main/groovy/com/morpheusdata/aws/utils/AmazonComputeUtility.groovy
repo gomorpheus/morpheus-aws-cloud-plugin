@@ -114,22 +114,25 @@ class AmazonComputeUtility {
 
 	static testConnection(Cloud cloud) {
 		def rtn = [success:false, invalidLogin:false]
+		def hasCredentials = false
+		try { hasCredentials = getAmazonAccessKey(cloud) && getAmazonSecretKey(cloud) } catch(e) {}
 		try {
-			def endpoint = getAmazonEndpoint(cloud)
-			def endpointConfiguration = new com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration(endpoint, getAmazonEndpointRegion(endpoint))
-			def clientConfiguration = getClientConfiguration(cloud)
-			def amazonClient = AmazonEC2Client.builder()
-				.withCredentials(getAmazonCredentials(cloud, clientConfiguration).credsProvider)
-				.withClientConfiguration(clientConfiguration)
-				.withRequestHandlers(new InvalidCredentialsRequestHandler())
-				.withEndpointConfiguration(endpointConfiguration)
-				.build()
+			if(hasCredentials) {
+				def endpoint = getAmazonEndpoint(cloud)
+				def endpointConfiguration = new com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration(endpoint, getAmazonEndpointRegion(endpoint))
+				def clientConfiguration = getClientConfiguration(cloud)
+				def amazonClient = AmazonEC2Client.builder()
+					.withCredentials(getAmazonCredentials(cloud, clientConfiguration).credsProvider)
+					.withClientConfiguration(clientConfiguration)
+					.withRequestHandlers(new InvalidCredentialsRequestHandler())
+					.withEndpointConfiguration(endpointConfiguration)
+					.build()
 
-
-			def vpcRequest = new DescribeVpcsRequest()
-			rtn.vpcList = amazonClient.describeVpcs(vpcRequest).getVpcs()
-			rtn.amazonClient = amazonClient
-			rtn.success = true
+				def vpcRequest = new DescribeVpcsRequest()
+				rtn.vpcList = amazonClient.describeVpcs(vpcRequest).getVpcs()
+				rtn.amazonClient = amazonClient
+				rtn.success = true
+			}
 		} catch(com.amazonaws.AmazonServiceException awse) {
 			log.error("testConnection to amazon: ${awse}", awse)
 			rtn.invalidLogin = (awse.errorCode == 'AuthFailure')
@@ -651,20 +654,11 @@ class AmazonComputeUtility {
 		try {
 			def amazonClient = opts.amazonClient
 			def vpcId = opts.zone.getConfigProperty('vpc')
+			def securityRequest = new DescribeSecurityGroupsRequest().withFilters(new LinkedList<Filter>())
 			if(vpcId) {
-				def securityRequest = new DescribeSecurityGroupsRequest().withFilters(new LinkedList<Filter>())
-				if(vpcId) {
-					securityRequest.getFilters().add(new Filter().withName("vpc-id").withValues(vpcId))	
-				}
-				rtn.securityList =  amazonClient.describeSecurityGroups(securityRequest).getSecurityGroups()
-			} else {
-				def securityRequest = new DescribeSecurityGroupsRequest()
-				def securityList =  amazonClient.describeSecurityGroups(securityRequest).getSecurityGroups()
-				securityList?.each {
-					if(it.getVpcId() == null || it.getVpcId()?.length() < 1)
-						rtn.securityList << it
-				}
+				securityRequest.getFilters().add(new Filter().withName("vpc-id").withValues(vpcId))
 			}
+			rtn.securityList =  amazonClient.describeSecurityGroups(securityRequest).getSecurityGroups()
 			rtn.success = true
 		} catch(e) {
 			log.debug("listSecurityGroups error: ${e}", e)

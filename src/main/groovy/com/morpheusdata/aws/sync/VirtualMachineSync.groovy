@@ -494,7 +494,7 @@ class VirtualMachineSync {
 					network:subnet,
 					displayOrder:(server.interfaces?.size() ?: 0) + 1
 				)
-				morpheusContext.async.computeServer.computeServerInterface.create([nic], server)
+				morpheusContext.async.computeServer.computeServerInterface.create([nic], server).blockingGet()
 			}
 			else {
 				def doSave = false
