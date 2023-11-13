@@ -279,7 +279,9 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 			def templateParams = instanceConfig.templateParameter
 			def layoutSpecs = opts.layoutSpecs
 			def scriptConfig = opts.scriptConfig
+			def regionCode = opts.regionCode
 			def cloud = instance.provisionZoneId ? morpheusContext.async.cloud.getCloudById(instance.provisionZoneId).blockingGet() : null
+			opts.amazonClient = plugin.getAmazonClient(cloud, false, regionCode)
 			opts.cloud = cloud
 
 
@@ -1447,7 +1449,7 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 					morpheusContext.async.computeServer.save(server).blockingGet()
 				}
 
-				def cloudConfigUser = opts.cloudConfigUserData[container.id][server.osType]
+				def cloudConfigUser = opts.cloudConfigUserData[container.id]
 				addCloudInit(rtn, container.displayName, cloudConfigUser as String, server.osType)
 
 			}
