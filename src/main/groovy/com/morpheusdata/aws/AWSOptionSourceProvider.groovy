@@ -79,7 +79,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		log.debug "awsPluginCloudRegions args: ${args}"
 		def rtn = []
 		Cloud cloud = loadCloud(args)
-		if(cloud?.accountCredentialData) {
+		if(cloud?.accountCredentialLoaded) {
 			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
 				rtn << [value: region.externalId, name: region.externalId]
 			}
