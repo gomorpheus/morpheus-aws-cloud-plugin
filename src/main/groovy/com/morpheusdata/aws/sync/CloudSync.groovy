@@ -29,35 +29,8 @@ class CloudSync {
 				cloud.externalId = awsAccountId
 				morpheusContext.services.cloud.save(cloud)
 			}
-			//upload missing key pairs
-			ensureKeyPairs()
 		} catch(Exception ex) {
 			log.error("CloudSync error: {}", ex, ex)
-		}
-	}
-
-	protected ensureKeyPairs() {
-		def save
-		def keyPair = morpheusContext.async.cloud.findOrGenerateKeyPair(cloud.account).blockingGet()
-
-		morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
-			def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
-			def keyLocationId = "amazon-${cloud.id}-${region.externalId}".toString()
-			def keyResults = AmazonComputeUtility.uploadKeypair(
-				[key: keyPair, account: cloud.account, zone: cloud, keyName: keyPair.getConfigProperty(keyLocationId), amazonClient:amazonClient]
-			)
-			if(keyResults.success) {
-				if (keyResults.uploaded) {
-					keyPair.setConfigProperty(keyLocationId, keyResults.keyName)
-					save = true
-				}
-			} else {
-				log.error "unable to upload keypair"
-			}
-		}
-
-		if(save) {
-			morpheusContext.async.keyPair.save([keyPair]).blockingGet()
 		}
 	}
 }

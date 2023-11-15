@@ -28,6 +28,7 @@ class KeyPairSync {
 
 	def execute() {
 		try {
+			Map<String, KeyPairInfo> regionKeypairs = [:]
 			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
 				def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
 				List<KeyPairInfo> cloudItems = AmazonComputeUtility.listKeypairs([amazonClient: amazonClient]).keyPairs
@@ -46,6 +47,38 @@ class KeyPairSync {
 				}.onDelete { removeItems ->
 					removeMissingKeyPairs(removeItems)
 				}.start()
+				regionKeypairs[region.externalId] = cloudItems
+			}
+
+			Boolean save = false
+			KeyPair keyPair = morpheusContext.async.cloud.findOrGenerateKeyPair(cloud.account).blockingGet()
+
+			// keys not yet loaded
+			morpheusContext.async.cloud.region.listIdentityProjections(cloud.id).blockingSubscribe { region ->
+				def keyLocationId = "amazon-${cloud.id}-${region.externalId}".toString()
+				def keyName = keyPair.getConfigProperty(keyLocationId)
+				if(!keyName || !regionKeypairs[region.externalId].find { it.keyName == keyName }) {
+					def opts = [
+						amazonClient: plugin.getAmazonClient(cloud, false, region.externalId),
+						key: keyPair,
+						account: cloud.account,
+						zone: cloud,
+						keyName: keyName,
+						fingerprint: keyPair.publicFingerprint
+					]
+					def keyResults = AmazonComputeUtility.uploadKeypair(opts)
+					if(keyResults.success) {
+						if (keyResults.uploaded) {
+							keyPair.setConfigProperty(keyLocationId, keyResults.keyName)
+							save = true
+						}
+					} else {
+						log.error "unable to upload keypair"
+					}
+				}
+			}
+			if(save) {
+				morpheusContext.async.keyPair.bulkSave([keyPair]).blockingGet()
 			}
 		} catch(Exception ex) {
 			log.error("KeyPairSync error: {}", ex, ex)

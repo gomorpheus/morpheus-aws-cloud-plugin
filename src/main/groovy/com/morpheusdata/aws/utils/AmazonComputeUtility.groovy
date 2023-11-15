@@ -463,12 +463,12 @@ class AmazonComputeUtility {
 		def rtn = [success:false]
 		try {
 			def doUpload = true
-			if(opts.keyName) {
+			if(opts.keyName || opts.fingerprint) {
 				def keyLookup = loadKeypair(opts)
 				if(keyLookup.success == true && keyLookup.found == true) {
 					doUpload = false
 					rtn.success = true
-					rtn.keyName = opts.keyName
+					rtn.keyName = keyLookup.keyMatch?.keyName ?: opts.keyName
 					rtn.uploaded = false
 				}
 			}
@@ -510,15 +510,19 @@ class AmazonComputeUtility {
 	static loadKeypair(opts) {
 		def rtn = [success:false]
 		try {
-			if(opts.keyName) {
+			if(opts.keyName || opts.fingerprint) {
 				def amazonClient = opts.amazonClient
-				def keyNames = [opts.keyName]
 				def keyRequest = new DescribeKeyPairsRequest()
-				keyRequest.withKeyNames(keyNames)
+
+				if(opts.keyName)
+					keyRequest.withKeyNames([opts.keyName])
+				if(opts.fingerprint)
+					keyRequest.withFilters(new Filter('fingerprint', [opts.fingerprint]))
+
 				def keyResult = amazonClient.describeKeyPairs(keyRequest)
 				rtn.success = true
 				rtn.keyPairs = keyResult.getKeyPairs()
-				rtn.keyMatch = rtn.keyPairs.find{it.getKeyName() == opts.keyName}
+				rtn.keyMatch = rtn.keyPairs.find{ it.keyName == opts.keyName || it.keyFingerprint == opts.fingerprint }
 				rtn.found = rtn.keyMatch != null
 			}
 		} catch(e) {

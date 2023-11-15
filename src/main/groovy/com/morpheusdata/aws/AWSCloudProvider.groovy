@@ -626,6 +626,9 @@ class AWSCloudProvider implements CloudProvider {
 					new RegionSync(this.plugin,cloudInfo).execute()
 					log.info("${cloudInfo.name}: Region Synced in ${new Date().time - now}ms")
 					now = new Date().time
+					new KeyPairSync(this.plugin,cloudInfo).execute()
+					log.info("${cloudInfo.name}: Keypair Synced in ${new Date().time - now}ms")
+					now = new Date().time
 					new VPCSync(this.plugin,cloudInfo).execute()
 					log.info("${cloudInfo.name}: VPC Synced in ${new Date().time - now}ms")
 					now = new Date().time
@@ -634,9 +637,6 @@ class AWSCloudProvider implements CloudProvider {
 					now = new Date().time
 					new RouteTableSync(this.plugin,cloudInfo).execute()
 					log.info("${cloudInfo.name}: Route Table Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					new KeyPairSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: Keypair Synced in ${new Date().time - now}ms")
 					now = new Date().time
 					new SubnetSync(this.plugin,cloudInfo).execute()
 					log.info("${cloudInfo.name}: Subnet Synced in ${new Date().time - now}ms")

@@ -567,10 +567,9 @@ class VirtualMachineSync {
 
 		// Process removes
 		if(syncLists.removeList) {
-			morpheusContext.async.metadataTag.bulkRemove(syncLists.removeList).blockingGet()
+			morpheusContext.async.metadataTag.remove(syncLists.removeList, server).blockingGet()
 			changes = true
 		}
-		
 
 		if(changes) {
 			//lets see if we have any instance metadata that needs updated
@@ -639,7 +638,7 @@ class VirtualMachineSync {
 
 		// Process removes
 		if(syncLists.removeList) {
-			morpheusContext.async.metadataTag.bulkRemove(syncLists.removeList).blockingGet()
+			morpheusContext.async.metadataTag.remove(syncLists.removeList, instance).blockingGet()
 			saveRequired = true
 		}
 		return saveRequired
