@@ -68,10 +68,8 @@ class KeyPairSync {
 					]
 					def keyResults = AmazonComputeUtility.uploadKeypair(opts)
 					if(keyResults.success) {
-						if (keyResults.uploaded) {
-							keyPair.setConfigProperty(keyLocationId, keyResults.keyName)
-							save = true
-						}
+						keyPair.setConfigProperty(keyLocationId, keyResults.keyName)
+						save = true
 					} else {
 						log.error "unable to upload keypair"
 					}

@@ -8,7 +8,6 @@ import com.morpheusdata.core.data.DataFilter
 import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.core.util.SyncTask
-import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.ProvisionType
 import com.morpheusdata.model.ServicePlan
 import com.morpheusdata.model.projection.ServicePlanIdentityProjection
@@ -17,24 +16,35 @@ import io.reactivex.Observable
 
 @Slf4j
 class ServicePlanSync {
-	private Cloud cloud
 	private MorpheusContext morpheusContext
 	private AWSPlugin plugin
 
-	ServicePlanSync(AWSPlugin plugin, Cloud cloud) {
+	ServicePlanSync(AWSPlugin plugin) {
 		this.plugin = plugin
-		this.cloud = cloud
 		this.morpheusContext = plugin.morpheusContext
 	}
 
 	def execute() {
 		try {
 			log.info("Syncing Plans for AWS")
+			// Find cloud per region
+			def clouds = morpheusContext.async.cloud.list(new DataQuery().withFilter('cloudType.code', 'amazon')).toMap { it.id }.blockingGet()
+			def regionClouds = [:]
+			morpheusContext.async.cloud.region.list(new DataQuery().withFilter('cloud.id', 'in', clouds.keySet())).blockingSubscribe { region ->
+				if(!regionClouds[region.externalId])
+					regionClouds[region.externalId] = [region: region, cloud: clouds[region.cloud.id]]
+			}
+
 			// Get map of instance types to regions
 			def instanceTypeRegions = [:]
-			morpheusContext.async.cloud.region.list(new DataQuery().withFilter('cloud.id', cloud.id)).blockingSubscribe { region ->
-				def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
-
+			for(String regionCode : regionClouds.keySet()) {
+				def region = regionClouds[regionCode].region
+				def cloud = regionClouds[regionCode].cloud
+				if(!cloud.accountCredentialLoaded) {
+					cloud.accountCredentialLoaded = true
+					cloud.accountCredentialData = morpheusContext.async.accountCredential.loadCredentials(cloud).blockingGet()?.data
+				}
+				def amazonClient = plugin.getAmazonClient(cloud, false, regionCode)
 				for(InstanceTypeInfo instanceType in AmazonComputeUtility.listInstanceTypes([amazonClient: amazonClient]).instanceTypes) {
 					if(!instanceTypeRegions[instanceType.instanceType]) {
 						instanceTypeRegions[instanceType.instanceType] = [instanceType: instanceType, regionCodes: [] as Set]
@@ -60,7 +70,6 @@ class ServicePlanSync {
 
 			//Fix Plan Sorting
 			List<ServicePlan> existingItems = morpheusContext.services.servicePlan.list(new DataQuery().withFilters(new DataFilter<Boolean>("deleted","false"),new DataFilter<String>("provisionType.code","amazon")))
-
 			existingItems.sort { a, b ->
 				return comparePlans(a, b)
 			}
@@ -83,7 +92,7 @@ class ServicePlanSync {
 	}
 
 	private addMissingServicePlans(Collection<InstanceTypeInfo> addList, Map instanceTypeRegions) {
-		log.debug "addMissingServicePlans: ${cloud} ${addList.size()}"
+		log.debug "addMissingServicePlans: ${addList.size()}"
 		def adds = []
 
 		for(cloudItem in addList) {
@@ -144,7 +153,7 @@ class ServicePlanSync {
 	}
 
 	private updateMatchedServicePlans(List<SyncTask.UpdateItem<ServicePlan, InstanceTypeInfo>> updateList, Map instanceTypesToRegion) {
-		log.debug "updateMatchedServicePlans: ${cloud} ${updateList.size()}"
+		log.debug "updateMatchedServicePlans: ${updateList.size()}"
 		def saveList = []
 
 		for(def updateItem in updateList) {
@@ -199,7 +208,7 @@ class ServicePlanSync {
 		removeList = removeList.findAll{ it.deleted != true }
 
 		if(removeList) {
-			log.debug "removeMissingServicePlans: ${cloud} ${removeList.size()}"
+			log.debug "removeMissingServicePlans: ${removeList.size()}"
 			morpheusContext.async.servicePlan.remove(removeList.collect { new ServicePlan(id: it.id)}).blockingGet()
 		}
 	}
