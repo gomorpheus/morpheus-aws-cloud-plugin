@@ -580,29 +580,8 @@ class AWSCloudProvider implements CloudProvider {
 	@Override
 	void refreshDailyCloudType() {
 		log.info("Refreshing Daily Cloud Type")
-		def regionCodeToZoneMap = [:]
-		morpheusContext.async.cloud.list(new DataQuery().withFilters(new DataFilter<String>("zoneType.code","amazon"), new DataFilter<Boolean>("enabled",true))).toList().blockingGet().each { Cloud cloud ->
-			String regionCode = cloud.regionCode
-			if (!regionCodeToZoneMap[regionCode]) {
-				Cloud activeZone = cloud
-				if (activeZone) {
-					regionCodeToZoneMap[regionCode] = activeZone
-				} else {
-					log.error "Unable to locate an active zone for ${regionCode}"
-				}
-			}
-		}
-		regionCodeToZoneMap?.each { regionCode, cloudObj ->
-			Cloud cloud = cloudObj as Cloud
-			AccountCredential credential = morpheusContext.async.accountCredential.loadCredentials(cloud).blockingGet()
-			cloud.accountCredentialLoaded = true
-			cloud.accountCredentialData = credential?.data
-			new ServicePlanSync(this.plugin as AWSPlugin,cloud).execute()
-		}
-
+		new ServicePlanSync(this.plugin).execute()
 		new PriceSync(this.plugin).execute()
-
-
 	}
 
 	@Override

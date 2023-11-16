@@ -277,7 +277,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 				Date batchStart = new Date()
 				InvoiceProcessResult batchResult = processAwsBillingBatch(cloud,period,rows,costDate,opts)
 				lineCount += rows.size()
-				log.info("Processed {} Records of Batch {} for Billing Period {} in {}ms", rows.size(), ++batchIndex, period, new Date().time - batchStart.time)
+				log.info("Processed {} Records of Batch {} for Billing Period {} in {}ms", rows.size(), batchIndex++, period, new Date().time - batchStart.time)
 				batchResult
 			}.buffer(billingBatchSize * 1000).concatMapCompletable {List<InvoiceProcessResult> processResults ->
 				List<Long> invoiceIds = processResults.collect { it.invoicesToReconcile }.flatten().unique()
