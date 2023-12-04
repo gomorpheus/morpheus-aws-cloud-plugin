@@ -170,19 +170,13 @@ class RouteTableSync {
 			if(configureRoute(routeTable, updateItem.existingItem, updateItem.masterItem)) {
 				save = true
 			}
-
 			if(router && !router.routes.find { it.id == updateItem.existingItem.id }) {
 				log.debug "Adding route ${updateItem.existingItem} to router ${router}"
 				save = true
 			}
 			if(save) {
-				saveList << updateItem
+				morpheusContext.async.network.router.route.save(router, updateItem.existingItem).blockingGet()
 			}
-		}
-
-		if(saveList) {
-			log.debug "About to update ${saveList.size()} network routes"
-			morpheusContext.async.network.router.route.save(router, saveList.collect { it.existingItem }).blockingGet()
 		}
 	}
 
