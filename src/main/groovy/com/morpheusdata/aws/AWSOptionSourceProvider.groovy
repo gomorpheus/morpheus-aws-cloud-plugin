@@ -192,10 +192,9 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 						resourceType = 'aws.cloudFormation.ec2.egressOnlyInternetGateway'
 						break
 					case 'INTERNET_GATEWAY':
-						List<Long> routerIds = morpheus.async.network.router.listIdentityProjections(vpc.cloud.id, 'amazonInternetGateway').toList().blockingGet().collect { it.id }
-						if(routerIds.size() > 0) {
-							rtn =  morpheus.services.network.router.listById(routerIds)?.collect { [name: it.name, value: it.externalId ]}?.sort{it.name } ?: []
-						}
+						rtn = morpheus.services.network.router.list(
+							new DataQuery().withFilter('poolId', vpc.id).withFilter('type.code', 'amazonInternetGateway')
+						).collect { [name: it.name, value: it.externalId ]}?.sort{it.name } ?: []
 						break
 					case 'GATEWAY':
 						resourceType = 'aws.cloudFormation.ec2.vpnGateway'
