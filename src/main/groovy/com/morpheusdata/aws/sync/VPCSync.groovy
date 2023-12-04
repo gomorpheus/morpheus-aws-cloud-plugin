@@ -9,6 +9,7 @@ import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.CloudPool
 import com.morpheusdata.model.projection.CloudPoolIdentity
 import groovy.util.logging.Slf4j
+import io.reactivex.Observable
 import io.reactivex.Single
 
 /**
