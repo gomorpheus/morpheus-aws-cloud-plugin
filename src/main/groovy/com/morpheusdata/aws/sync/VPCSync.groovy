@@ -9,7 +9,6 @@ import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.CloudPool
 import com.morpheusdata.model.projection.CloudPoolIdentity
 import groovy.util.logging.Slf4j
-import io.reactivex.Observable
 import io.reactivex.Single
 
 /**
@@ -92,6 +91,7 @@ class VPCSync {
 			def cidr = masterItem.getCidrBlock()
 			def tenancy = masterItem.getInstanceTenancy()
 			def description = "${name} - ${masterItem.getVpcId()} - ${masterItem.getCidrBlock()}"
+
 			if(name != existing.name) {
 				existing.name = name
 				save = true

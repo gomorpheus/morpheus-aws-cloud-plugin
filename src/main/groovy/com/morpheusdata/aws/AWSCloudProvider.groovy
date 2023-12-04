@@ -31,7 +31,6 @@ import com.morpheusdata.aws.sync.VolumeSync
 import com.morpheusdata.aws.sync.VpcPeeringConnectionSync
 import com.morpheusdata.aws.sync.VpnGatewaySync
 import com.morpheusdata.aws.utils.AmazonComputeUtility
-import com.morpheusdata.core.data.DataFilter
 import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.core.backup.AbstractBackupProvider
@@ -41,12 +40,16 @@ import com.morpheusdata.core.Plugin
 import com.morpheusdata.core.providers.CloudCostingProvider
 import com.morpheusdata.core.providers.ProvisionProvider
 import com.morpheusdata.core.util.ConnectionUtils
-import com.morpheusdata.model.AccountCredential
+import com.morpheusdata.model.Account
 import com.morpheusdata.model.Cloud
+import com.morpheusdata.model.CloudPool
 import com.morpheusdata.model.ComputeServer
 import com.morpheusdata.model.ComputeServerType
 import com.morpheusdata.model.Icon
 import com.morpheusdata.model.NetworkProxy
+import com.morpheusdata.model.NetworkRouter
+import com.morpheusdata.model.NetworkRouterType
+import com.morpheusdata.model.NetworkServer
 import com.morpheusdata.model.NetworkSubnetType
 import com.morpheusdata.model.NetworkType
 import com.morpheusdata.model.OptionType
@@ -842,6 +845,74 @@ class AWSCloudProvider implements CloudProvider {
 	@Override
 	Boolean canDeleteCloudPools() {
 		return true
+	}
+
+	@Override
+	ServiceResponse<CloudPool> createCloudPool(Cloud cloud, CloudPool cloudPool) {
+		def rtn = [success:false]
+		try {
+			if(!cloud.regionCode && !cloudPool.regionCode) {
+				rtn.msg = "Region Must be specified in order to create a VPC"
+			}
+			else {
+				def regionCode = AmazonComputeUtility.getAmazonEndpointRegion(cloud.regionCode ?: cloudPool.regionCode)
+				def createOpts = [amazonClient: plugin.getAmazonClient(cloud, false, regionCode), name: cloudPool.name, cidr: cloudPool.getConfigProperty('cidrBlock'), tenancy: cloudPool.getConfigProperty('tenancy')]
+				def createResults = AmazonComputeUtility.createVpc(createOpts)
+				if(createResults.success) {
+					cloudPool.regionCode = regionCode
+					cloudPool.displayName = "${cloudPool.name} (${regionCode})"
+					cloudPool.type = 'vpc'
+					cloudPool.category = "aws.vpc.${cloud.id}"
+					cloudPool.code = "aws.vpc.${cloud.id}.${createResults.externalId}"
+					cloudPool.externalId = createResults.externalId
+					cloudPool.internalId = createResults.externalId
+					cloudPool = morpheusContext.services.cloud.pool.create(cloudPool)
+
+					// Also.. create the network router
+					morpheusContext.services.network.router.create(new NetworkRouter(
+						owner        : new Account(id: cloud.owner.id),
+						category     : "aws.router.${cloud.id}",
+						code         : "aws.router.${cloud.id}.${cloudPool.id}",
+						type         : new NetworkRouterType(code:'amazonVpcRouter'),
+						name         : cloudPool.name,
+						networkServer: new NetworkServer(id:cloud.networkServer.id),
+						cloud        : new Cloud(id:cloud.id),
+						refId        : cloudPool.id,
+						poolId		 : cloudPool.id,
+						regionCode   : cloudPool.regionCode,
+						refType      : 'ComputeZonePool'
+					))
+					rtn.data = cloudPool
+					rtn.success = true
+				} else {
+					rtn.msg = createResults.msg
+				}
+			}
+		} catch(e) {
+			log.error("create cloud pool error: ${e}", e)
+		}
+		ServiceResponse.create(rtn)
+	}
+
+	@Override
+	ServiceResponse<CloudPool> removeCloudPool(Cloud cloud, CloudPool cloudPool) {
+		def rtn = [success: false]
+		try {
+			def deleteOpts = [amazonClient: plugin.getAmazonClient(cloud,false, cloud.regionCode ?: cloudPool.regionCode), vpcId: cloudPool.externalId]
+			def results = AmazonComputeUtility.deleteVpc(deleteOpts)
+
+			if(results.success) {
+				def securityGroups = morpheusContext.async.securityGroup.location.list(new DataQuery().withFilter('zonePool.id', cloudPool.id)).toList().blockingGet()
+				morpheusContext.async.securityGroup.location.bulkRemove(securityGroups).blockingGet()
+				rtn.data = cloudPool
+				rtn.success = true
+			} else {
+				rtn.msg = results.msg
+			}
+		} catch(e){
+			log.error "Error in delete vpc: ${e}", e
+		}
+		ServiceResponse.create(rtn)
 	}
 
 	@Override
