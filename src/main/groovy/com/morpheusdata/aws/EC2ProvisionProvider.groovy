@@ -1027,7 +1027,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		if(blockDeviceDisks) {
 			def rootDisk = blockDeviceDisks?.first()
 			runConfig.osDiskName = rootDisk.deviceName
-			println "setting osDiskName: ${runConfig.osDiskName}"
 		}
 		//data volumes
 		if(runConfig.dataDisks)
@@ -1058,11 +1057,11 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 					def privateIp = serverDetails.server.getPrivateIpAddress()
 					def publicIp = serverDetails.server.getPublicIpAddress()
 					def serverConfigOpts = [:]
-					if(opts.containerConfig?.publicIpType?.toString() == 'elasticIp' || server.getConfigMap()?.customOptions?.publicIpType?.toString() == 'elasticIp') {
+					if(opts.config?.publicIpType?.toString() == 'elasticIp' || server.getConfigMap()?.customOptions?.publicIpType?.toString() == 'elasticIp') {
 						def lock
 						try {
-							lock = morpheusContext.acquireLock("container.amazon.allocateIp.${runConfig.zone.id}".toString(), [timeout: 660l * 1000l]).blockingGet()
-							def freeIp = AmazonComputeUtility.getFreeEIP([zone: opts.zone, amazonClient:opts.amazonClient])
+							lock = morpheusContext.acquireLock("container.amazon.allocateIp.${server.cloud.id}".toString(), [timeout: 660l * 1000l]).blockingGet()
+							def freeIp = AmazonComputeUtility.getFreeEIP([zone: server.cloud, amazonClient:opts.amazonClient])
 							def allocationId
 							def eipPublicIp
 							if(freeIp.success) {
@@ -1070,14 +1069,14 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 								eipPublicIp = freeIp.publicIp
 							} else {
 
-								def createEIPResults = AmazonComputeUtility.createEIP([zone: opts.zone, amazonClient:opts.amazonClient])
+								def createEIPResults = AmazonComputeUtility.createEIP([zone: server.cloud, amazonClient:opts.amazonClient])
 								if(createEIPResults.success) {
 									allocationId = createEIPResults.result.allocationId
 									eipPublicIp = createEIPResults.result?.publicIp
 								}
 							}
 							if(allocationId) {
-								def associateResult = AmazonComputeUtility.associateEIP([allocationId: allocationId, zone: opts.zone, amazonClient:opts.amazonClient, externalId: createResults.externalId])
+								def associateResult = AmazonComputeUtility.associateEIP([allocationId: allocationId, zone: server.cloud, amazonClient:opts.amazonClient, externalId: createResults.externalId])
 								if(eipPublicIp) {
 									publicIp = eipPublicIp
 									serverConfigOpts.eipPublicIp = eipPublicIp
@@ -1090,7 +1089,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 							log.error("execContainer error: ${e}", e)
 						} finally {
 							if(lock) {
-								morpheusContext.releaseLock("container.amazon.allocateIp.${runConfig.zone.id}".toString(),[lock:lock]).blockingGet()
+								morpheusContext.releaseLock("container.amazon.allocateIp.${server.cloud.id}".toString(),[lock:lock]).blockingGet()
 							}
 						}
 
@@ -1413,7 +1412,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 					if (!newVolumeProps.maxStorage) {
 						newVolumeProps.maxStorage = newVolumeProps.size ? (newVolumeProps.size.toDouble() * ComputeUtility.ONE_GIGABYTE).toLong() : 0
 					}
-					def volumeType = allStorageVolumeTypes[newVolumeProps.storageType?.toInteger()]
+					def volumeType = allStorageVolumeTypes[newVolumeProps.storageType?.toLong()]
 					def diskType = volumeType ? volumeType?.name : 'gp2'
 					def addDiskResults = AmazonComputeUtility.addVolume([name: newVolumeProps.name, size: newVolumeProps.size, iops: newVolumeProps.maxIOPS ? newVolumeProps.maxIOPS.toInteger() : null,
 																		 amazonClient: amazonOpts.amazonClient, availabilityId: availabilityZone, encryptEbs: encryptEbs, diskType: diskType, kmsKeyId: server.getConfigProperty('kmsKeyId')])

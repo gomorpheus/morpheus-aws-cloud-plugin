@@ -92,6 +92,7 @@ class VPCSync {
 			def cidr = masterItem.getCidrBlock()
 			def tenancy = masterItem.getInstanceTenancy()
 			def description = "${name} - ${masterItem.getVpcId()} - ${masterItem.getCidrBlock()}"
+
 			if(name != existing.name) {
 				existing.name = name
 				save = true

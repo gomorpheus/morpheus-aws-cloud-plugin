@@ -100,7 +100,7 @@ class AWSPlugin extends Plugin {
 	}
 
 	def getAmazonClient(Cloud cloud, Boolean fresh = false, String region = null) {
-		return AmazonComputeUtility.getAmazonClient(checkCloudCredentials(cloud), fresh, region)
+		return AmazonComputeUtility.getAmazonClient(checkCloudCredentials(cloud), fresh, AmazonComputeUtility.getAmazonEndpointRegion(region))
 	}
 
 	def getAmazonElbClient(Cloud cloud, Boolean fresh = false, String region = null) {
