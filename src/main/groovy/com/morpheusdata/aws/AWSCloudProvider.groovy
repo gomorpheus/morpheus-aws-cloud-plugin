@@ -861,6 +861,7 @@ class AWSCloudProvider implements CloudProvider {
 				if(createResults.success) {
 					cloudPool.regionCode = regionCode
 					cloudPool.displayName = "${cloudPool.name} (${regionCode})"
+					cloudPool.description = "${cloudPool.name} - ${createResults.externalId} - ${createResults.vpc.cidrBlock}"
 					cloudPool.type = 'vpc'
 					cloudPool.category = "aws.vpc.${cloud.id}"
 					cloudPool.code = "aws.vpc.${cloud.id}.${createResults.externalId}"
