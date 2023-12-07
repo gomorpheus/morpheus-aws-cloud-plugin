@@ -4,17 +4,16 @@ import com.amazonaws.services.ec2.AmazonEC2
 import com.amazonaws.services.ec2.AmazonEC2Client
 import com.morpheusdata.PrepareHostResponse
 import com.morpheusdata.aws.backup.AWSSnapshotBackupProvider
-import com.morpheusdata.aws.sync.VirtualMachineSync
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.AbstractProvisionProvider
 import com.morpheusdata.core.MorpheusContext
-import com.morpheusdata.core.data.DataFilter
 import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.providers.HostProvisionProvider
 import com.morpheusdata.core.providers.ProvisionProvider
 import com.morpheusdata.core.providers.VmProvisionProvider
 import com.morpheusdata.core.providers.WorkloadProvisionProvider
 import com.morpheusdata.core.util.ComputeUtility
+import com.morpheusdata.core.util.MorpheusUtils
 import com.morpheusdata.model.Account
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.CloudPool
@@ -25,7 +24,6 @@ import com.morpheusdata.model.ComputeServerInterface
 import com.morpheusdata.model.ComputeServerInterfaceType
 import com.morpheusdata.model.ComputeTypeLayout
 import com.morpheusdata.model.ComputeTypeSet
-import com.morpheusdata.model.ContainerType
 import com.morpheusdata.model.NetAddress
 import com.morpheusdata.model.WorkloadType
 import com.morpheusdata.model.HostType
@@ -578,7 +576,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		resp.data = new PrepareWorkloadResponse(workload: workload, options: [sendIp: false])
 		ComputeServer server = workload.server
 		if (server.resourcePool.regionCode) {
-			CloudRegion region = morpheus.cloud.region.findByCloudAndRegionCode(server.cloud.id,server.resourcePool.regionCode).blockingGet().get()
 			server.volumes?.each { vol ->
 				vol.regionCode = server.resourcePool.regionCode
 			}
@@ -586,7 +583,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 
 		if(server.platform == "linux") {
 			resp.data.disableCloudInit = false
-			resp.data.disableAutoUpdates = true
+			resp.data.disableAutoUpdates = false
 		}
 
 		//build config
@@ -602,6 +599,10 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				workload.server.sourceImage = virtualImage
 				VirtualImageLocation location = ensureVirtualImageLocation(amazonClient,server.resourcePool.regionCode,virtualImage,server.cloud)
 				resp.data.setVirtualImageLocation(location)
+
+				if(virtualImage.osType?.name?.contains('ubuntu') && MorpheusUtils.compareVersions(virtualImage.osType?.osVersion, '16.04') >= 0) {
+					resp.data.disableAutoUpdates = true
+				}
 			}
 			resp.success = true
 		} else {
@@ -891,7 +892,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		Cloud cloud = server.cloud
 		StorageVolume rootVolume = server.volumes?.find{it.rootVolume == true}
 
-
 		def maxMemory = server.maxMemory?.div(ComputeUtility.ONE_MEGABYTE)
 		def maxStorage = rootVolume.getMaxStorage()
 
@@ -1016,6 +1016,11 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 
 		//save server
 		runConfig.server = saveAndGet(server)
+
+		//set install agent
+		runConfig.installAgent = runConfig.noAgent && server.cloud.agentMode != 'cloudInit'
+		provisionResponse.installAgent = runConfig.installAgent
+
 		def imageResults = AmazonComputeUtility.loadImage([amazonClient:opts.amazonClient, imageId:runConfig.imageRef])
 
 		//user key
@@ -1061,7 +1066,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 						def lock
 						try {
 							lock = morpheusContext.acquireLock("container.amazon.allocateIp.${server.cloud.id}".toString(), [timeout: 660l * 1000l]).blockingGet()
-							def freeIp = AmazonComputeUtility.getFreeEIP([zone: server.cloud, amazonClient:opts.amazonClient])
+							def freeIp = AmazonComputeUtility.getFreeEIP([cloud: server.cloud, amazonClient:opts.amazonClient])
 							def allocationId
 							def eipPublicIp
 							if(freeIp.success) {
