@@ -237,7 +237,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 		try {
 			if(network.networkServer) {
 				Cloud cloud = network.cloud
-				CloudPool resourcePool = network.zonePoolId ? morpheus.cloud.pool.listById([network.zonePoolId]).toList().blockingGet()?.getAt(0) : null
+				CloudPool resourcePool = network.cloudPool?.id ? morpheus.cloud.pool.listById([network.cloudPool?.id]).toList().blockingGet()?.getAt(0) : null
 				AmazonEC2Client amazonClient = plugin.getAmazonClient(cloud, false, resourcePool?.regionCode)
 				def networkConfig = [:]
 				networkConfig.name = network.name
@@ -288,7 +288,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 		def rtn = ServiceResponse.prepare()
 		//remove the network
 		if(network.externalId) {
-			CloudPool resourcePool = network.zonePoolId ? morpheus.cloud.pool.listById([network.zonePoolId]).toList().blockingGet()?.getAt(0) : null
+			CloudPool resourcePool = network.cloudPool?.id ? morpheus.cloud.pool.listById([network.cloudPool?.id]).toList().blockingGet()?.getAt(0) : null
 			AmazonEC2Client amazonClient = plugin.getAmazonClient(network.cloud, false, resourcePool?.regionCode)
 			def deleteResults = AmazonComputeUtility.deleteSubnet([amazonClient: amazonClient, network: network])
 			log.debug("deleteResults: {}", deleteResults)
