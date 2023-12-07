@@ -116,10 +116,10 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 	def awsPluginAvailabilityZones(args) {
 		args = args instanceof Object[] ? args.getAt(0) : args
 		def rtn = []
-		def zoneId = MorpheusUtils.getZoneId(args)
 		def zonePoolId = MorpheusUtils.getResourcePoolId(args.network ?: [:])
-		def tmpZone = zoneId ? morpheus.services.cloud.get(zoneId) : null
 		def tmpZonePool = zonePoolId ? morpheus.services.cloud.pool.listById([zonePoolId])?.getAt(0) : null
+		def zoneId = tmpZonePool?.cloud?.id ?: MorpheusUtils.getZoneId(args)
+		def tmpZone = zoneId ? morpheus.services.cloud.get(zoneId) : null
 		if(tmpZone) {
 			def results = []
 			if(tmpZonePool && tmpZonePool.regionCode) {
