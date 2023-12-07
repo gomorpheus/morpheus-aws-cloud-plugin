@@ -114,7 +114,7 @@ class SecurityGroupSync {
 	}
 
 	private removeMissingSecurityGroups(Collection<SecurityGroupLocationIdentityProjection> removeList) {
-		morpheusContext.async.securityGroup.location.removeSecurityGroupLocations(removeList as List<SecurityGroupLocationIdentityProjection>)
+		morpheusContext.async.securityGroup.location.removeSecurityGroupLocations(removeList as List<SecurityGroupLocationIdentityProjection>).blockingGet()
 	}
 
 	private syncRules(Collection<AWSSecurityGroup> cloudList, Long zonePoolId) {
