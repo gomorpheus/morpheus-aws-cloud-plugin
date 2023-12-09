@@ -1893,7 +1893,7 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 				log.debug "Saving app config"
 				app.setConfigProperty('config', appConfig.encodeAsJSON().toString())
 				if (!forValidation)
-					app.save(flush: true)
+					app = morpheusContext.services.app.save(app)
 			}
 		} catch(e) {
 			log.error "Error in configureDefaultTemplateParameters: ${e}", e

@@ -108,7 +108,7 @@ class SecurityGroupSync {
 			}
 		}
 		if(saveList) {
-			morpheusContext.async.securityGroup.location.save(saveList)
+			morpheusContext.async.securityGroup.location.save(saveList).blockingGet()
 		}
 		syncRules(updateList.collect {it.masterItem}, zonePoolId)
 	}

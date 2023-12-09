@@ -452,6 +452,14 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	}
 
 	/**
+	 * Indicates if Network selection should be scoped to the ComputeZonePool selected during provisioning
+	 * @return Boolean
+	 */
+	Boolean networksScopedToPools() {
+		true
+	}
+
+	/**
 	 * Indicates if a ComputeZonePool is required during provisioning
 	 * @return Boolean
 	 */
