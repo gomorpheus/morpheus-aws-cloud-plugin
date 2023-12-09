@@ -116,7 +116,7 @@ class ScaleGroupSync {
 
 		if(saveList) {
 			log.debug "About to update ${saveList.size()} instance scales"
-			morpheusContext.async.instance.scale.save(saveList)
+			morpheusContext.async.instance.scale.save(saveList).blockingGet()
 		}
 	}
 

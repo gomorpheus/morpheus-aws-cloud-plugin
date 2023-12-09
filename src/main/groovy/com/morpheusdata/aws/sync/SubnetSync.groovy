@@ -6,6 +6,7 @@ import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
+																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																																								1import com.morpheusdata.model.CloudPool
 import com.morpheusdata.model.Network
 import com.morpheusdata.model.projection.NetworkIdentityProjection
 import groovy.util.logging.Slf4j
@@ -63,8 +64,8 @@ class SubnetSync {
 			def nameTag = cloudItem.getTags()?.find{it.key == 'Name'}
 			def vpcRecord = vpcRecords[cloudItem.getVpcId()]
 			def networkConfig = [owner: cloud.owner, category:"amazon.ec2.subnet.${cloud.id}", name:nameTag?.getValue() ? "${nameTag.getValue()} (${cloudItem.getSubnetId()})" : "${cloudItem.getCidrBlock()} (${cloudItem.getSubnetId()})", displayName: nameTag?.getValue() ? "${nameTag.getValue()} (${cloudItem.getSubnetId()})" : "${cloudItem.getCidrBlock()} (${cloudItem.getSubnetId()})",
-								 code:"amazon.ec2.subnet.${cloud.id}.${cloudItem.getSubnetId()}", uniqueId:cloudItem.getSubnetId(), externalId:cloudItem.getSubnetId(), externalType: 'subnet', type: networkType,
-								 refType:'ComputeZone', refId:cloud.id, zonePoolId: vpcRecord.id, description:nameTag?.getValue() ?: cloudItem.getCidrBlock(), active:true, cidr:cloudItem.getCidrBlock(), dhcpServer:true,
+								 code          :"amazon.ec2.subnet.${cloud.id}.${cloudItem.getSubnetId()}", uniqueId:cloudItem.getSubnetId(), externalId:cloudItem.getSubnetId(), externalType: 'subnet', type: networkType,
+								 refType       :'ComputeZone', refId:cloud.id, cloudPool: new CloudPool(id: vpcRecord.id), description:nameTag?.getValue() ?: cloudItem.getCidrBlock(), active:true, cidr:cloudItem.getCidrBlock(), dhcpServer:true,
 								 assignPublicIp:cloudItem.isMapPublicIpOnLaunch(), networkServer: cloud.networkServer, availabilityZone:cloudItem.getAvailabilityZone(), cloud:cloud, regionCode: region]
 			def add = new Network(networkConfig)
 			adds << add
@@ -136,6 +137,6 @@ class SubnetSync {
 
 	protected removeMissingSubnets(List<NetworkIdentityProjection> removeList) {
 		log.debug "removeMissingSubnets: ${removeList?.size()}"
-		morpheusContext.async.network.remove(removeList)
+		morpheusContext.async.network.remove(removeList).blockingGet()
 	}
 }

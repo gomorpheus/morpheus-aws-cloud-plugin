@@ -110,7 +110,7 @@ class RouteTableSync {
 
 		if(saveList) {
 			log.debug "About to update ${saveList.size()} instance scales"
-			morpheusContext.async.instance.scale.save(saveList.collect { it.existingItem })
+			morpheusContext.async.instance.scale.save(saveList.collect { it.existingItem }).blockingGet()
 		}
 		syncRouteTableRoutes(updateList.collect { it.masterItem }, zonePool, router)
 	}
