@@ -14,7 +14,7 @@ import com.morpheusdata.core.data.DataFilter
 import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.providers.CloudNativeProvisionProvider
 import com.morpheusdata.core.providers.ResourceProvisionProvider
-import com.morpheusdata.core.util.ComputeUtility
+import com.morpheusdata.core.util.SyncList
 import com.morpheusdata.model.AccountResource
 import com.morpheusdata.model.AccountResourceType
 import com.morpheusdata.model.App
@@ -26,7 +26,6 @@ import com.morpheusdata.model.ComputeServer
 import com.morpheusdata.model.ComputeServerAccess
 import com.morpheusdata.model.ComputeServerInterface
 import com.morpheusdata.model.ComputeServerInterfaceType
-import com.morpheusdata.model.ComputeServerType
 import com.morpheusdata.model.ComputeTypeLayout
 import com.morpheusdata.model.HostType
 import com.morpheusdata.model.InstanceScale
@@ -35,7 +34,6 @@ import com.morpheusdata.model.Network
 import com.morpheusdata.model.OsType
 import com.morpheusdata.model.Instance
 import com.morpheusdata.model.OptionType
-import com.morpheusdata.model.Process
 import com.morpheusdata.model.ProcessEvent
 import com.morpheusdata.model.ResourceSpec
 import com.morpheusdata.model.ResourceSpecTemplate
@@ -739,28 +737,28 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 					//			}.start()
 					List<StackResource> masterItems = updateOptions.resources
 					def existingItems = instance.resources
-					def matchFunction = { AccountResource morpheusItem, StackResource cloudItem ->
+					SyncList.MatchFunction matchFunction = { AccountResource morpheusItem, StackResource cloudItem ->
 						morpheusItem.externalId == cloudItem.getPhysicalResourceId()
 					}
-					def syncLists = ComputeUtility.buildSyncLists(existingItems, masterItems, matchFunction)
+					def syncLists = new SyncList(matchFunction).buildSyncLists(existingItems, masterItems)
 
 					log.debug "sync stack resources have ${masterItems?.size()} from the cloud, ${existingItems?.size()} existing, adding: ${syncLists?.addList?.size()}, updating: ${syncLists.updateList?.size()}, removing: ${syncLists?.removeList?.size()}"
 
 					for (StackResource stackResource in syncLists.addList) {
 						log.debug "Adding ${stackResource}"
 
-						def typeMatch = CloudFormationResourceMappingUtility.findAwsResourceType(stackResource.getResourceType())
+						def typeMatch = CloudFormationResourceMappingUtility.findAwsResourceType(stackResource.getResourceType(), morpheusContext)
 						if (typeMatch && typeMatch instanceof AccountResourceType) {
 							def addConfig = [type        : typeMatch.type, apiType: typeMatch.apiType, enabled: typeMatch.enabled,
 											 morpheusType: typeMatch.morpheusType, name: stackResource.getLogicalResourceId(),
 											 input       : [type: typeMatch.type, key: stackResource.getLogicalResourceId()],
 											 mapping     : [
 													 morpheusType: 'accountResource',
-													 type        : typeMatch, apiType: typeMatch.apiType, enabled: typeMatch.enabled, name: stackResource.getLogicalResourceId(),
+													 type        : typeMatch, enabled: typeMatch.enabled, name: stackResource.getLogicalResourceId(),
 													 iacProvider : 'cloudFormation', iacType: typeMatch.apiType, resourceSpec: instanceSpec, owner: instance.account,
-													 resourceType: typeMatch.type, zone: cloud,
+													 resourceType: typeMatch.type, cloudId: cloud.id,
 													 resourceIcon: typeMatch.resourceIcon,
-													 zoneName    : cloud.name,
+													 cloudName   : cloud.name,
 													 externalId  : stackResource.getPhysicalResourceId(), displayName: stackResource.getLogicalResourceId(),
 													 internalId  : stackResource.getLogicalResourceId(),
 													 instanceName: instance.name
@@ -768,10 +766,10 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 											 iacProvider : 'cloudFormation', iacType: typeMatch.apiType, resourceSpec: instanceSpec,
 											 resourceType: typeMatch
 							]
-							def resourceResults = CloudFormationResourceMappingUtility.createResource(instance, addConfig, opts)
+							def resourceResults = CloudFormationResourceMappingUtility.createResource(instance, addConfig, opts, morpheusContext)
 							def newAccountResource = resourceResults.data.output
 							instance.resources += newAccountResource
-							CloudFormationResourceMappingUtility.updateResource(newAccountResource, stackResource)
+							CloudFormationResourceMappingUtility.updateResource(newAccountResource, stackResource, morpheusContext)
 						} else {
 							log.debug "Not adding: ${stackResource} as type is ${typeMatch}"
 						}
@@ -781,7 +779,7 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 						def masterItem = it.masterItem
 						AccountResource existingItem = it.existingItem
 						log.debug "Updating: ${existingItem} with ${masterItem}"
-						CloudFormationResourceMappingUtility.updateResource(existingItem, masterItem)
+						CloudFormationResourceMappingUtility.updateResource(existingItem, masterItem, morpheusContext)
 					}
 
 					for (AccountResource morpheusItem in syncLists.removeList) {
@@ -1128,7 +1126,7 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 							if(resolveResults.success == true) {
 								//update the resource
 								resource.state = resolveResults.data.resourceState
-								def updateResults = CloudFormationResourceMappingUtility.updateResource(app, resource, opts)
+								CloudFormationResourceMappingUtility.updateResource(app, resource, opts)
 							}
 						}
 						response.success = deploymentResults.success

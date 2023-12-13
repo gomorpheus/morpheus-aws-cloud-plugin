@@ -255,7 +255,7 @@ class CloudFormationResourceMappingUtility  {
 		return ServiceResponse.create(rtn)
 	}
 
-	ServiceResponse updateResource(AccountResource resource, cloudResource) {
+	static ServiceResponse updateResource(AccountResource resource, cloudResource, MorpheusContext morpheusContext) {
 		def rtn = [success:false, data:[:]]
 		try {
 			//get the status
@@ -272,7 +272,12 @@ class CloudFormationResourceMappingUtility  {
 			}
 			if(doSave == true) {
 				resource.statusDate = new Date()
-				resource.save(flush:true)
+
+				if(resource.id) {
+					rtn.data.resource = morpheusContext.services.cloud.resource.save(resource)
+				} else {
+					rtn.data.resource = morpheusContext.services.cloud.resource.create(resource)
+				}
 				rtn.success = true
 			}
 		} catch(e) {
