@@ -327,9 +327,7 @@ class AmazonComputeUtility {
 			def nameTag = new com.amazonaws.services.ec2.model.Tag('Name', opts.name ?: "morpheus node")
 			def resourceList = new LinkedList<String>()
 			resourceList.add(opts.server?.externalId ?: opts.serverId)
-			if(opts.resources) {
-				resourceList += opts.resources
-			}
+			
 			def tagList = new LinkedList<com.amazonaws.services.ec2.model.Tag>()
 			tagList.add(nameTag)
 			opts.tagList?.each {
@@ -338,6 +336,22 @@ class AmazonComputeUtility {
 			}
 			def tagRequest = new CreateTagsRequest(resourceList, tagList)
 			def tagResults = amazonClient.createTags(tagRequest)
+
+			//now do volumes
+			if(opts.resources) {
+				resourceList = new LinkedList<String>()
+				
+				if(opts.resources) {
+					resourceList += opts.resources
+				}
+				tagList = new LinkedList<com.amazonaws.services.ec2.model.Tag>()
+				opts.tagList?.findAll{it.name.toLowerCase() != 'name'}?.each {
+					def newTag = new com.amazonaws.services.ec2.model.Tag(it.name, it.value)
+					tagList.add(newTag)
+				}
+				tagRequest = new CreateTagsRequest(resourceList, tagList)
+				tagResults = amazonClient.createTags(tagRequest)
+			}
 			rtn.success = true
 		} catch(com.amazonaws.services.ec2.model.AmazonEC2Exception awsError) {
 			if(awsError.getStatusCode() == 400) {
@@ -350,7 +364,6 @@ class AmazonComputeUtility {
 			log.error("applyEc2Tags error: ${e}", e)
 			rtn.msg = e.message
 		}
-		return rtn
 	}
 
 	static removeEc2Tags(opts) {
