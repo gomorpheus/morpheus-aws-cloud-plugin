@@ -592,112 +592,102 @@ class AWSCloudProvider implements CloudProvider {
 		ServiceResponse rtn = new ServiceResponse(success: false)
 
 		try {
-			def networkProxy
-			if(cloudInfo.apiProxy?.proxyPort) {
-				networkProxy = new NetworkProxy(proxyHost: cloudInfo.apiProxy.proxyHost, proxyPort: cloudInfo.apiProxy.proxyPort)
-			}
+			def testResults = AmazonComputeUtility.testConnection(cloudInfo)
+			if(testResults.success) {
+				def now = new Date().time
+				new CloudSync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: Cloud Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				new RegionSync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: Region Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				new KeyPairSync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: Keypair Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				new VPCSync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: VPC Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				new VPCRouterSync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: VPC Router Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				new RouteTableSync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: Route Table Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				new SubnetSync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: Subnet Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				new ImageSync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: Image Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				new SecurityGroupSync(this.plugin, cloudInfo).execute()
+				log.info("${cloudInfo.name}: Security Group Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				new InstanceProfileSync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: Instance Profile Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				new IAMRoleSync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: IAMRole Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				new VpnGatewaySync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: VPN Gateway Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				new InternetGatewaySync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: Internet Gateway Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				//lb services
+				new AlbSync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: ALB Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				new ElbSync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: ELB Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				//resources
+				new EgressOnlyInternetGatewaySync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: EgressOnlyInternetGateway Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				new NATGatewaySync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: NAT Gateway Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				new TransitGatewaySync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: Transit Gateway Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				new TransitGatewayVpcAttachmentSync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: Transite Gateway Attachments Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				new NetworkInterfaceSync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: NetworkInterface Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				new VpcPeeringConnectionSync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: VPC Peering Connections Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				//rds services
+				new DbSubnetGroupSync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: DBSubnet Groups Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				new AlarmSync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: Alarm Synced in ${new Date().time - now}ms")
+				now = new Date().time
 
-			def hostOnline = ConnectionUtils.testHostConnectivity(AmazonComputeUtility.getAmazonEndpoint(cloudInfo), 443, true, true, networkProxy)
-			if(hostOnline) {
-				def testResults = AmazonComputeUtility.testConnection(cloudInfo)
-				if(testResults.success) {
-					def now = new Date().time
-					new CloudSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: Cloud Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					new RegionSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: Region Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					new KeyPairSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: Keypair Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					new VPCSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: VPC Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					new VPCRouterSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: VPC Router Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					new RouteTableSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: Route Table Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					new SubnetSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: Subnet Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					new ImageSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: Image Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					new SecurityGroupSync(this.plugin, cloudInfo).execute()
-					log.info("${cloudInfo.name}: Security Group Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					new InstanceProfileSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: Instance Profile Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					new IAMRoleSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: IAMRole Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					new VpnGatewaySync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: VPN Gateway Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					new InternetGatewaySync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: Internet Gateway Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					//lb services
-					new AlbSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: ALB Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					new ElbSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: ELB Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					//resources
-					new EgressOnlyInternetGatewaySync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: EgressOnlyInternetGateway Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					new NATGatewaySync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: NAT Gateway Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					new TransitGatewaySync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: Transit Gateway Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					new TransitGatewayVpcAttachmentSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: Transite Gateway Attachments Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					new NetworkInterfaceSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: NetworkInterface Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					new VpcPeeringConnectionSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: VPC Peering Connections Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					//rds services
-					new DbSubnetGroupSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: DBSubnet Groups Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					new AlarmSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: Alarm Synced in ${new Date().time - now}ms")
-					now = new Date().time
-
-					//vms
-					new VirtualMachineSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: VirtualMachine Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					//volumes
-					new VolumeSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: Volume Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					new SnapshotSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: Snapshot Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					new ScaleGroupSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: ScaleGroup Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					new ScaleGroupVirtualMachinesSync(this.plugin,cloudInfo).execute()
-					log.info("${cloudInfo.name}: ScaleGroup Virtual Machines Synced in ${new Date().time - now}ms")
-					now = new Date().time
-					rtn = ServiceResponse.success()
-				} else {
-					rtn = ServiceResponse.error(testResults.invalidLogin == true ? 'invalid credentials' : 'error connecting')
-				}
+				//vms
+				new VirtualMachineSync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: VirtualMachine Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				//volumes
+				new VolumeSync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: Volume Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				new SnapshotSync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: Snapshot Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				new ScaleGroupSync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: ScaleGroup Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				new ScaleGroupVirtualMachinesSync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: ScaleGroup Virtual Machines Synced in ${new Date().time - now}ms")
+				now = new Date().time
+				rtn = ServiceResponse.success()
 			} else {
-				rtn = ServiceResponse.error('AWS is not reachable', null, [status: Cloud.Status.offline])
+				rtn = ServiceResponse.error(testResults.invalidLogin == true ? 'invalid credentials' : 'error connecting')
 			}
 		} catch (e) {
 			log.error("refresh cloud error: ${e}", e)
