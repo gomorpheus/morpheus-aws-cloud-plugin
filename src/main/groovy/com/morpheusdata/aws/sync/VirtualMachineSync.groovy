@@ -117,7 +117,7 @@ class VirtualMachineSync {
 						provision: false,
 						singleTenant: true,
 						cloud: cloud,
-						lvmEnabled: false,
+						lvmEnabled: cloudItem.blockDeviceMappings?.size() > 1,
 						discovered: true,
 						managed: false,
 						dateCreated: cloudItem.launchTime,
@@ -222,6 +222,10 @@ class VirtualMachineSync {
 							currentServer.sshHost = cloudItem.privateIpAddress
 						}
 						currentServer.internalIp = cloudItem.privateIpAddress
+						save = true
+					}
+					if (currentServer.lvmEnabled != (cloudItem.blockDeviceMappings?.size() > 1)) {
+						currentServer.lvmEnabled = cloudItem.blockDeviceMappings.size() > 1
 						save = true
 					}
 					def tagChanges = syncTags(currentServer, cloudItem.getTags()?.collect{[key:it.getKey(), value:it.getValue()]} ?: [], [maxNameLength: 128, maxValueLength: 256])

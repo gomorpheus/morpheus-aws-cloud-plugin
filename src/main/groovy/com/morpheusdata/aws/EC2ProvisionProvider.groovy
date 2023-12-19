@@ -1172,7 +1172,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				server.statusDate = new Date()
 				server.serverType = 'ami'
 				server.osDevice = '/dev/xvda'
-				server.lvmEnabled = false
+				server.lvmEnabled = server.volumes?.size() > 1
 				server.managed = true
 				if(runResults.newPassword)
 					server.sshPassword = runResults.newPassword
