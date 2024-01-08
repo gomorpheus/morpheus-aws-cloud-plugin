@@ -1027,8 +1027,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 
 		//set install agent
 		runConfig.installAgent = runConfig.noAgent && server.cloud.agentMode != 'cloudInit'
-		provisionResponse.installAgent = runConfig.installAgent
-
 		def imageResults = AmazonComputeUtility.loadImage([amazonClient:opts.amazonClient, imageId:runConfig.imageRef])
 
 		//user key
