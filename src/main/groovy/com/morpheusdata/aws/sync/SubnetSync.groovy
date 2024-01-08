@@ -32,7 +32,7 @@ class SubnetSync {
 				def amazonClient = plugin.getAmazonClient(cloud,false, regionCode)
 				def subnetResults = AmazonComputeUtility.listSubnets([amazonClient: amazonClient, zone: cloud])
 				if(subnetResults.success) {
-					Observable<NetworkIdentityProjection> domainRecords = morpheusContext.async.network.listIdentityProjections(cloud)
+					Observable<NetworkIdentityProjection> domainRecords = morpheusContext.async.network.listIdentityProjections(cloud.id, regionCode)
 					SyncTask<NetworkIdentityProjection, Subnet, Network> syncTask = new SyncTask<>(domainRecords, subnetResults.subnetList as Collection<Subnet>)
 					return syncTask.addMatchFunction { NetworkIdentityProjection domainObject, Subnet data ->
 						domainObject.externalId == data.getSubnetId()
