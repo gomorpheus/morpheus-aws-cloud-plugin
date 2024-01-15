@@ -2,6 +2,7 @@ package com.morpheusdata.aws
 
 import com.morpheusdata.aws.sync.AlarmSync
 import com.morpheusdata.aws.sync.AlbSync
+import com.morpheusdata.aws.sync.AvailabilityZoneSync
 import com.morpheusdata.aws.sync.CloudSync
 import com.morpheusdata.aws.sync.DbSubnetGroupSync
 import com.morpheusdata.aws.sync.EgressOnlyInternetGatewaySync
@@ -39,14 +40,12 @@ import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.Plugin
 import com.morpheusdata.core.providers.CloudCostingProvider
 import com.morpheusdata.core.providers.ProvisionProvider
-import com.morpheusdata.core.util.ConnectionUtils
 import com.morpheusdata.model.Account
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.CloudPool
 import com.morpheusdata.model.ComputeServer
 import com.morpheusdata.model.ComputeServerType
 import com.morpheusdata.model.Icon
-import com.morpheusdata.model.NetworkProxy
 import com.morpheusdata.model.NetworkRouter
 import com.morpheusdata.model.NetworkRouterType
 import com.morpheusdata.model.NetworkServer
@@ -604,6 +603,9 @@ class AWSCloudProvider implements CloudProvider {
 				new KeyPairSync(this.plugin,cloudInfo).execute()
 				log.info("${cloudInfo.name}: Keypair Synced in ${new Date().time - now}ms")
 				now = new Date().time
+				new AvailabilityZoneSync(this.plugin,cloudInfo).execute()
+				log.info("${cloudInfo.name}: Availability Zone Synced in ${new Date().time - now}ms")
+				now = new Date().time
 				new VPCSync(this.plugin,cloudInfo).execute()
 				log.info("${cloudInfo.name}: VPC Synced in ${new Date().time - now}ms")
 				now = new Date().time
@@ -893,8 +895,9 @@ class AWSCloudProvider implements CloudProvider {
 			def results = AmazonComputeUtility.deleteVpc(deleteOpts)
 
 			if(results.success) {
-				def securityGroups = morpheusContext.async.securityGroup.location.list(new DataQuery().withFilter('zonePool.id', cloudPool.id)).toList().blockingGet()
-				morpheusContext.async.securityGroup.location.bulkRemove(securityGroups).blockingGet()
+				def securityGroups = morpheusContext.services.securityGroup.location.listIdentityProjections(new DataQuery().withFilter('zonePool.id', cloudPool.id))
+				morpheusContext.services.securityGroup.location.bulkRemove(securityGroups)
+				morpheusContext.services.securityGroup.bulkRemove(securityGroups.collect { it.securityGroup })
 				rtn.data = cloudPool
 				rtn.success = true
 			} else {

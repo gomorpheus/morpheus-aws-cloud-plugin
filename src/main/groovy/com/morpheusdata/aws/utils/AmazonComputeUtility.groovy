@@ -4627,6 +4627,10 @@ class AmazonComputeUtility {
 		}
 	}
 
+	static String getAmazonEndpointRegion(Cloud cloud) {
+		getAmazonEndpointRegion(getAmazonEndpoint(cloud))
+	}
+
 	static String getAmazonEndpointRegion(String endpoint) {
 		String rtn = endpoint
 		if(endpoint) {
