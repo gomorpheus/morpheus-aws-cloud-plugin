@@ -12,8 +12,8 @@ import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.ReferenceData
 import com.morpheusdata.model.projection.ReferenceDataSyncProjection
 import groovy.util.logging.Slf4j
-import io.reactivex.Observable
-import io.reactivex.Single
+import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.core.Single
 
 @Slf4j
 class AvailabilityZoneSync {
