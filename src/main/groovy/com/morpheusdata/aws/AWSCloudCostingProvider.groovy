@@ -1216,13 +1216,13 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			if(now > periodStart && now < periodEnd) {
 				periodStart = now // this should fix range issues
 				//get identity info
-				def securityClient = AmazonComputeUtility.getAmazonSecurityClient(cloud)
+				def securityClient = AmazonComputeUtility.getAmazonCostingSecurityClient(cloud)
 				def identityResults = AmazonComputeUtility.getClientIdentity(securityClient, [:])
 				log.debug("identityResults: {}", identityResults.results)
 				def awsAccountId = identityResults.results?.getAccount()
 				def awsUserArn = identityResults.results?.getArn()
-				def awsRegion = AmazonProvisionService.getAmazonRegion(cloud)
-				def awsRegions = CloudRegion.where { cloud == cloud}.property('externalId').list()
+				def awsRegion = AmazonComputeUtility.getAmazonEndpointRegion(cloud)
+				def awsRegions = morpheusContext.async.cloud.region.list(new DataQuery().withFilter(new DataFilter<Long>("zone.id",cloud.id))).map {it.externalId}.toList().blockingGet()
 				def isGovAccount = awsUserArn.indexOf('-gov') > -1
 				log.debug("awsRegion: {} awsAccountId: {} awsUserArn: {} isGovAccount: {}", awsRegion, awsAccountId, awsUserArn, isGovAccount)
 				//get client
@@ -1283,7 +1283,6 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 				}
 			}
 
-
 			//good if we made it here
 			rtn.success = true
 			//done
@@ -1300,13 +1299,13 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			Date periodStart = InvoiceUtility.getPeriodStart(costDate)
 			Date periodEnd = InvoiceUtility.getPeriodEnd(costDate)
 			//get identity info
-			def securityClient = AmazonComputeUtility.getAmazonSecurityClient(zone)
+			def securityClient = AmazonComputeUtility.getAmazonCostingSecurityClient(cloud)
 			def identityResults = AmazonComputeUtility.getClientIdentity(securityClient, [:])
 			log.debug("identityResults: {}", identityResults.results)
 			def awsAccountId = identityResults.results?.getAccount()
 			def awsUserArn = identityResults.results?.getArn()
-			def awsRegion = AmazonProvisionService.getAmazonRegion(zone)
-			def awsRegions = CloudRegion.where { zone == zone}.property('externalId').list()
+			def awsRegion = AmazonComputeUtility.getAmazonEndpointRegion(zone)
+			def awsRegions = morpheusContext.async.cloud.region.list(new DataQuery().withFilter(new DataFilter<Long>("zone.id",cloud.id))).map {it.externalId}.toList().blockingGet()
 			def isGovAccount = awsUserArn?.indexOf('-gov') > -1
 			log.debug("awsRegion: {} awsAccountId: {} awsUserArn: {} isGovAccount: {}", awsRegion, awsAccountId, awsUserArn, isGovAccount)
 			//get client
@@ -1388,7 +1387,6 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 							categoryMatch.cost += costValue
 							rtn.cost += costValue
 							categoryMatch.count++
-							//println("key:${groupKey}, value:${costValue}")
 						}
 					}
 					//setup service data
@@ -1432,14 +1430,12 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 		def rtn = [success:false, items:[]]
 		try {
 			//get security user
-			def securityClient = amazonComputeService.getAmazonSecurityClient(cloud)
-			def identityResults = AmazonComputeUtility.getClientIdentity(securityClient)
+			def securityClient = AmazonComputeUtility.getAmazonCostingSecurityClient(cloud)
+			def identityResults = AmazonComputeUtility.getClientIdentity(securityClient, [:])
 			log.debug("identityResults: {}", identityResults.results)
 			def awsAccountId = identityResults.results?.getAccount()
 			def awsUserArn = identityResults.results?.getArn()
-			def awsRegion = AmazonProvisionService.getAmazonRegion(cloud)
-			def awsRegions = CloudRegion.where { cloud == cloud}.property('externalId').list()
-
+			def awsRegion = AmazonComputeUtility.getAmazonEndpointRegion(cloud)
 			def isGovAccount = awsUserArn.indexOf('-gov') > -1
 			log.debug("awsRegion: {} awsAccountId: {} awsUserArn: {} isGovAccount: {}", awsRegion, awsAccountId, awsUserArn, isGovAccount)
 			//get client
@@ -1515,14 +1511,13 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			rtn.periodStart = periodStart
 			rtn.periodEnd = periodEnd
 			//get security user
-			def securityClient = AmazonComputeUtility.getAmazonSecurityClient(cloud)
+			def securityClient = AmazonComputeUtility.getAmazonCostingSecurityClient(cloud)
 			def identityResults = AmazonComputeUtility.getClientIdentity(securityClient, [:])
 			log.debug("identityResults: {}", identityResults.results)
 			def awsAccountId = identityResults.results?.getAccount()
 			def awsUserArn = identityResults.results?.getArn()
-			def awsRegion = AmazonProvisionService.getAmazonRegion(cloud)
-			def awsRegions = CloudRegion.where { cloud == cloud}.property('externalId').list()
-
+			def awsRegion = AmazonComputeUtility.getAmazonEndpointRegion(cloud)
+			def awsRegions = morpheusContext.async.cloud.region.list(new DataQuery().withFilter(new DataFilter<Long>("zone.id",cloud.id))).map {it.externalId}.toList().blockingGet()
 			def isGovAccount = awsUserArn.indexOf('-gov') > -1
 			log.debug("awsRegion: {} awsAccountId: {} awsUserArn: {} isGovAccount: {}", awsRegion, awsAccountId, awsUserArn, isGovAccount)
 			//get client
@@ -1624,14 +1619,13 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			rtn.periodStart = periodStart
 			rtn.periodEnd = periodEnd
 			//get security user
-			def securityClient = AmazonComputeUtility.getAmazonSecurityClient(cloud).amazonClient
+			def securityClient = AmazonComputeUtility.getAmazonCostingSecurityClient(cloud)
 			def identityResults = AmazonComputeUtility.getClientIdentity(securityClient, [:])
 			log.debug("identityResults: {}", identityResults.results)
 			String awsAccountId = identityResults.results?.getAccount() as String
 			def awsUserArn = identityResults.results?.getArn()
 			String awsRegion = AmazonComputeUtility.getAmazonEndpointRegion(cloud.regionCode)
 			def awsRegions = morpheusContext.async.cloud.region.list(new DataQuery().withFilter(new DataFilter<Long>("zone.id",cloud.id))).map {it.externalId}.toList().blockingGet()
-
 			def isGovAccount = awsUserArn.indexOf('-gov') > -1
 			log.debug("awsRegion: {} awsAccountId: {} awsUserArn: {} isGovAccount: {}", awsRegion, awsAccountId, awsUserArn, isGovAccount)
 			//get client
@@ -1922,7 +1916,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			// lookback period S
 			def lookbackPeriodList = ['SEVEN_DAYS', 'THIRTY_DAYS', 'SIXTY_DAYS']
 			//get security user
-			def securityClient = AmazonComputeUtility.getAmazonSecurityClient(zone).amazonClient
+			def securityClient = AmazonComputeUtility.getAmazonCostingSecurityClient(zone)
 			def identityResults = AmazonComputeUtility.getClientIdentity(securityClient, [:])
 			log.debug("identityResults: {}", identityResults.results)
 			String awsAccountId = identityResults.results?.getAccount() as String
@@ -2060,6 +2054,58 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 		} catch(e) {
 			log.error("error processing aws service plan usage: ${e}", e)
 		}
+		return rtn
+	}
+
+	def findBillingService(String groupKey) {
+		def rtn = awsServicesList.find{ it.name == groupKey }
+		if(rtn == null) {
+			rtn = awsServicesList.find{ groupKey.startsWith(it.name) }
+			if(rtn == null) {
+				rtn = awsServicesList.find{ it.code == groupKey }
+				if(rtn == null) {
+					rtn = awsServicesList.find{ groupKey.startsWith(it.code) }
+					if(rtn == null) {
+						//need to find the start now
+						def regionDash = groupKey.indexOf('-')
+						if(regionDash > -1) {
+							def testKey = groupKey.substring(regionDash)
+							rtn = awsServicesList.find{ testKey.startsWith(it.name) }
+							if(rtn == null) {
+								testKey = groupKey.substring(regionDash + 1)
+								rtn = awsServicesList.find{ testKey.startsWith(it.name) }
+							}
+						}
+					}
+				}
+			}
+		}
+		if(rtn == null)
+			rtn = awsServicesList[0] //generic
+		return rtn
+	}
+
+	def findBillingCategory(String groupKey) {
+		def rtn = costCategories.find{ it.key == groupKey }
+		if(rtn == null) {
+			rtn = costCategories.find{ groupKey.endsWith(it.key) }
+			if(rtn == null) {
+				//need to find the start now
+				def regionDash = groupKey.indexOf('-')
+				if(regionDash > -1) {
+					def testKey = groupKey.substring(regionDash)
+					rtn = costCategories.find{ testKey.startsWith(it.key) }
+					if(rtn == null) {
+						testKey = groupKey.substring(regionDash + 1)
+						rtn = costCategories.find{ testKey.startsWith(it.key) }
+					}
+				} else {
+					rtn = costCategories.find{ groupKey.startsWith(it.key) }
+				}
+			}
+		}
+		if(rtn == null)
+			rtn = costCategories[0] //generic
 		return rtn
 	}
 
@@ -2285,8 +2331,6 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 //		}
 //		return rtn
 //	}
-
-
 
 	protected loadAwsBillingReportDefinition(Cloud cloud) {
 		def rtn = null
@@ -2536,7 +2580,6 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 		rtn
 	}
 
-
 	private List processBillingHeader(Map manifest, CsvRow header) {
 		List rtn = [] //ordered list of columns
 		def columnList = header?.getFields()
@@ -2780,6 +2823,195 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 	protected static AWSCostExplorer getAmazonCostClient(Cloud cloud) {
 		AmazonComputeUtility.getAmazonCostClient(cloud)
 	}
+
+	static awsServicesList = [
+		[code:'Other', name:'Other', priceType:'other'],
+		[code:'Amplify', name:'AWS Amplify', priceType:'compute'],
+		[code:'AppSync', name:'AWS AppSync', priceType:'compute'],
+		[code:'Backup', name:'AWS Backup', priceType:'storage'],
+		[code:'Budgets', name:'AWS Budgets', priceType:'other'],
+		[code:'CertificateManager', name:'AWS Certificate Manager', priceType:'compute'],
+		[code:'CloudMap', name:'AWS Cloud Map', priceType:'compute'],
+		[code:'CloudTrail', name:'AWS CloudTrail', priceType:'compute'],
+		[code:'CodeCommit', name:'AWS Code Commit', priceType:'compute'],
+		[code:'CodeDeploy', name:'AWS CodeDeploy', priceType:'compute'],
+		[code:'CodePipeline', name:'AWS CodePipeline', priceType:'compute'],
+		[code:'Config', name:'AWS Config', priceType:'other'],
+		[code:'CostExplorer', name:'AWS Cost Explorer', priceType:'other'],
+		[code:'DataSync', name:'AWS DataSync', priceType:'storage'],
+		[code:'DataTransfer', name:'AWS Data Transfer', priceType:'network'],
+		[code:'DatabaseMigrationSvc', name:'AWS Database Migration Service', priceType:'compute'],
+		[code:'DeveloperSupport', name:'Developer Support', priceType:'other'],
+		[code:'DeviceFarm', name:'AWS Device Farm', priceType:'compute'],
+		[code:'DirectConnect', name:'AWS Direct Connect', priceType:'network'],
+		[code:'DirectoryService', name:'AWS Directory Service', priceType:'other'],
+		[code:'ElementalMediaConvert', name:'AWS Elemental MediaConvert', priceType:'other'],
+		[code:'ElementalMediaLive', name:'AWS Elemental MediaLive', priceType:'other'],
+		[code:'ElementalMediaPackage', name:'AWS Elemental MediaPackage', priceType:'other'],
+		[code:'ElementalMediaStore', name:'AWS Elemental MediaStore', priceType:'other'],
+		[code:'ElementalMediaTailor', name:'AWS Elemental MediaTailor', priceType:'other'],
+		[code:'Events', name:'CloudWatch Events', priceType:'compute'],
+		[code:'FMS', name:'AWS Firewall Manager', priceType:'network'],
+		[code:'GlobalAccelerator', name:'AWS Global Accelerator', priceType:'other'],
+		[code:'Glue', name:'AWS Glue', priceType:'compute'],
+		[code:'Greengrass', name:'AWS Greengrass', priceType:'compute'],
+		[code:'IoT1Click', name:'AWS IoT 1 Click', priceType:'other'],
+		[code:'IoTAnalytics', name:'AWS IoT Analytics', priceType:'compute'],
+		[code:'IoTThingsGraph', name:'AWS IoT Things Graph', priceType:'compute'],
+		[code:'IoT', name:'AWS IoT', priceType:'compute'],
+		[code:'Lambda', name:'AWS Lambda', priceType:'compute'],
+		[code:'MediaConnect', name:'AWS Elemental MediaConnect', priceType:'other'],
+		[code:'QueueService', name:'Amazon Simple Queue Service', priceType:'compute'],
+		[code:'RoboMaker', name:'AWS RoboMaker', priceType:'compute'],
+		[code:'SecretsManager', name:'AWS Secrets Manager', priceType:'compute'],
+		[code:'ServiceCatalog', name:'AWS Service Catalog', priceType:'compute'],
+		[code:'Shield', name:'AWS Shield', priceType:'compute'],
+		[code:'StorageGatewayDeepArchive', name:'AWS Storage Gateway Deep Archive', priceType:'storage'],
+		[code:'StorageGateway', name:'AWS Storage Gateway', priceType:'storage'],
+		[code:'SupportBusiness', name:'AWS Business Support', priceType:'other'],
+		[code:'SupportEnterprise', name:'AWS Enterprise Support', priceType:'other'],
+		[code:'SystemsManager', name:'AWS Systems Manager', priceType:'compute'],
+		[code:'Transfer', name:'AWS Transfer for SFTP', priceType:'network'],
+		[code:'XRay', name:'AWS X-Ray', priceType:'compute'],
+		[code:'AlexaTopSites', name:'Alexa Top Sites', priceType:'other'],
+		[code:'AlexaWebInfoService', name:'Alexa Web Info Service', priceType:'other'],
+		[code:'ApiGateway', name:'Amazon API Gateway', priceType:'compute'],
+		[code:'AppStream', name:'Amazon AppStream', priceType:'compute'],
+		[code:'Athena', name:'Amazon Athena', priceType:'compute'],
+		[code:'ChimeBusinessCalling', name:'Amazon Chime Business Calling', priceType:'other'],
+		[code:'ChimeCallMe', name:'Amazon Chime Call Me', priceType:'other'],
+		[code:'ChimeDialin', name:'Amazon Chime Dialin', priceType:'other'],
+		[code:'ChimeVoiceConnector', name:'Amazon Chime Voice Connector', priceType:'other'],
+		[code:'Chime', name:'Amazon Chime', priceType:'other'],
+		[code:'CloudDirectory', name:'Amazon Cloud Directory', priceType:'compute'],
+		[code:'CloudFront', name:'Amazon CloudFront', priceType:'compute'],
+		[code:'CloudSearch', name:'Amazon CloudSearch', priceType:'compute'],
+		[code:'CloudWatch', name:'AmazonCloudWatch', priceType:'compute'],
+		[code:'CognitoSync', name:'Amazon CognitoSync', priceType:'compute'],
+		[code:'Cognito', name:'Amazon Cognito', priceType:'compute'],
+		[code:'Connect', name:'Amazon Connect', priceType:'compute'],
+		[code:'DAX', name:'DynamoDB Accelerator (DAX)', priceType:'compute'],
+		[code:'DocDB', name:'Amazon DocumentDB (with MongoDB compatibility)', priceType:'compute'],
+		[code:'DynamoDB', name:'Amazon DynamoDB', priceType:'compute'],
+		[code:'EC2', name:'Amazon Elastic Compute Cloud', priceType:'compute'],
+		[code:'ECR', name:'Amazon EC2 Container Registry (ECR)', priceType:'compute'],
+		[code:'ECS', name:'Amazon EC2 Container Service', priceType:'compute'],
+		[code:'EFS', name:'Amazon Elastic File System', priceType:'storage'],
+		[code:'EI', name:'Amazon Elastic Inference', priceType:'compute'],
+		[code:'EKS', name:'Amazon Elastic Container Service for Kubernetes'],
+		[code:'ES', name:'Amazon Elasticsearch Service', priceType:'compute'],
+		[code:'ETS', name:'ETS', priceType:'compute'],
+		[code:'ElastiCache', name:'Amazon ElastiCache', priceType:'compute'],
+		[code:'FSx', name:'Amazon FSx', priceType:'compute'],
+		[code:'GameLift', name:'Amazon GameLift', priceType:'compute'],
+		[code:'Glacier', name:'Amazon Glacier', priceType:'storage'],
+		[code:'GuardDuty', name:'Amazon GuardDuty', priceType:'compute'],
+		[code:'Inspector', name:'Amazon Inspector', priceType:'compute'],
+		[code:'KinesisAnalytics', name:'Amazon Kinesis Analytics', priceType:'compute'],
+		[code:'KinesisFirehose', name:'Amazon Kinesis Firehose', priceType:'compute'],
+		[code:'Kinesis', name:'Amazon Kinesis', priceType:'compute'],
+		[code:'Lex', name:'Amazon Lex', priceType:'compute'],
+		[code:'Lightsail', name:'Amazon Lightsail', priceType:'compute'],
+		[code:'ML', name:'Amazon ML', priceType:'compute'],
+		[code:'MQ', name:'Amazon MQ', priceType:'compute'],
+		[code:'MSK', name:'A fully managed, highly available, and secure service for Apache Kafka', priceType:'compute'],
+		[code:'Macie', name:'Amazon Macie', priceType:'compute'],
+		[code:'ManagedBlockchain', name:'Amazon Managed Blockchain', priceType:'compute'],
+		[code:'Neptune', name:'Amazon Neptune', priceType:'compute'],
+		[code:'Pinpoint', name:'Amazon Pinpoint', priceType:'compute'],
+		[code:'Polly', name:'Amazon Polly', priceType:'compute'],
+		[code:'QuickSight', name:'Amazon QuickSight', priceType:'compute'],
+		[code:'RDS', name:'Amazon Relational Database Service', priceType:'compute'],
+		[code:'Redshift', name:'Amazon Redshift', priceType:'compute'],
+		[code:'Rekognition', name:'Amazon Rekognition', priceType:'compute'],
+		[code:'Route53', name:'Amazon Route 53', priceType:'network'],
+		[code:'S3GlacierDeepArchive', name:'Amazon S3 Glacier Deep Archive', priceType:'storage']
+	]
+
+	static costCategories = [
+		//general
+		[key:'Other', category:'other', group:'other', priceType:'other'],
+		[key:'FreeEventsRecorded', category:'general', group:'other', priceType:'other'],
+		[key:'ConfigurationItemRecorded', category:'general', group:'other', priceType:'other'],
+		[key:'Dollar', category:'general', group:'support', priceType:'other'],
+		[key:'DashboardsUsageHour-Basic', category:'general', group:'other', priceType:'other'],
+		[key:'Invalidations', category:'general', group:'other', priceType:'other'],
+		//mail
+		[key:'DeliveryAttempts-SMTP', category:'mail', group:'other', priceType:'other'],
+		//dns
+		[key:'DNS-Queries', category:'dns', group:'other', priceType:'other'],
+		[key:'HostedZone', category:'dns', group:'other', priceType:'other'],
+		//processing
+		[key:'DataProcessing-Bytes', category:'data-processing', group:'ec2', priceType:'compute'],
+		//requests
+		[key:'ApiGatewayRequest', category:'request', group:'ec2', priceType:'compute'],
+		[key:'Request', category:'request', group:'ec2', priceType:'compute'],
+		[key:'Requests-RBP', category:'request', group:'ec2', priceType:'compute'],
+		[key:'Requests-Tier1', category:'request', group:'ec2', priceType:'compute'],
+		[key:'Requests-Tier2', category:'request', group:'ec2', priceType:'compute'],
+		[key:'Requests-Tier2-HTTPS', category:'request', group:'ec2', priceType:'compute'],
+		//data-transfer
+		[key:'S3-AWS-In-Bytes', category:'data-transfer', group:'s3', priceType:'storage'],
+		[key:'S3-AWS-Out-Bytes', category:'data-transfer', group:'s3', priceType:'storage'],
+		[key:'S3-DataTransfer-In-Bytes', category:'data-transfer', group:'s3', priceType:'storage'],
+		[key:'S3-DataTransfer-Out-Bytes', category:'data-transfer', group:'s3', priceType:'storage'],
+		[key:'DataTransfer-In-Bytes', category:'data-transfer', group:'ec2', priceType:'network'],
+		[key:'DataTransfer-Out-Bytes', category:'data-transfer', group:'ec2', priceType:'network'],
+		[key:'DataTransfer-Regional-Bytes', category:'data-transfer', group:'ec2', priceType:'compute'],
+		[key:'AWS-Out-Bytes', category:'data-transfer', group:'ec2', priceType:'network'],
+		[key:'AWS-In-Bytes', category:'data-transfer', group:'ec2', priceType:'network'],
+		[key:'CloudFront-In-Bytes', category:'data-transfer', group:'ec2', priceType:'network'],
+		[key:'CloudFront-Out-Bytes', category:'data-transfer', group:'ec2', priceType:'network'],
+		//monitor
+		[key:'CW:AlarmMonitorUsage', category:'monitoring', group:'ec2', priceType:'compute'],
+		[key:'CW:Requests', category:'monitoring', group:'ec2', priceType:'compute'],
+		//storage
+		[key:'-TimedStorage-ByteHrs', category:'storage', group:'ec2', priceType:'compute'],
+		[key:'TimedStorage-ByteHrs', category:'storage', group:'s3', priceType:'storage'],
+		[key:'S3-EBS:SnapshotUsage', category:'storage', group:'s3', priceType:'storage'],
+		[key:'EBS:SnapshotUsage', category:'storage', group:'efs', priceType:'storage'],
+		[key:'EBS:VolumeIOUsage', category:'storage', group:'ec2', priceType:'compute'],
+		[key:'EBS:VolumeP-IOPS.piops', category:'storage', group:'ec2', priceType:'compute'],
+		[key:'EBS:VolumeUsage', category:'storage', group:'ec2', priceType:'compute'],
+		[key:'EBS:VolumeUsage.gp2', category:'storage', group:'ec2', priceType:'compute'],
+		[key:'EBS:VolumeUsage.piops', category:'storage', group:'ec2', priceType:'compute'],
+		[key:'EBSOptimized:', category:'storage', group:'ec2', priceType:'compute'],
+		[key:':GP2-Storage', category:'storage', group:'efs', priceType:'storage'],
+		[key:'Catalog-Storage', category:'storage', group:'efs', priceType:'storage'],
+		//compute
+		[key:'BoxUsage:', category:'compute', group:'ec2', priceType:'compute'],
+		[key:'ESInstance:', category:'compute', group:'ec2', priceType:'compute'],
+		[key:'HeavyUsage:', category:'compute', group:'ec2', priceType:'compute'],
+		[key:'InstanceUsage:', category:'compute', group:'ec2', priceType:'compute'],
+		[key:'NodeUsage:', category:'compute', group:'ec2', priceType:'compute'],
+		//lambda
+		[key:'Lambda-GB-Second', category:'compute', group:'ec2', priceType:'compute'],
+		[key:'Lambda-', category:'compute', group:'ec2', priceType:'compute'],
+		//elastic
+		[key:'ES:', category:'elastic', group:'ec2', priceType:'compute'],
+		//cache
+		[key:'ElastiCache:BackupUsage', category:'cache', group:'ec2', priceType:'compute'],
+		//network
+		[key:'ElasticIP:AdditionalAddress', category:'eip', group:'ec2', priceType:'compute'],
+		[key:'ElasticIP:IdleAddress', category:'eip', group:'ec2', priceType:'compute'],
+		//load balancer
+		[key:'LCUUsage', category:'load-balancer', group:'ec2', priceType:'compute'],
+		[key:'LoadBalancerUsage', category:'load-balancer', group:'ec2', priceType:'compute'],
+		//dynamo
+		[key:'ReadCapacityUnit-Hrs', category:'dynamo', group:'ec2', priceType:'compute'],
+		[key:'WriteCapacityUnit-Hrs', category:'dynamo', group:'ec2', priceType:'compute'],
+		//direct connect
+		[key:'DataXfer-In', category:'direct-connect', group:'other', priceType:'network'],
+		[key:'DataXfer-Out', category:'direct-connect', group:'other', priceType:'network'],
+		[key:'PortUsage:', category:'direct-connect', group:'other', priceType:'network'],
+		//rds
+		[key:'RDS:', category:'rds', group:'ec2', priceType:'compute'],
+		//vpn
+		[key:'VPN-Usage-Hours:', category:'vpn', group:'other', priceType:'network'],
+		//keys
+		[key:'KMS-Keys', category:'keys', group:'other', priceType:'other'],
+		[key:'KMS-Requests', category:'keys', group:'other', priceType:'other']
+	]
 
 	class InvoiceProcessResult {
 		public HashSet<Long> invoicesToReconcile = new HashSet<Long>()

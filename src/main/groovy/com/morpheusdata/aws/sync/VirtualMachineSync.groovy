@@ -58,6 +58,7 @@ class VirtualMachineSync {
 				def amazonClient = plugin.getAmazonClient(cloud,false, region.externalId)
 				def vmList = AmazonComputeUtility.listVpcServers([amazonClient: amazonClient, cloud: cloud])
 				if(vmList.success) {
+					removeDuplicateVirtualMachines(vmList.serverList, region)
 					Observable<ComputeServerIdentityProjection> vmRecords = morpheusContext.async.computeServer.listIdentityProjections(cloud.id, region.externalId)
 					SyncTask<ComputeServerIdentityProjection, Instance, ComputeServer> syncTask = new SyncTask<>(vmRecords, vmList.serverList.findAll{ instance -> instance.state?.code != 48 } as Collection<Instance>)
 					syncTask.addMatchFunction { ComputeServerIdentityProjection domainObject, Instance cloudItem ->
@@ -279,6 +280,50 @@ class VirtualMachineSync {
 		morpheusContext.async.computeServer.remove(removeList).blockingGet()
 	}
 
+	/**
+	 * Looks for duplicate VMs by externalId(AWS instanceId) to potential race conditions between cloud formation
+	 * and VM sync.
+	 *
+	 * @param cloudItems
+	 * @param region
+	 * @return
+	 */
+	def removeDuplicateVirtualMachines(List<Instance> cloudItems, CloudRegionIdentity region) {
+		Map<String, List<ComputeServerIdentityProjection>> vmsByExternalId = [:]
+		List<ComputeServer> removeList = []
+
+		for(def existingItem : morpheusContext.async.computeServer.listIdentityProjections(cloud.id, region.externalId).toList().blockingGet()) {
+			if(!vmsByExternalId[existingItem.externalId]) {
+				vmsByExternalId[existingItem.externalId] = []
+			}
+			vmsByExternalId[existingItem.externalId] << existingItem
+		}
+
+		List<ComputeServer> dupList = morpheusContext.services.computeServer.listById(vmsByExternalId.values().findAll { it.size() > 1 }.collect { it.id }.flatten())
+		vmsByExternalId = [:]
+
+		for(ComputeServer server : dupList) {
+			if(!vmsByExternalId[server.externalId]) {
+				vmsByExternalId[server.externalId] = []
+			}
+			vmsByExternalId[server.externalId] << server
+		}
+		for(String externalId : vmsByExternalId.keySet()) {
+			List<ComputeServer> dups = vmsByExternalId[externalId]
+			ComputeServer keep = dups.find { it.iacId } ?: dups.sort { it.id }.first()
+
+			for(ComputeServer server : dups) {
+				if(server != keep) {
+					removeList << server
+				}
+			}
+		}
+
+		if(removeList) {
+			removeMissingVirtualMachines(removeList)
+		}
+	}
+
 	private applyServicePlan(ComputeServer server, ServicePlan servicePlan) {
 		server.plan = servicePlan
 		server.maxCores = servicePlan.maxCores
@@ -474,7 +519,7 @@ class VirtualMachineSync {
 
 			if(subnetId) {
 				morpheusContext.async.network.listByCloudAndExternalIdIn(cloud.id, [subnetId]).blockingSubscribe {
-					if(it.typeCode == 'amazonSubnet') {
+					if(it.type?.code == 'amazonSubnet') {
 						subnet = it
 					}
 				}
