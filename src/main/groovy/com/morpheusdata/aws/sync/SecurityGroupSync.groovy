@@ -17,7 +17,6 @@ import com.morpheusdata.model.SecurityGroupRuleLocation
 import com.morpheusdata.model.projection.CloudPoolIdentity
 import com.morpheusdata.model.projection.SecurityGroupIdentityProjection
 import com.morpheusdata.model.projection.SecurityGroupLocationIdentityProjection
-import io.reactivex.Observable
 import groovy.util.logging.Slf4j
 import io.reactivex.rxjava3.core.Observable
 
