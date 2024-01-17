@@ -2362,13 +2362,12 @@ class AmazonComputeUtility {
 		try {
 			AmazonEC2Client amazonClient = opts.amazonClient
 			def ruleConfig = opts.config
-			def cidr = ruleConfig.ipRange[0]
 			def ipPermission = new IpPermission()
 			ipPermission.withIpProtocol(ruleConfig.ipProtocol)
 			ipPermission.withFromPort(ruleConfig.minPort)
 			ipPermission.withToPort(ruleConfig.maxPort)
-			if(ruleConfig.ipRange.size()) {
-				ipPermission.withIpv4Ranges(new IpRange().withCidrIp(cidr).withDescription(ruleConfig.description))
+			if(ruleConfig.ipRange) {
+				ipPermission.withIpv4Ranges(new IpRange().withCidrIp(ruleConfig.ipRange[0]).withDescription(ruleConfig.description))
 			}
 			if(ruleConfig.targetGroupId) {
 				ipPermission.withUserIdGroupPairs(new UserIdGroupPair().withGroupId(ruleConfig.targetGroupId).withDescription(ruleConfig.description))
