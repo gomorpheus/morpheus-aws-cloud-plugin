@@ -355,6 +355,7 @@ class AWSCloudProvider implements CloudProvider {
 		unmanaged.platform = PlatformType.none
 		unmanaged.managed = false
 		unmanaged.provisionTypeCode = 'amazon'
+		unmanaged.guestVm = true
 
 		ComputeServerType unmanagedWindows = new ComputeServerType()
 		unmanagedWindows.name = 'Amazon Windows Node'
@@ -378,6 +379,7 @@ class AWSCloudProvider implements CloudProvider {
 		unmanagedWindows.guestVm = true
 		unmanagedWindows.supportsConsoleKeymap = false
 		unmanagedWindows.provisionTypeCode = 'amazon'
+		unmanagedWindows.guestVm = true
 
 		ComputeServerType dockerType = new ComputeServerType()
 		dockerType.name = 'Amazon Docker Host'
@@ -407,6 +409,7 @@ class AWSCloudProvider implements CloudProvider {
 		vmType.platform = PlatformType.linux
 		vmType.managed = true
 		vmType.provisionTypeCode = 'amazon'
+		vmType.guestVm = true
 
 		ComputeServerType windwsVmType = new ComputeServerType()
 		windwsVmType.name = 'Amazon Windows Instance'
@@ -419,6 +422,7 @@ class AWSCloudProvider implements CloudProvider {
 		windwsVmType.platform = PlatformType.windows
 		windwsVmType.managed = true
 		windwsVmType.provisionTypeCode = 'amazon'
+		windwsVmType.guestVm = true
 
 		[unmanaged, unmanagedWindows, dockerType, vmType, windwsVmType] //TODO: More types for RDS and K8s
 	}
