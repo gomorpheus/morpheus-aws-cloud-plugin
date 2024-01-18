@@ -2,9 +2,6 @@ package com.morpheusdata.aws
 
 import com.amazonaws.services.cloudformation.model.StackEvent
 import com.amazonaws.services.cloudformation.model.StackResource
-import com.amazonaws.services.ec2.AmazonEC2Client
-import com.amazonaws.services.migrationhubstrategyrecommendations.model.OSType
-import com.bertramlabs.plugins.karman.network.SecurityGroupInterface
 import com.morpheusdata.aws.sync.VirtualMachineSync
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.aws.utils.CloudFormationResourceMappingUtility
@@ -34,6 +31,7 @@ import com.morpheusdata.model.Network
 import com.morpheusdata.model.OsType
 import com.morpheusdata.model.Instance
 import com.morpheusdata.model.OptionType
+import com.morpheusdata.model.Process
 import com.morpheusdata.model.ProcessEvent
 import com.morpheusdata.model.ResourceSpec
 import com.morpheusdata.model.ResourceSpecTemplate
@@ -1743,7 +1741,6 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 						def publicIp = serverDetails.server.getPublicIpAddress()
 						def networkOpts = [:]
 						//update network info
-
 
 						morpheusContext.async.process.startProcessStep(opts.process as Process, new ProcessEvent(type: ProcessEvent.ProcessType.provisionFinalize), 'pending').blockingGet()
 						rtn.success = true
