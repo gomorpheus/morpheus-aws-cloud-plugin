@@ -444,7 +444,8 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		}
 
 		// load existing credentials when not passed in
-		if(args.credential == null) {
+		if(args.credential == null && !(args.accessKey ?: args.config?.accessKey)) {
+			// check for passed in credentials
 			if(!rtn.accountCredentialLoaded) {
 				AccountCredential credentials = morpheusContext.services.accountCredential.loadCredentials(rtn)
 				rtn.accountCredentialData = credentials?.data
