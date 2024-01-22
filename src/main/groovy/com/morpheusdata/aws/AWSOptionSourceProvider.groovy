@@ -98,7 +98,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 			if(vpcResult.success && vpcResult.vpcList) {
 				rtn = [[name:morpheusContext.services.localization.get('gomorpheus.label.all'), value:'']]
 				vpcResult.vpcList.each {
-					rtn << [name:"${it.vpcId} - ${it.tags?.find { tag -> tag.key == 'Name' }?.value ?: 'default'}", value:it.vpcId]
+					rtn << [name:"${it.vpcId} - ${it.tags?.find { tag -> tag.key == 'Name' }?.value ?: 'default'}", value:it.vpcId, isDefault: cloud.configMap.vpc == it.vpcId]
 				}
 			}
 		}
