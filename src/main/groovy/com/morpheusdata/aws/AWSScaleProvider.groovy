@@ -80,6 +80,22 @@ class AWSScaleProvider implements ScaleProvider {
     }
 
     @Override
+    ServiceResponse provisionInstance(Instance instance) {
+        ServiceResponse rtn = ServiceResponse.success()
+        def opts = instance.getConfigProperty('scaleOptions')
+        // add a numerical index suffix for compute server names
+        def change = [
+            old:opts.server.name,
+            new:getNextComputeServerName(instance, opts.server.name)
+        ]
+        if (change.old != change.new) {
+            rtn.data = [modifications:[serverName:change]]
+        }
+
+        return rtn
+    }
+
+    @Override
     ServiceResponse postProvisionInstance(Instance instance) {
         log.debug("postProvisionInstance: {}", instance)
         try {
@@ -242,6 +258,47 @@ class AWSScaleProvider implements ScaleProvider {
             log.error rtn.msg, e
         }
         rtn
+    }
+
+    def getNextComputeServerName(Instance instance, String usePrefix = null) {
+        def nextServerIndex = 0
+
+        def exampleName = (instance.containers?.size() > 0 ? instance.containers.find { !it.server.name.startsWith('i-') }?.server?.name : '') ?: 'container_'
+        def lastUnderscore = exampleName.lastIndexOf('_')
+        def prefix = usePrefix ?: lastUnderscore != -1 ? exampleName.substring(0, exampleName.lastIndexOf('_')) : exampleName
+
+        try {
+            // Gather up all the indexe names
+            def indexes = instance.containers?.collect {
+                def index = 0
+                try {
+                    if (it.server.name.lastIndexOf('_') != -1) {
+                        index = it.server.name.substring(it.server.name.lastIndexOf('_') + 1).toLong()
+                    }
+                } catch (e) {
+                    // swallow it
+                }
+                index
+            } as Set
+
+            if (indexes) {
+                indexes = indexes.sort()
+                def found = false
+                def lastValue = indexes[indexes.size() - 1]
+                (0..lastValue).each { idx ->
+                    if (!found && indexes.find { it.toString() == idx.toString() } == null) {
+                        nextServerIndex = idx
+                        found = true
+                    }
+                }
+                if (!found) {
+                    nextServerIndex = lastValue + 1
+                }
+            }
+        } catch(e) {
+            log.error "Error in getNextComputeServerName: ${e}", e
+        }
+        return "${prefix}_${nextServerIndex}"
     }
 
     protected updateOrCreateScalingPolicy(instance, cloud, groupName, type, threshold, scaleDirection) {

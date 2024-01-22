@@ -99,6 +99,10 @@ class AWSPlugin extends Plugin {
 		this.getProviderByCode(storageProviderCode)
 	}
 
+	def AWSScaleProvider getScaleProvider() {
+		return this.getProviderByCode(AWSScaleProvider.PROVIDER_CODE)
+	}
+
 	def getAmazonClient(Cloud cloud, Boolean fresh = false, String region = null) {
 		return AmazonComputeUtility.getAmazonClient(checkCloudCredentials(cloud), fresh, AmazonComputeUtility.getAmazonEndpointRegion(region))
 	}
