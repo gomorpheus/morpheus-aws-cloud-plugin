@@ -184,7 +184,7 @@ class ScaleGroupVirtualMachinesSync {
 			existingItem.computeCapacityInfo.maxMemory = existingItem.maxMemory
 			existingItem.computeCapacityInfo.maxStorage = existingItem.maxStorage
 			existingItem.computeCapacityInfo.usedStorage = 0
-			existingItem.name = getNextComputeServerName(instance)
+			existingItem.name = plugin.scaleProvider.getNextComputeServerName(instance)
 
 			// New VM much match closely with its sibling
 			if (managedSibling && managedSibling.id != existingItem.id) {
@@ -265,47 +265,6 @@ class ScaleGroupVirtualMachinesSync {
 				instance.coresPerSocket = instance.plan.coresPerSocket
 			}
 		}
-	}
-
-	def getNextComputeServerName(Instance instance) {
-		def nextServerIndex = 0
-
-		def exampleName = (instance.containers?.size() > 0 ? instance.containers.find { !it.server.name.startsWith('i-') }?.server?.name : '') ?: 'container_'
-		def lastUnderscore = exampleName.lastIndexOf('_')
-		def prefix = lastUnderscore != -1 ? exampleName.substring(0, exampleName.lastIndexOf('_')) : exampleName
-
-		try {
-			// Gather up all the indexe names
-			def indexes = instance.containers?.collect {
-				def index = 0
-				try {
-					if (it.server.name.lastIndexOf('_') != -1) {
-						index = it.server.name.substring(it.server.name.lastIndexOf('_') + 1).toLong()
-					}
-				} catch (e) {
-					// swallow it
-				}
-				index
-			} as Set
-
-			if (indexes) {
-				indexes = indexes.sort()
-				def found = false
-				def lastValue = indexes[indexes.size() - 1]
-				(0..lastValue).each { idx ->
-					if (!found && indexes.find { it.toString() == idx.toString() } == null) {
-						nextServerIndex = idx
-						found = true
-					}
-				}
-				if (!found) {
-					nextServerIndex = lastValue + 1
-				}
-			}
-		} catch(e) {
-			log.error "Error in getNextComputeServerName: ${e}", e
-		}
-		return "${prefix}_${nextServerIndex}"
 	}
 
 	private List<ComputeSite> getAllSites() {
