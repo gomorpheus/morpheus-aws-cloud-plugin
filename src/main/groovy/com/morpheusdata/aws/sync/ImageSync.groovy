@@ -40,7 +40,14 @@ class ImageSync {
 			morpheusContext.async.cloud.region.listIdentityProjectionsForRegionsWithCloudPools(cloud.id).blockingSubscribe { region ->
 				def amazonClient = plugin.getAmazonClient(cloud, false, region.externalId)
 				def cloudItems = AmazonComputeUtility.listImages([amazonClient: amazonClient, zone: cloud]).imageList
-				Observable<VirtualImageLocationIdentityProjection> existingRecords = morpheusContext.async.virtualImage.location.listIdentityProjections(cloud.id, region.externalId)
+				Observable<VirtualImageLocationIdentityProjection> existingRecords = morpheusContext.async.virtualImage.location.listIdentityProjections(
+					new DataQuery().withFilters(
+						new DataFilter<String>("virtualImage.imageType", "ami"),
+						new DataFilter<String>("imageRegion", region.externalId),
+						new DataFilter<String>("refType", "ComputeZone"),
+						new DataFilter<String>("refId", cloud.id)
+					)
+				)
 				SyncTask<VirtualImageLocationIdentityProjection, Image, VirtualImageLocation> syncTask = new SyncTask<>(existingRecords, cloudItems)
 				syncTask.addMatchFunction { VirtualImageLocationIdentityProjection existingItem, Image cloudItem ->
 					existingItem.externalId == cloudItem.imageId
@@ -65,15 +72,15 @@ class ImageSync {
 
 		List<String> names = addList.collect { it.name }
 		Observable<VirtualImageIdentityProjection> existingRecords = morpheusContext.async.virtualImage.listIdentityProjections(new DataQuery().withFilters(
-				new DataFilter<String>("imageType", "ami"),
-				new DataFilter<Collection<String>>("name", "in", names),
+			new DataFilter<String>("imageType", "ami"),
+			new DataFilter<Collection<String>>("name", "in", names),
+			new DataOrFilter(
+				new DataFilter<Boolean>("systemImage", true),
 				new DataOrFilter(
-						new DataFilter<Boolean>("systemImage", true),
-						new DataOrFilter(
-								new DataFilter("owner", null),
-								new DataFilter<Long>("owner.id", cloud.owner.id)
-						)
+					new DataFilter("owner", null),
+					new DataFilter<Long>("owner.id", cloud.owner.id)
 				)
+			)
 		))
 
 		SyncTask<VirtualImageIdentityProjection, Image, VirtualImage> syncTask = new SyncTask<>(existingRecords, addList)
@@ -92,7 +99,6 @@ class ImageSync {
 
 	private addMissingVirtualImages(Collection<Image> addList, String regionCode) {
 		def adds = []
-		def imageMap = [:]
 		for(Image cloudItem in addList) {
 			String name = cloudItem.name ?: cloudItem.imageId
 
@@ -132,9 +138,7 @@ class ImageSync {
 								  refType:'ComputeZone', refId:cloud.id, imageName:cloudItem.getName(), imageRegion: regionCode, externalDiskId: imageConfig.externalDiskId]
 			def addLocation = new VirtualImageLocation(locationConfig)
 			add.imageLocations = [addLocation]
-
 			adds << add
-
 		}
 		// Create em all!
 		if(adds) {
@@ -144,15 +148,39 @@ class ImageSync {
 
 	private updateMatchedVirtualImages(List<SyncTask.UpdateItem<VirtualImage, Image>> updateList, String regionCode) {
 		def adds = []
+		def removes = []
 		for(def updateItem in updateList) {
 			def externalDiskId = updateItem.masterItem.blockDeviceMappings.find { mapping -> mapping.deviceName == updateItem.masterItem.rootDeviceName }?.ebs?.snapshotId
+			if(!updateItem.existingItem.imageLocations.find { it.externalId == updateItem.masterItem.imageId }) {
+				adds << new VirtualImageLocation(
+					virtualImage: updateItem.existingItem,
+					code:"amazon.ec2.image.${cloud.id}.${updateItem.masterItem.getImageId()}",
+					externalId:updateItem.masterItem.getImageId(),
+					refType:'ComputeZone', refId:cloud.id,
+					imageName:updateItem.masterItem.getName(),
+					imageRegion: regionCode,
+					externalDiskId: externalDiskId
+				)
+			}
 
-			def locationConfig = [virtualImage: updateItem.existingItem,code:"amazon.ec2.image.${cloud.id}.${updateItem.masterItem.getImageId()}", externalId:updateItem.masterItem.getImageId(),
-								  refType:'ComputeZone', refId:cloud.id, imageName:updateItem.masterItem.getName(), imageRegion: regionCode, externalDiskId: externalDiskId]
-			adds << new VirtualImageLocation(locationConfig)
+			//prune duplicates
+			def locations = [:]
+			for(def location : updateItem.existingItem.imageLocations.sort { it.id }) {
+				def locationKey = location.refId + ':' + location.refType + ':' + location.externalId
+				if(locations[locationKey]) {
+					if(!location.systemImage) {
+						removes << location
+					}
+				} else {
+					locations[locationKey] = true
+				}
+			}
 		}
 		if(adds) {
 			morpheusContext.async.virtualImage.location.bulkCreate(adds).blockingGet()
+		}
+		if(removes) {
+			morpheusContext.async.virtualImage.location.bulkRemove(removes).blockingGet()
 		}
 	}
 
