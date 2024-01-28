@@ -161,41 +161,38 @@ class AWSScaleProvider implements ScaleProvider {
                 }
                 def groupName = instance.scale.externalId
                 Cloud cloud = instance.containers[0].server.cloud
-                InstanceThreshold threshold = morpheusContext.async.instance.threshold.get(instance.scale?.threshold?.id).blockingGet()
+                def threshold = instance.getConfigProperty('scaleOptions')?.instanceThreshold
+                if (!threshold)
+                    threshold = morpheusContext.async.instance.threshold.get(instance.scale?.threshold?.id).blockingGet()
 
-                if (threshold?.type == AWSScaleProvider.PROVIDER_CODE && threshold.zoneId) {
-                    String regionCode = instance.containers?.getAt(0)?.server?.region?.regionCode
+                String regionCode = instance.containers?.getAt(0)?.server?.region?.regionCode
 
-                    def amazonClient = getAmazonAutoScaleClient(cloud, false, regionCode)
+                def amazonClient = getAmazonAutoScaleClient(cloud, false, regionCode)
 
-                    // Make sure the servers we know about are attached to the group
-                    def desiredInstanceIds = instance.containers.collect { Workload c ->
-                        c.server.externalId
-                    }
-                    def attachResults = AmazonComputeUtility.updateInstancesAndPropertiesForScaleGroup(amazonClient, groupName, desiredInstanceIds, threshold.minCount, threshold.maxCount)
-                    if(!attachResults.success) {
-                        rtn = ServiceResponse.error(attachResults.msg ?: "Error in attaching or detachings instances to scale group")
-                        log.error rtn.msg
-                        return rtn
-                    }
-
-                    def upscaleEnabled = threshold.autoUp && threshold.cpuEnabled
-                    def downscaleEnabled = threshold.autoDown && threshold.cpuEnabled
-                    def policies = AmazonComputeUtility.getAutoScaleGroupPolicies(amazonClient, groupName)?.policies
-
-                    if (upscaleEnabled)
-                        updateOrCreateScalingPolicy(instance, cloud, groupName, 'cpu', threshold.maxCpu, 'up')
-                    else
-                        removeScalingPolicy(instance, cloud, groupName, policies, 'cpu', 'up')
-
-                    if (downscaleEnabled)
-                        updateOrCreateScalingPolicy(instance, cloud, groupName, 'cpu', threshold.minCpu, 'down')
-                    else
-                        removeScalingPolicy(instance, cloud, groupName, policies, 'cpu', 'sown')
+                // Make sure the servers we know about are attached to the group
+                def desiredInstanceIds = instance.containers.collect { Workload c ->
+                    c.server.externalId
                 }
-                else {
-                    //what to do
+                def attachResults = AmazonComputeUtility.updateInstancesAndPropertiesForScaleGroup(amazonClient, groupName, desiredInstanceIds, threshold.minCount.toInteger(), threshold.maxCount.toInteger())
+                if(!attachResults.success) {
+                    rtn = ServiceResponse.error(attachResults.msg ?: "Error in attaching or detachings instances to scale group")
+                    log.error rtn.msg
+                    return rtn
                 }
+
+                def upscaleEnabled = threshold.autoUp.toBoolean() && threshold.cpuEnabled.toBoolean()
+                def downscaleEnabled = threshold.autoDown.toBoolean() && threshold.cpuEnabled.toBoolean()
+                def policies = AmazonComputeUtility.getAutoScaleGroupPolicies(amazonClient, groupName)?.policies
+
+                if (upscaleEnabled)
+                    updateOrCreateScalingPolicy(instance, cloud, groupName, 'cpu', threshold.maxCpu.toDouble(), 'up')
+                else
+                    removeScalingPolicy(instance, cloud, groupName, policies, 'cpu', 'up')
+
+                if (downscaleEnabled)
+                    updateOrCreateScalingPolicy(instance, cloud, groupName, 'cpu', threshold.minCpu.toDouble(), 'down')
+                else
+                    removeScalingPolicy(instance, cloud, groupName, policies, 'cpu', 'sown')
             }
         } catch(e) {
             log.error "error in updateInstance: ${e.message}", e

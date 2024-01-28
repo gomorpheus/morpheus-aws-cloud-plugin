@@ -5,6 +5,8 @@ import com.morpheusdata.aws.AWSPlugin
 import com.morpheusdata.aws.AWSScaleProvider
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
+import com.morpheusdata.core.data.DataFilter
+import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.InstanceScale
@@ -50,7 +52,17 @@ class ScaleGroupSync {
 				}.onUpdate { List<SyncTask.UpdateItem<InstanceScale, AutoScalingGroup>> updateItems ->
 					updateMatchedInstanceScales(updateItems, region)
 				}.onDelete { removeItems ->
-					removeMissingInstanceScales(removeItems)
+					// before we remove any scale groups, make sure the instance its attached to is not provisioning
+					def filteredItems = []
+					for (removeItem in removeItems) {
+						def queryResult = morpheusContext.async.instance.search(
+							new DataQuery().withFilters(new DataFilter('scale.id', removeItem.id))
+						).blockingGet()
+						if (queryResult.items?.get(0)?.status != 'provisioning') {
+							filteredItems << removeItem
+						}
+					}
+					removeMissingInstanceScales(filteredItems)
 				}.start()
 			}
 		} catch(Exception ex) {
