@@ -12,6 +12,7 @@ import com.morpheusdata.model.ComputeCapacityInfo
 import com.morpheusdata.model.ComputeServer
 import com.morpheusdata.model.ComputeServerInterface
 import com.morpheusdata.model.HostType
+import com.morpheusdata.model.Icon
 import com.morpheusdata.model.Instance
 import com.morpheusdata.model.OptionType
 import com.morpheusdata.model.Process
@@ -41,6 +42,11 @@ class RDSProvisionProvider extends AbstractProvisionProvider implements Workload
         this.plugin = plugin
         this.morpheusContext = ctx
     }
+
+	@Override
+	Icon getCircularIcon() {
+		return new Icon(path:"amazon-rds-circular.svg", darkPath: "amazon-rds-circular.svg")
+	}
 
     /**
      * Provides a Collection of OptionType inputs that need to be made available to various provisioning Wizards
