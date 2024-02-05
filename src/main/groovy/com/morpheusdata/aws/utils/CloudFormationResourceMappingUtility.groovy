@@ -8,6 +8,7 @@ import com.morpheusdata.model.AccountResource
 import com.morpheusdata.model.AccountResourceType
 import com.morpheusdata.model.App
 import com.morpheusdata.model.AppInstance
+import com.morpheusdata.model.ApplianceInstance
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.CloudPool
 import com.morpheusdata.model.CloudRegion
@@ -866,10 +867,6 @@ class CloudFormationResourceMappingUtility  {
 			def maxStorage = extraConfig?.maxStorage ?: plan?.maxStorage
 			def createServer = provisionType.createServer == true ? (targetCloud != null && computeServerType != null) : false
 			def createInstance = (layout != null && containerType != null) && (createServer == true || config.serverId != null)
-			//backup
-//			def backupConfig = backupService.getDefaultBackupConfig(app.account, app.site, targetZone,
-//					[instanceType:instanceType, layout:layout, containerType:containerType])
-			//instance
 			def newInstance
 			def newServers = []
 			def newContainers = []
@@ -888,8 +885,44 @@ class CloudFormationResourceMappingUtility  {
 									  maxMemory:maxMemory, maxStorage:maxStorage
 				]
 				newInstance = new Instance(instanceConfig)
-				//newInstance.setConfigProperty('backup', backupConfig)
-				//newInstance.setConfigProperty('createBackup', backupConfig.createBackup)
+
+				//backup
+				ApplianceInstance appliance = morpheusContext.services.admin.appliance.find(new DataQuery().withFilter('isSelf', true))
+				def backupSettings = morpheusContext.async.setting.list(
+					new DataQuery().withFilters(
+						new DataFilter('referenceType', 'ApplianceInstance'),
+						new DataFilter('referenceId', appliance.id),
+						new DataFilter('settingType.category', 'backups'),
+					)
+				).toMap { it.settingType.name }.blockingGet()
+
+				//if setting exists but value is null or off then it is disabled
+				def createBackups = !backupSettings.createBackups || !(backupSettings.createBackups?.value in [null, 'off'])
+				def backupsEnabled = backupSettings.backupsEnabled?.value in ['on', 'true']
+				if(createBackups && backupsEnabled) {
+					def backupConfig = [createBackup: true, jobAction: 'new', jobSchedule: backupSettings.defaultBackupSchedule?.value?.toLong()]
+					if (!backupConfig.jobSchedule) {
+						backupConfig.jobSchedule = morpheusContext.services.executeSchedule.type.list(new DataQuery().withFilters(
+							new DataFilter('enabled', true)
+						)).find { it.owner?.id == cloud.account.id || !it.owner }?.id
+					}
+					def backupType = morpheusContext.services.backup.type.find(
+						new DataQuery().withFilter('code', 'amazonSnapshot')
+					)
+					if (backupType) {
+						// backup type
+						backupConfig.providerBackupType = backupType.id
+
+						def backupProviderType = morpheusContext.services.backupProvider.type.find(
+							new DataQuery().withFilter('backupTypes.id', backupType.id)
+						)
+						if(backupProviderType?.hasSchedule == false) {
+							backupConfig.remove('jobSchedule')
+						}
+					}
+					newInstance.setConfigProperty('backup', backupConfig)
+					newInstance.setConfigProperty('createBackup', backupConfig.createBackup)
+				}
 				newInstance = morpheusContext.async.instance.create(newInstance).blockingGet()
 			}
 			//for each counter...

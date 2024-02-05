@@ -575,7 +575,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 							opts.cloudInvoices[targetCloud.id] = cloudInvoice
 						}
 
-						ComputeSite cloudSite = allSites.find { it.account.id == targetCloud.account.id } ?: allSites.first
+						ComputeSite cloudSite = allSites.find { it.account.id == targetCloud.account.id } ?: allSites.first()
 
 						// resources
 						def cloudResources = resourcesByCloud[targetCloud.id] ?: [:]
