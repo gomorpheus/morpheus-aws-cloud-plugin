@@ -27,6 +27,7 @@ import com.morpheusdata.model.ComputeTypeSet
 import com.morpheusdata.model.NetAddress
 import com.morpheusdata.model.WorkloadType
 import com.morpheusdata.model.HostType
+import com.morpheusdata.model.Icon
 import com.morpheusdata.model.ImageType
 import com.morpheusdata.model.Instance
 import com.morpheusdata.model.KeyPair
@@ -56,6 +57,11 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	EC2ProvisionProvider(AWSPlugin plugin, MorpheusContext morpheusContext) {
 		this.plugin = plugin
 		this.morpheusContext = morpheusContext
+	}
+
+	@Override
+	Icon getCircularIcon() {
+		return new Icon(path:"amazon-circular.svg", darkPath: "amazon-circular.svg")
 	}
 
 	/**
