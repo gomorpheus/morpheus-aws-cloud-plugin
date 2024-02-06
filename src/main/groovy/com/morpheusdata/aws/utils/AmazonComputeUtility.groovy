@@ -2752,7 +2752,7 @@ class AmazonComputeUtility {
 					rtn.errors += [field: 'publicIpType', msg: 'Not enough Elastic IPs available']
 				}
 			}
-			if(cloud?.configMap?.vpc || cloud.configMap?.isVpc) {
+			if(cloud?.configMap?.vpc) {
 				if(!opts.subnetId) {
 					if(opts.networkInterfaces?.size() > 0) {
 						def hasNetwork = true
@@ -2782,7 +2782,7 @@ class AmazonComputeUtility {
 								}
 							}
 						}
-						if(!opts.resourcePool) {
+						if(!(opts.resourcePool || opts.resourcePoolId)) {
 							rtn.errors += [field:'resourcePoolId', msg: 'You must choose a VPC']
 						}
 						if(hasNetwork != true)
