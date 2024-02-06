@@ -1293,7 +1293,7 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 		return rtn
 	}
 
-	def loadAwsServiceUsage(Cloud zone, Date costDate) {
+	def loadAwsServiceUsage(Cloud cloud, Date costDate) {
 		def rtn = [success:false, services:[:], metrics:[:], cost:0]
 		try {
 			costDate = costDate ?: new Date()
@@ -1305,12 +1305,12 @@ class AWSCloudCostingProvider extends AbstractCloudCostingProvider {
 			log.debug("identityResults: {}", identityResults.results)
 			def awsAccountId = identityResults.results?.getAccount()
 			def awsUserArn = identityResults.results?.getArn()
-			def awsRegion = AmazonComputeUtility.getAmazonEndpointRegion(zone)
+			def awsRegion = AmazonComputeUtility.getAmazonEndpointRegion(cloud)
 			def awsRegions = morpheusContext.async.cloud.region.list(new DataQuery().withFilter(new DataFilter<Long>("zone.id",cloud.id))).map {it.externalId}.toList().blockingGet()
 			def isGovAccount = awsUserArn?.indexOf('-gov') > -1
 			log.debug("awsRegion: {} awsAccountId: {} awsUserArn: {} isGovAccount: {}", awsRegion, awsAccountId, awsUserArn, isGovAccount)
 			//get client
-			AWSCostExplorer amazonClient = getAmazonCostClient(zone)
+			AWSCostExplorer amazonClient = getAmazonCostClient(cloud)
 			//get total spend month to day
 			def totalCostRequest = new GetCostAndUsageRequest()
 			def dateRange = new DateInterval()
