@@ -1039,9 +1039,14 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 			def rootDisk = blockDeviceDisks?.first()
 			runConfig.osDiskName = rootDisk.deviceName
 		}
+
+		//tags
+		runConfig.tagList = runConfig.server.metadata.collect { [name: it.name, value: it.value] }
+
 		//data volumes
 		if(runConfig.dataDisks)
 			runConfig.diskList = buildDataDiskList(server, runConfig.dataDisks, imageResults)
+
 		def createResults = AmazonComputeUtility.createServer(runConfig)
 		log.debug("create server: ${createResults}")
 		if(createResults.success == true && createResults.server) {
