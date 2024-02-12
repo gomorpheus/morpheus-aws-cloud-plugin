@@ -55,10 +55,13 @@ class ScaleGroupSync {
 					// before we remove any scale groups, make sure the instance its attached to is not provisioning
 					def filteredItems = []
 					for (removeItem in removeItems) {
-						def queryResult = morpheusContext.async.instance.search(
-							new DataQuery().withFilters(new DataFilter('scale.id', removeItem.id))
-						).blockingGet()
-						if (queryResult.items?.get(0)?.status != 'provisioning') {
+						def instanceCount = morpheusContext.services.instance.count(
+							new DataQuery().withFilters(
+								new DataFilter('scale.id', removeItem.id),
+								new DataFilter('status', 'provisioning')
+							)
+						)
+						if(!instanceCount) {
 							filteredItems << removeItem
 						}
 					}
