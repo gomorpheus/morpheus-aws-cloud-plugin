@@ -1,0 +1,2580 @@
+resource "account-resource-type" "terraform.aws.aws_instance" {
+	code = "terraform.aws.aws_instance"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_instance"
+	iacType = "aws_instance"
+	iacProvider = "terraform"
+	name = "Instance"
+	type = "Instance"
+	morpheusType = "instance"
+	resourceType = "Instance"
+	rootType = true
+	resourceIcon = "aws-ec2"
+	resourceVersion = "1.0"
+	displayOrder = 10
+	iacProviderType = "amazon"
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_accessanalyzer_analyzer" {
+	code = "terraform.aws.aws_accessanalyzer_analyzer"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_accessanalyzer_analyzer"
+	iacType = "aws_accessanalyzer_analyzer"
+	iacProvider = "terraform"
+	name = "Accessanalyzer Analyzer"
+	type = "accessanalyzerAnalyzer"
+	morpheusType = "accountResource"
+	resourceType = "accessanalyzerAnalyzer"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_acm_certificate" {
+	code = "terraform.aws.aws_acm_certificate"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_acm_certificate"
+	iacType = "aws_acm_certificate"
+	iacProvider = "terraform"
+	name = "Acm Certificate"
+	type = "acmCertificate"
+	morpheusType = "accountResource"
+	resourceType = "acmCertificate"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_acm_certificate_validation" {
+	code = "terraform.aws.aws_acm_certificate_validation"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_acm_certificate_validation"
+	iacType = "aws_acm_certificate_validation"
+	iacProvider = "terraform"
+	name = "Acm Certificate Validation"
+	type = "acmCertificateValidation"
+	morpheusType = "accountResource"
+	resourceType = "acmCertificateValidation"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_acmpca_certificate_authority" {
+	code = "terraform.aws.aws_acmpca_certificate_authority"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_acmpca_certificate_authority"
+	iacType = "aws_acmpca_certificate_authority"
+	iacProvider = "terraform"
+	name = "Acmpca Certificate Authority"
+	type = "acmpcaCertificateAuthority"
+	morpheusType = "accountResource"
+	resourceType = "acmpcaCertificateAuthority"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_backup_plan" {
+	code = "terraform.aws.aws_backup_plan"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_backup_plan"
+	iacType = "aws_backup_plan"
+	iacProvider = "terraform"
+	name = "Backup Plan"
+	type = "backupPlan"
+	morpheusType = "accountResource"
+	resourceType = "backupPlan"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-backup"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_backup_selection" {
+	code = "terraform.aws.aws_backup_selection"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_backup_selection"
+	iacType = "aws_backup_selection"
+	iacProvider = "terraform"
+	name = "Backup Selection"
+	type = "backupSelection"
+	morpheusType = "accountResource"
+	resourceType = "backupSelection"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-backup"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_backup_vault" {
+	code = "terraform.aws.aws_backup_vault"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_backup_vault"
+	iacType = "aws_backup_vault"
+	iacProvider = "terraform"
+	name = "Backup Vault"
+	type = "backupVault"
+	morpheusType = "accountResource"
+	resourceType = "backupVault"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-backup"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_batch_compute_environment" {
+	code = "terraform.aws.aws_batch_compute_environment"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_batch_compute_environment"
+	iacType = "aws_batch_compute_environment"
+	iacProvider = "terraform"
+	name = "Batch Compute Environment"
+	type = "batchComputeEnvironment"
+	morpheusType = "accountResource"
+	resourceType = "batchComputeEnvironment"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_batch_job_definition" {
+	code = "terraform.aws.aws_batch_job_definition"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_batch_job_definition"
+	iacType = "aws_batch_job_definition"
+	iacProvider = "terraform"
+	name = "Batch Job Definition"
+	type = "batchJobDefinition"
+	morpheusType = "accountResource"
+	resourceType = "batchJobDefinition"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_batch_job_queue" {
+	code = "terraform.aws.aws_batch_job_queue"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_batch_job_queue"
+	iacType = "aws_batch_job_queue"
+	iacProvider = "terraform"
+	name = "Batch Job Queue"
+	type = "batchJobQueue"
+	morpheusType = "accountResource"
+	resourceType = "batchJobQueue"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_budgets_budget" {
+	code = "terraform.aws.aws_budgets_budget"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_budgets_budget"
+	iacType = "aws_budgets_budget"
+	iacProvider = "terraform"
+	name = "Budgets Budget"
+	type = "budgetsBudget"
+	morpheusType = "accountResource"
+	resourceType = "budgetsBudget"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_cloud9_environment_ec2" {
+	code = "terraform.aws.aws_cloud9_environment_ec2"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_cloud9_environment_ec2"
+	iacType = "aws_cloud9_environment_ec2"
+	iacProvider = "terraform"
+	name = "Cloud9 Environment Ec2"
+	type = "cloud9EnvironmentEc2"
+	morpheusType = "accountResource"
+	resourceType = "cloud9EnvironmentEc2"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_cognito_identity_pool" {
+	code = "terraform.aws.aws_cognito_identity_pool"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_cognito_identity_pool"
+	iacType = "aws_cognito_identity_pool"
+	iacProvider = "terraform"
+	name = "Cognito Identity Pool"
+	type = "cognitoIdentityPool"
+	morpheusType = "accountResource"
+	resourceType = "cognitoIdentityPool"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_cognito_identity_pool_roles_attachment" {
+	code = "terraform.aws.aws_cognito_identity_pool_roles_attachment"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_cognito_identity_pool_roles_attachment"
+	iacType = "aws_cognito_identity_pool_roles_attachment"
+	iacProvider = "terraform"
+	name = "Cognito Identity Pool Roles Attachment"
+	type = "cognitoIdentityPoolRolesAttachment"
+	morpheusType = "accountResource"
+	resourceType = "cognitoIdentityPoolRolesAttachment"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_cognito_identity_provider" {
+	code = "terraform.aws.aws_cognito_identity_provider"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_cognito_identity_provider"
+	iacType = "aws_cognito_identity_provider"
+	iacProvider = "terraform"
+	name = "Cognito Identity Provider"
+	type = "cognitoIdentityProvider"
+	morpheusType = "accountResource"
+	resourceType = "cognitoIdentityProvider"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_cognito_resource_server" {
+	code = "terraform.aws.aws_cognito_resource_server"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_cognito_resource_server"
+	iacType = "aws_cognito_resource_server"
+	iacProvider = "terraform"
+	name = "Cognito Resource Server"
+	type = "cognitoResourceServer"
+	morpheusType = "accountResource"
+	resourceType = "cognitoResourceServer"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_cognito_user_group" {
+	code = "terraform.aws.aws_cognito_user_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_cognito_user_group"
+	iacType = "aws_cognito_user_group"
+	iacProvider = "terraform"
+	name = "Cognito User Group"
+	type = "cognitoUserGroup"
+	morpheusType = "accountResource"
+	resourceType = "cognitoUserGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_cognito_user_pool" {
+	code = "terraform.aws.aws_cognito_user_pool"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_cognito_user_pool"
+	iacType = "aws_cognito_user_pool"
+	iacProvider = "terraform"
+	name = "Cognito User Pool"
+	type = "cognitoUserPool"
+	morpheusType = "accountResource"
+	resourceType = "cognitoUserPool"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_cognito_user_pool_client" {
+	code = "terraform.aws.aws_cognito_user_pool_client"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_cognito_user_pool_client"
+	iacType = "aws_cognito_user_pool_client"
+	iacProvider = "terraform"
+	name = "Cognito User Pool Client"
+	type = "cognitoUserPoolClient"
+	morpheusType = "accountResource"
+	resourceType = "cognitoUserPoolClient"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_cognito_user_pool_domain" {
+	code = "terraform.aws.aws_cognito_user_pool_domain"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_cognito_user_pool_domain"
+	iacType = "aws_cognito_user_pool_domain"
+	iacProvider = "terraform"
+	name = "Cognito User Pool Domain"
+	type = "cognitoUserPoolDomain"
+	morpheusType = "accountResource"
+	resourceType = "cognitoUserPoolDomain"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_cur_report_definition" {
+	code = "terraform.aws.aws_cur_report_definition"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_cur_report_definition"
+	iacType = "aws_cur_report_definition"
+	iacProvider = "terraform"
+	name = "Cur Report Definition"
+	type = "curReportDefinition"
+	morpheusType = "accountResource"
+	resourceType = "curReportDefinition"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_devicefarm_project" {
+	code = "terraform.aws.aws_devicefarm_project"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_devicefarm_project"
+	iacType = "aws_devicefarm_project"
+	iacProvider = "terraform"
+	name = "Devicefarm Project"
+	type = "devicefarmProject"
+	morpheusType = "accountResource"
+	resourceType = "devicefarmProject"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_ecr_lifecycle_policy" {
+	code = "terraform.aws.aws_ecr_lifecycle_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_ecr_lifecycle_policy"
+	iacType = "aws_ecr_lifecycle_policy"
+	iacProvider = "terraform"
+	name = "Ecr Lifecycle Policy"
+	type = "ecrLifecyclePolicy"
+	morpheusType = "accountResource"
+	resourceType = "ecrLifecyclePolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_ecr_repository" {
+	code = "terraform.aws.aws_ecr_repository"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_ecr_repository"
+	iacType = "aws_ecr_repository"
+	iacProvider = "terraform"
+	name = "Ecr Repository"
+	type = "ecrRepository"
+	morpheusType = "accountResource"
+	resourceType = "ecrRepository"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_ecr_repository_policy" {
+	code = "terraform.aws.aws_ecr_repository_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_ecr_repository_policy"
+	iacType = "aws_ecr_repository_policy"
+	iacProvider = "terraform"
+	name = "Ecr Repository Policy"
+	type = "ecrRepositoryPolicy"
+	morpheusType = "accountResource"
+	resourceType = "ecrRepositoryPolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_elastictranscoder_pipeline" {
+	code = "terraform.aws.aws_elastictranscoder_pipeline"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_elastictranscoder_pipeline"
+	iacType = "aws_elastictranscoder_pipeline"
+	iacProvider = "terraform"
+	name = "Elastictranscoder Pipeline"
+	type = "elastictranscoderPipeline"
+	morpheusType = "accountResource"
+	resourceType = "elastictranscoderPipeline"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_elastictranscoder_preset" {
+	code = "terraform.aws.aws_elastictranscoder_preset"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_elastictranscoder_preset"
+	iacType = "aws_elastictranscoder_preset"
+	iacProvider = "terraform"
+	name = "Elastictranscoder Preset"
+	type = "elastictranscoderPreset"
+	morpheusType = "accountResource"
+	resourceType = "elastictranscoderPreset"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_gamelift_alias" {
+	code = "terraform.aws.aws_gamelift_alias"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_gamelift_alias"
+	iacType = "aws_gamelift_alias"
+	iacProvider = "terraform"
+	name = "Gamelift Alias"
+	type = "gameliftAlias"
+	morpheusType = "accountResource"
+	resourceType = "gameliftAlias"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_gamelift_build" {
+	code = "terraform.aws.aws_gamelift_build"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_gamelift_build"
+	iacType = "aws_gamelift_build"
+	iacProvider = "terraform"
+	name = "Gamelift Build"
+	type = "gameliftBuild"
+	morpheusType = "accountResource"
+	resourceType = "gameliftBuild"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_gamelift_fleet" {
+	code = "terraform.aws.aws_gamelift_fleet"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_gamelift_fleet"
+	iacType = "aws_gamelift_fleet"
+	iacProvider = "terraform"
+	name = "Gamelift Fleet"
+	type = "gameliftFleet"
+	morpheusType = "accountResource"
+	resourceType = "gameliftFleet"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_gamelift_game_session_queue" {
+	code = "terraform.aws.aws_gamelift_game_session_queue"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_gamelift_game_session_queue"
+	iacType = "aws_gamelift_game_session_queue"
+	iacProvider = "terraform"
+	name = "Gamelift Game Session Queue"
+	type = "gameliftGameSessionQueue"
+	morpheusType = "accountResource"
+	resourceType = "gameliftGameSessionQueue"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_globalaccelerator_accelerator" {
+	code = "terraform.aws.aws_globalaccelerator_accelerator"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_globalaccelerator_accelerator"
+	iacType = "aws_globalaccelerator_accelerator"
+	iacProvider = "terraform"
+	name = "Globalaccelerator Accelerator"
+	type = "globalacceleratorAccelerator"
+	morpheusType = "accountResource"
+	resourceType = "globalacceleratorAccelerator"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_globalaccelerator_endpoint_group" {
+	code = "terraform.aws.aws_globalaccelerator_endpoint_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_globalaccelerator_endpoint_group"
+	iacType = "aws_globalaccelerator_endpoint_group"
+	iacProvider = "terraform"
+	name = "Globalaccelerator Endpoint Group"
+	type = "globalacceleratorEndpointGroup"
+	morpheusType = "accountResource"
+	resourceType = "globalacceleratorEndpointGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_globalaccelerator_listener" {
+	code = "terraform.aws.aws_globalaccelerator_listener"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_globalaccelerator_listener"
+	iacType = "aws_globalaccelerator_listener"
+	iacProvider = "terraform"
+	name = "Globalaccelerator Listener"
+	type = "globalacceleratorListener"
+	morpheusType = "accountResource"
+	resourceType = "globalacceleratorListener"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iam_access_key" {
+	code = "terraform.aws.aws_iam_access_key"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iam_access_key"
+	iacType = "aws_iam_access_key"
+	iacProvider = "terraform"
+	name = "Iam Access Key"
+	type = "iamAccessKey"
+	morpheusType = "accountResource"
+	resourceType = "iamAccessKey"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iam_account_alias" {
+	code = "terraform.aws.aws_iam_account_alias"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iam_account_alias"
+	iacType = "aws_iam_account_alias"
+	iacProvider = "terraform"
+	name = "Iam Account Alias"
+	type = "iamAccountAlias"
+	morpheusType = "accountResource"
+	resourceType = "iamAccountAlias"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iam_account_password_policy" {
+	code = "terraform.aws.aws_iam_account_password_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iam_account_password_policy"
+	iacType = "aws_iam_account_password_policy"
+	iacProvider = "terraform"
+	name = "Iam Account Password Policy"
+	type = "iamAccountPasswordPolicy"
+	morpheusType = "accountResource"
+	resourceType = "iamAccountPasswordPolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iam_group" {
+	code = "terraform.aws.aws_iam_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iam_group"
+	iacType = "aws_iam_group"
+	iacProvider = "terraform"
+	name = "Iam Group"
+	type = "iamGroup"
+	morpheusType = "accountResource"
+	resourceType = "iamGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iam_group_membership" {
+	code = "terraform.aws.aws_iam_group_membership"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iam_group_membership"
+	iacType = "aws_iam_group_membership"
+	iacProvider = "terraform"
+	name = "Iam Group Membership"
+	type = "iamGroupMembership"
+	morpheusType = "accountResource"
+	resourceType = "iamGroupMembership"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iam_group_policy" {
+	code = "terraform.aws.aws_iam_group_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iam_group_policy"
+	iacType = "aws_iam_group_policy"
+	iacProvider = "terraform"
+	name = "Iam Group Policy"
+	type = "iamGroupPolicy"
+	morpheusType = "accountResource"
+	resourceType = "iamGroupPolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iam_group_policy_attachment" {
+	code = "terraform.aws.aws_iam_group_policy_attachment"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iam_group_policy_attachment"
+	iacType = "aws_iam_group_policy_attachment"
+	iacProvider = "terraform"
+	name = "Iam Group Policy Attachment"
+	type = "iamGroupPolicyAttachment"
+	morpheusType = "accountResource"
+	resourceType = "iamGroupPolicyAttachment"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iam_instance_profile" {
+	code = "terraform.aws.aws_iam_instance_profile"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iam_instance_profile"
+	iacType = "aws_iam_instance_profile"
+	iacProvider = "terraform"
+	name = "Iam Instance Profile"
+	type = "iamInstanceProfile"
+	morpheusType = "accountResource"
+	resourceType = "iamInstanceProfile"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iam_openid_connect_provider" {
+	code = "terraform.aws.aws_iam_openid_connect_provider"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iam_openid_connect_provider"
+	iacType = "aws_iam_openid_connect_provider"
+	iacProvider = "terraform"
+	name = "Iam Openid Connect Provider"
+	type = "iamOpenidConnectProvider"
+	morpheusType = "accountResource"
+	resourceType = "iamOpenidConnectProvider"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iam_policy" {
+	code = "terraform.aws.aws_iam_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iam_policy"
+	iacType = "aws_iam_policy"
+	iacProvider = "terraform"
+	name = "Iam Policy"
+	type = "iamPolicy"
+	morpheusType = "accountResource"
+	resourceType = "iamPolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iam_policy_attachment" {
+	code = "terraform.aws.aws_iam_policy_attachment"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iam_policy_attachment"
+	iacType = "aws_iam_policy_attachment"
+	iacProvider = "terraform"
+	name = "Iam Policy Attachment"
+	type = "iamPolicyAttachment"
+	morpheusType = "accountResource"
+	resourceType = "iamPolicyAttachment"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iam_role" {
+	code = "terraform.aws.aws_iam_role"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iam_role"
+	iacType = "aws_iam_role"
+	iacProvider = "terraform"
+	name = "Iam Role"
+	type = "iamRole"
+	morpheusType = "accountResource"
+	resourceType = "iamRole"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iam_role_policy" {
+	code = "terraform.aws.aws_iam_role_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iam_role_policy"
+	iacType = "aws_iam_role_policy"
+	iacProvider = "terraform"
+	name = "Iam Role Policy"
+	type = "iamRolePolicy"
+	morpheusType = "accountResource"
+	resourceType = "iamRolePolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iam_role_policy_attachment" {
+	code = "terraform.aws.aws_iam_role_policy_attachment"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iam_role_policy_attachment"
+	iacType = "aws_iam_role_policy_attachment"
+	iacProvider = "terraform"
+	name = "Iam Role Policy Attachment"
+	type = "iamRolePolicyAttachment"
+	morpheusType = "accountResource"
+	resourceType = "iamRolePolicyAttachment"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iam_saml_provider" {
+	code = "terraform.aws.aws_iam_saml_provider"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iam_saml_provider"
+	iacType = "aws_iam_saml_provider"
+	iacProvider = "terraform"
+	name = "Iam Saml Provider"
+	type = "iamSamlProvider"
+	morpheusType = "accountResource"
+	resourceType = "iamSamlProvider"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iam_server_certificate" {
+	code = "terraform.aws.aws_iam_server_certificate"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iam_server_certificate"
+	iacType = "aws_iam_server_certificate"
+	iacProvider = "terraform"
+	name = "Iam Server Certificate"
+	type = "iamServerCertificate"
+	morpheusType = "accountResource"
+	resourceType = "iamServerCertificate"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iam_service_linked_role" {
+	code = "terraform.aws.aws_iam_service_linked_role"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iam_service_linked_role"
+	iacType = "aws_iam_service_linked_role"
+	iacProvider = "terraform"
+	name = "Iam Service Linked Role"
+	type = "iamServiceLinkedRole"
+	morpheusType = "accountResource"
+	resourceType = "iamServiceLinkedRole"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iam_user" {
+	code = "terraform.aws.aws_iam_user"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iam_user"
+	iacType = "aws_iam_user"
+	iacProvider = "terraform"
+	name = "Iam User"
+	type = "iamUser"
+	morpheusType = "accountResource"
+	resourceType = "iamUser"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iam_user_group_membership" {
+	code = "terraform.aws.aws_iam_user_group_membership"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iam_user_group_membership"
+	iacType = "aws_iam_user_group_membership"
+	iacProvider = "terraform"
+	name = "Iam User Group Membership"
+	type = "iamUserGroupMembership"
+	morpheusType = "accountResource"
+	resourceType = "iamUserGroupMembership"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iam_user_login_profile" {
+	code = "terraform.aws.aws_iam_user_login_profile"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iam_user_login_profile"
+	iacType = "aws_iam_user_login_profile"
+	iacProvider = "terraform"
+	name = "Iam User Login Profile"
+	type = "iamUserLoginProfile"
+	morpheusType = "accountResource"
+	resourceType = "iamUserLoginProfile"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iam_user_policy" {
+	code = "terraform.aws.aws_iam_user_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iam_user_policy"
+	iacType = "aws_iam_user_policy"
+	iacProvider = "terraform"
+	name = "Iam User Policy"
+	type = "iamUserPolicy"
+	morpheusType = "accountResource"
+	resourceType = "iamUserPolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iam_user_policy_attachment" {
+	code = "terraform.aws.aws_iam_user_policy_attachment"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iam_user_policy_attachment"
+	iacType = "aws_iam_user_policy_attachment"
+	iacProvider = "terraform"
+	name = "Iam User Policy Attachment"
+	type = "iamUserPolicyAttachment"
+	morpheusType = "accountResource"
+	resourceType = "iamUserPolicyAttachment"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iam_user_ssh_key" {
+	code = "terraform.aws.aws_iam_user_ssh_key"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iam_user_ssh_key"
+	iacType = "aws_iam_user_ssh_key"
+	iacProvider = "terraform"
+	name = "Iam User Ssh Key"
+	type = "iamUserSshKey"
+	morpheusType = "accountResource"
+	resourceType = "iamUserSshKey"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iot_certificate" {
+	code = "terraform.aws.aws_iot_certificate"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iot_certificate"
+	iacType = "aws_iot_certificate"
+	iacProvider = "terraform"
+	name = "Iot Certificate"
+	type = "iotCertificate"
+	morpheusType = "accountResource"
+	resourceType = "iotCertificate"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iot_policy" {
+	code = "terraform.aws.aws_iot_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iot_policy"
+	iacType = "aws_iot_policy"
+	iacProvider = "terraform"
+	name = "Iot Policy"
+	type = "iotPolicy"
+	morpheusType = "accountResource"
+	resourceType = "iotPolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iot_policy_attachment" {
+	code = "terraform.aws.aws_iot_policy_attachment"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iot_policy_attachment"
+	iacType = "aws_iot_policy_attachment"
+	iacProvider = "terraform"
+	name = "Iot Policy Attachment"
+	type = "iotPolicyAttachment"
+	morpheusType = "accountResource"
+	resourceType = "iotPolicyAttachment"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iot_topic_rule" {
+	code = "terraform.aws.aws_iot_topic_rule"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iot_topic_rule"
+	iacType = "aws_iot_topic_rule"
+	iacProvider = "terraform"
+	name = "Iot Topic Rule"
+	type = "iotTopicRule"
+	morpheusType = "accountResource"
+	resourceType = "iotTopicRule"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iot_thing" {
+	code = "terraform.aws.aws_iot_thing"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iot_thing"
+	iacType = "aws_iot_thing"
+	iacProvider = "terraform"
+	name = "Iot Thing"
+	type = "iotThing"
+	morpheusType = "accountResource"
+	resourceType = "iotThing"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iot_thing_principal_attachment" {
+	code = "terraform.aws.aws_iot_thing_principal_attachment"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iot_thing_principal_attachment"
+	iacType = "aws_iot_thing_principal_attachment"
+	iacProvider = "terraform"
+	name = "Iot Thing Principal Attachment"
+	type = "iotThingPrincipalAttachment"
+	morpheusType = "accountResource"
+	resourceType = "iotThingPrincipalAttachment"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iot_thing_type" {
+	code = "terraform.aws.aws_iot_thing_type"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iot_thing_type"
+	iacType = "aws_iot_thing_type"
+	iacProvider = "terraform"
+	name = "Iot Thing Type"
+	type = "iotThingType"
+	morpheusType = "accountResource"
+	resourceType = "iotThingType"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_iot_role_alias" {
+	code = "terraform.aws.aws_iot_role_alias"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_iot_role_alias"
+	iacType = "aws_iot_role_alias"
+	iacProvider = "terraform"
+	name = "Iot Role Alias"
+	type = "iotRoleAlias"
+	morpheusType = "accountResource"
+	resourceType = "iotRoleAlias"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_inspector_assessment_target" {
+	code = "terraform.aws.aws_inspector_assessment_target"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_inspector_assessment_target"
+	iacType = "aws_inspector_assessment_target"
+	iacProvider = "terraform"
+	name = "Inspector Assessment Target"
+	type = "inspectorAssessmentTarget"
+	morpheusType = "accountResource"
+	resourceType = "inspectorAssessmentTarget"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_inspector_assessment_template" {
+	code = "terraform.aws.aws_inspector_assessment_template"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_inspector_assessment_template"
+	iacType = "aws_inspector_assessment_template"
+	iacProvider = "terraform"
+	name = "Inspector Assessment Template"
+	type = "inspectorAssessmentTemplate"
+	morpheusType = "accountResource"
+	resourceType = "inspectorAssessmentTemplate"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_inspector_resource_group" {
+	code = "terraform.aws.aws_inspector_resource_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_inspector_resource_group"
+	iacType = "aws_inspector_resource_group"
+	iacProvider = "terraform"
+	name = "Inspector Resource Group"
+	type = "inspectorResourceGroup"
+	morpheusType = "accountResource"
+	resourceType = "inspectorResourceGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_kinesis_analytics_application" {
+	code = "terraform.aws.aws_kinesis_analytics_application"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_kinesis_analytics_application"
+	iacType = "aws_kinesis_analytics_application"
+	iacProvider = "terraform"
+	name = "Kinesis Analytics Application"
+	type = "kinesisAnalyticsApplication"
+	morpheusType = "accountResource"
+	resourceType = "kinesisAnalyticsApplication"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-kinesis"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_kinesis_stream" {
+	code = "terraform.aws.aws_kinesis_stream"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_kinesis_stream"
+	iacType = "aws_kinesis_stream"
+	iacProvider = "terraform"
+	name = "Kinesis Stream"
+	type = "kinesisStream"
+	morpheusType = "accountResource"
+	resourceType = "kinesisStream"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-kinesis"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_kinesis_firehose_delivery_stream" {
+	code = "terraform.aws.aws_kinesis_firehose_delivery_stream"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_kinesis_firehose_delivery_stream"
+	iacType = "aws_kinesis_firehose_delivery_stream"
+	iacProvider = "terraform"
+	name = "Kinesis Firehose Delivery Stream"
+	type = "kinesisFirehoseDeliveryStream"
+	morpheusType = "accountResource"
+	resourceType = "kinesisFirehoseDeliveryStream"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-kinesis"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_kinesis_video_stream" {
+	code = "terraform.aws.aws_kinesis_video_stream"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_kinesis_video_stream"
+	iacType = "aws_kinesis_video_stream"
+	iacProvider = "terraform"
+	name = "Kinesis Video Stream"
+	type = "kinesisVideoStream"
+	morpheusType = "accountResource"
+	resourceType = "kinesisVideoStream"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-kinesis"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_kms_alias" {
+	code = "terraform.aws.aws_kms_alias"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_kms_alias"
+	iacType = "aws_kms_alias"
+	iacProvider = "terraform"
+	name = "Kms Alias"
+	type = "kmsAlias"
+	morpheusType = "accountResource"
+	resourceType = "kmsAlias"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_kms_external_key" {
+	code = "terraform.aws.aws_kms_external_key"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_kms_external_key"
+	iacType = "aws_kms_external_key"
+	iacProvider = "terraform"
+	name = "Kms External Key"
+	type = "kmsExternalKey"
+	morpheusType = "accountResource"
+	resourceType = "kmsExternalKey"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_kms_grant" {
+	code = "terraform.aws.aws_kms_grant"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_kms_grant"
+	iacType = "aws_kms_grant"
+	iacProvider = "terraform"
+	name = "Kms Grant"
+	type = "kmsGrant"
+	morpheusType = "accountResource"
+	resourceType = "kmsGrant"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_kms_ciphertext" {
+	code = "terraform.aws.aws_kms_ciphertext"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_kms_ciphertext"
+	iacType = "aws_kms_ciphertext"
+	iacProvider = "terraform"
+	name = "Kms Ciphertext"
+	type = "kmsCiphertext"
+	morpheusType = "accountResource"
+	resourceType = "kmsCiphertext"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_kms_key" {
+	code = "terraform.aws.aws_kms_key"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_kms_key"
+	iacType = "aws_kms_key"
+	iacProvider = "terraform"
+	name = "Kms Key"
+	type = "kmsKey"
+	morpheusType = "accountResource"
+	resourceType = "kmsKey"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_licensemanager_association" {
+	code = "terraform.aws.aws_licensemanager_association"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_licensemanager_association"
+	iacType = "aws_licensemanager_association"
+	iacProvider = "terraform"
+	name = "Licensemanager Association"
+	type = "licensemanagerAssociation"
+	morpheusType = "accountResource"
+	resourceType = "licensemanagerAssociation"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_licensemanager_license_configuration" {
+	code = "terraform.aws.aws_licensemanager_license_configuration"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_licensemanager_license_configuration"
+	iacType = "aws_licensemanager_license_configuration"
+	iacProvider = "terraform"
+	name = "Licensemanager License Configuration"
+	type = "licensemanagerLicenseConfiguration"
+	morpheusType = "accountResource"
+	resourceType = "licensemanagerLicenseConfiguration"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_macie_member_account_association" {
+	code = "terraform.aws.aws_macie_member_account_association"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_macie_member_account_association"
+	iacType = "aws_macie_member_account_association"
+	iacProvider = "terraform"
+	name = "Macie Member Account Association"
+	type = "macieMemberAccountAssociation"
+	morpheusType = "accountResource"
+	resourceType = "macieMemberAccountAssociation"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_macie_s3_bucket_association" {
+	code = "terraform.aws.aws_macie_s3_bucket_association"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_macie_s3_bucket_association"
+	iacType = "aws_macie_s3_bucket_association"
+	iacProvider = "terraform"
+	name = "Macie S3 Bucket Association"
+	type = "macieS3BucketAssociation"
+	morpheusType = "accountResource"
+	resourceType = "macieS3BucketAssociation"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_media_convert_queue" {
+	code = "terraform.aws.aws_media_convert_queue"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_media_convert_queue"
+	iacType = "aws_media_convert_queue"
+	iacProvider = "terraform"
+	name = "Media Convert Queue"
+	type = "mediaConvertQueue"
+	morpheusType = "accountResource"
+	resourceType = "mediaConvertQueue"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_media_package_channel" {
+	code = "terraform.aws.aws_media_package_channel"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_media_package_channel"
+	iacType = "aws_media_package_channel"
+	iacProvider = "terraform"
+	name = "Media Package Channel"
+	type = "mediaPackageChannel"
+	morpheusType = "accountResource"
+	resourceType = "mediaPackageChannel"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_media_store_container" {
+	code = "terraform.aws.aws_media_store_container"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_media_store_container"
+	iacType = "aws_media_store_container"
+	iacProvider = "terraform"
+	name = "Media Store Container"
+	type = "mediaStoreContainer"
+	morpheusType = "accountResource"
+	resourceType = "mediaStoreContainer"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_media_store_container_policy" {
+	code = "terraform.aws.aws_media_store_container_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_media_store_container_policy"
+	iacType = "aws_media_store_container_policy"
+	iacProvider = "terraform"
+	name = "Media Store Container Policy"
+	type = "mediaStoreContainerPolicy"
+	morpheusType = "accountResource"
+	resourceType = "mediaStoreContainerPolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_organizations_account" {
+	code = "terraform.aws.aws_organizations_account"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_organizations_account"
+	iacType = "aws_organizations_account"
+	iacProvider = "terraform"
+	name = "Organizations Account"
+	type = "organizationsAccount"
+	morpheusType = "accountResource"
+	resourceType = "organizationsAccount"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_organizations_organization" {
+	code = "terraform.aws.aws_organizations_organization"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_organizations_organization"
+	iacType = "aws_organizations_organization"
+	iacProvider = "terraform"
+	name = "Organizations Organization"
+	type = "organizationsOrganization"
+	morpheusType = "accountResource"
+	resourceType = "organizationsOrganization"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_organizations_organizational_unit" {
+	code = "terraform.aws.aws_organizations_organizational_unit"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_organizations_organizational_unit"
+	iacType = "aws_organizations_organizational_unit"
+	iacProvider = "terraform"
+	name = "Organizations Organizational Unit"
+	type = "organizationsOrganizationalUnit"
+	morpheusType = "accountResource"
+	resourceType = "organizationsOrganizationalUnit"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_organizations_policy" {
+	code = "terraform.aws.aws_organizations_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_organizations_policy"
+	iacType = "aws_organizations_policy"
+	iacProvider = "terraform"
+	name = "Organizations Policy"
+	type = "organizationsPolicy"
+	morpheusType = "accountResource"
+	resourceType = "organizationsPolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_organizations_policy_attachment" {
+	code = "terraform.aws.aws_organizations_policy_attachment"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_organizations_policy_attachment"
+	iacType = "aws_organizations_policy_attachment"
+	iacProvider = "terraform"
+	name = "Organizations Policy Attachment"
+	type = "organizationsPolicyAttachment"
+	morpheusType = "accountResource"
+	resourceType = "organizationsPolicyAttachment"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_pinpoint_app" {
+	code = "terraform.aws.aws_pinpoint_app"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_pinpoint_app"
+	iacType = "aws_pinpoint_app"
+	iacProvider = "terraform"
+	name = "Pinpoint App"
+	type = "pinpointApp"
+	morpheusType = "accountResource"
+	resourceType = "pinpointApp"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_pinpoint_adm_channel" {
+	code = "terraform.aws.aws_pinpoint_adm_channel"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_pinpoint_adm_channel"
+	iacType = "aws_pinpoint_adm_channel"
+	iacProvider = "terraform"
+	name = "Pinpoint Adm Channel"
+	type = "pinpointAdmChannel"
+	morpheusType = "accountResource"
+	resourceType = "pinpointAdmChannel"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_pinpoint_apns_channel" {
+	code = "terraform.aws.aws_pinpoint_apns_channel"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_pinpoint_apns_channel"
+	iacType = "aws_pinpoint_apns_channel"
+	iacProvider = "terraform"
+	name = "Pinpoint Apns Channel"
+	type = "pinpointApnsChannel"
+	morpheusType = "accountResource"
+	resourceType = "pinpointApnsChannel"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_pinpoint_apns_sandbox_channel" {
+	code = "terraform.aws.aws_pinpoint_apns_sandbox_channel"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_pinpoint_apns_sandbox_channel"
+	iacType = "aws_pinpoint_apns_sandbox_channel"
+	iacProvider = "terraform"
+	name = "Pinpoint Apns Sandbox Channel"
+	type = "pinpointApnsSandboxChannel"
+	morpheusType = "accountResource"
+	resourceType = "pinpointApnsSandboxChannel"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_pinpoint_apns_voip_channel" {
+	code = "terraform.aws.aws_pinpoint_apns_voip_channel"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_pinpoint_apns_voip_channel"
+	iacType = "aws_pinpoint_apns_voip_channel"
+	iacProvider = "terraform"
+	name = "Pinpoint Apns Voip Channel"
+	type = "pinpointApnsVoipChannel"
+	morpheusType = "accountResource"
+	resourceType = "pinpointApnsVoipChannel"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_pinpoint_apns_voip_sandbox_channel" {
+	code = "terraform.aws.aws_pinpoint_apns_voip_sandbox_channel"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_pinpoint_apns_voip_sandbox_channel"
+	iacType = "aws_pinpoint_apns_voip_sandbox_channel"
+	iacProvider = "terraform"
+	name = "Pinpoint Apns Voip Sandbox Channel"
+	type = "pinpointApnsVoipSandboxChannel"
+	morpheusType = "accountResource"
+	resourceType = "pinpointApnsVoipSandboxChannel"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_pinpoint_baidu_channel" {
+	code = "terraform.aws.aws_pinpoint_baidu_channel"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_pinpoint_baidu_channel"
+	iacType = "aws_pinpoint_baidu_channel"
+	iacProvider = "terraform"
+	name = "Pinpoint Baidu Channel"
+	type = "pinpointBaiduChannel"
+	morpheusType = "accountResource"
+	resourceType = "pinpointBaiduChannel"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_pinpoint_email_channel" {
+	code = "terraform.aws.aws_pinpoint_email_channel"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_pinpoint_email_channel"
+	iacType = "aws_pinpoint_email_channel"
+	iacProvider = "terraform"
+	name = "Pinpoint Email Channel"
+	type = "pinpointEmailChannel"
+	morpheusType = "accountResource"
+	resourceType = "pinpointEmailChannel"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_pinpoint_event_stream" {
+	code = "terraform.aws.aws_pinpoint_event_stream"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_pinpoint_event_stream"
+	iacType = "aws_pinpoint_event_stream"
+	iacProvider = "terraform"
+	name = "Pinpoint Event Stream"
+	type = "pinpointEventStream"
+	morpheusType = "accountResource"
+	resourceType = "pinpointEventStream"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_pinpoint_gcm_channel" {
+	code = "terraform.aws.aws_pinpoint_gcm_channel"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_pinpoint_gcm_channel"
+	iacType = "aws_pinpoint_gcm_channel"
+	iacProvider = "terraform"
+	name = "Pinpoint Gcm Channel"
+	type = "pinpointGcmChannel"
+	morpheusType = "accountResource"
+	resourceType = "pinpointGcmChannel"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_pinpoint_sms_channel" {
+	code = "terraform.aws.aws_pinpoint_sms_channel"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_pinpoint_sms_channel"
+	iacType = "aws_pinpoint_sms_channel"
+	iacProvider = "terraform"
+	name = "Pinpoint Sms Channel"
+	type = "pinpointSmsChannel"
+	morpheusType = "accountResource"
+	resourceType = "pinpointSmsChannel"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_quicksight_group" {
+	code = "terraform.aws.aws_quicksight_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_quicksight_group"
+	iacType = "aws_quicksight_group"
+	iacProvider = "terraform"
+	name = "Quicksight Group"
+	type = "quicksightGroup"
+	morpheusType = "accountResource"
+	resourceType = "quicksightGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-quicksight"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_quicksight_user" {
+	code = "terraform.aws.aws_quicksight_user"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_quicksight_user"
+	iacType = "aws_quicksight_user"
+	iacProvider = "terraform"
+	name = "Quicksight User"
+	type = "quicksightUser"
+	morpheusType = "accountResource"
+	resourceType = "quicksightUser"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-quicksight"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_ram_principal_association" {
+	code = "terraform.aws.aws_ram_principal_association"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_ram_principal_association"
+	iacType = "aws_ram_principal_association"
+	iacProvider = "terraform"
+	name = "Ram Principal Association"
+	type = "ramPrincipalAssociation"
+	morpheusType = "accountResource"
+	resourceType = "ramPrincipalAssociation"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_ram_resource_association" {
+	code = "terraform.aws.aws_ram_resource_association"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_ram_resource_association"
+	iacType = "aws_ram_resource_association"
+	iacProvider = "terraform"
+	name = "Ram Resource Association"
+	type = "ramResourceAssociation"
+	morpheusType = "accountResource"
+	resourceType = "ramResourceAssociation"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_ram_resource_share" {
+	code = "terraform.aws.aws_ram_resource_share"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_ram_resource_share"
+	iacType = "aws_ram_resource_share"
+	iacProvider = "terraform"
+	name = "Ram Resource Share"
+	type = "ramResourceShare"
+	morpheusType = "accountResource"
+	resourceType = "ramResourceShare"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_ram_resource_share_accepter" {
+	code = "terraform.aws.aws_ram_resource_share_accepter"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_ram_resource_share_accepter"
+	iacType = "aws_ram_resource_share_accepter"
+	iacProvider = "terraform"
+	name = "Ram Resource Share Accepter"
+	type = "ramResourceShareAccepter"
+	morpheusType = "accountResource"
+	resourceType = "ramResourceShareAccepter"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_resourcegroups_group" {
+	code = "terraform.aws.aws_resourcegroups_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_resourcegroups_group"
+	iacType = "aws_resourcegroups_group"
+	iacProvider = "terraform"
+	name = "Resourcegroups Group"
+	type = "resourcegroupsGroup"
+	morpheusType = "accountResource"
+	resourceType = "resourcegroupsGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_sagemaker_endpoint" {
+	code = "terraform.aws.aws_sagemaker_endpoint"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_sagemaker_endpoint"
+	iacType = "aws_sagemaker_endpoint"
+	iacProvider = "terraform"
+	name = "Sagemaker Endpoint"
+	type = "sagemakerEndpoint"
+	morpheusType = "accountResource"
+	resourceType = "sagemakerEndpoint"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_sagemaker_endpoint_configuration" {
+	code = "terraform.aws.aws_sagemaker_endpoint_configuration"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_sagemaker_endpoint_configuration"
+	iacType = "aws_sagemaker_endpoint_configuration"
+	iacProvider = "terraform"
+	name = "Sagemaker Endpoint Configuration"
+	type = "sagemakerEndpointConfiguration"
+	morpheusType = "accountResource"
+	resourceType = "sagemakerEndpointConfiguration"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_sagemaker_model" {
+	code = "terraform.aws.aws_sagemaker_model"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_sagemaker_model"
+	iacType = "aws_sagemaker_model"
+	iacProvider = "terraform"
+	name = "Sagemaker Model"
+	type = "sagemakerModel"
+	morpheusType = "accountResource"
+	resourceType = "sagemakerModel"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_sagemaker_notebook_instance" {
+	code = "terraform.aws.aws_sagemaker_notebook_instance"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_sagemaker_notebook_instance"
+	iacType = "aws_sagemaker_notebook_instance"
+	iacProvider = "terraform"
+	name = "Sagemaker Notebook Instance"
+	type = "sagemakerNotebookInstance"
+	morpheusType = "accountResource"
+	resourceType = "sagemakerNotebookInstance"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_sagemaker_notebook_instance_lifecycle_configuration" {
+	code = "terraform.aws.aws_sagemaker_notebook_instance_lifecycle_configuration"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_sagemaker_notebook_instance_lifecycle_configuration"
+	iacType = "aws_sagemaker_notebook_instance_lifecycle_configuration"
+	iacProvider = "terraform"
+	name = "Sagemaker Notebook Instance Lifecycle Configuration"
+	type = "sagemakerNotebookInstanceLifecycleConfiguration"
+	morpheusType = "accountResource"
+	resourceType = "sagemakerNotebookInstanceLifecycleConfiguration"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_secretsmanager_secret" {
+	code = "terraform.aws.aws_secretsmanager_secret"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_secretsmanager_secret"
+	iacType = "aws_secretsmanager_secret"
+	iacProvider = "terraform"
+	name = "Secretsmanager Secret"
+	type = "secretsmanagerSecret"
+	morpheusType = "accountResource"
+	resourceType = "secretsmanagerSecret"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-secrets-manager"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_secretsmanager_secret_version" {
+	code = "terraform.aws.aws_secretsmanager_secret_version"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_secretsmanager_secret_version"
+	iacType = "aws_secretsmanager_secret_version"
+	iacProvider = "terraform"
+	name = "Secretsmanager Secret Version"
+	type = "secretsmanagerSecretVersion"
+	morpheusType = "accountResource"
+	resourceType = "secretsmanagerSecretVersion"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-secrets-manager"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_securityhub_account" {
+	code = "terraform.aws.aws_securityhub_account"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_securityhub_account"
+	iacType = "aws_securityhub_account"
+	iacProvider = "terraform"
+	name = "Securityhub Account"
+	type = "securityhubAccount"
+	morpheusType = "accountResource"
+	resourceType = "securityhubAccount"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_securityhub_member" {
+	code = "terraform.aws.aws_securityhub_member"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_securityhub_member"
+	iacType = "aws_securityhub_member"
+	iacProvider = "terraform"
+	name = "Securityhub Member"
+	type = "securityhubMember"
+	morpheusType = "accountResource"
+	resourceType = "securityhubMember"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_securityhub_product_subscription" {
+	code = "terraform.aws.aws_securityhub_product_subscription"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_securityhub_product_subscription"
+	iacType = "aws_securityhub_product_subscription"
+	iacProvider = "terraform"
+	name = "Securityhub Product Subscription"
+	type = "securityhubProductSubscription"
+	morpheusType = "accountResource"
+	resourceType = "securityhubProductSubscription"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_securityhub_standards_subscription" {
+	code = "terraform.aws.aws_securityhub_standards_subscription"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_securityhub_standards_subscription"
+	iacType = "aws_securityhub_standards_subscription"
+	iacProvider = "terraform"
+	name = "Securityhub Standards Subscription"
+	type = "securityhubStandardsSubscription"
+	morpheusType = "accountResource"
+	resourceType = "securityhubStandardsSubscription"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_swf_domain" {
+	code = "terraform.aws.aws_swf_domain"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_swf_domain"
+	iacType = "aws_swf_domain"
+	iacProvider = "terraform"
+	name = "Swf Domain"
+	type = "swfDomain"
+	morpheusType = "accountResource"
+	resourceType = "swfDomain"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_transfer_server" {
+	code = "terraform.aws.aws_transfer_server"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_transfer_server"
+	iacType = "aws_transfer_server"
+	iacProvider = "terraform"
+	name = "Transfer Server"
+	type = "transferServer"
+	morpheusType = "accountResource"
+	resourceType = "transferServer"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_transfer_ssh_key" {
+	code = "terraform.aws.aws_transfer_ssh_key"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_transfer_ssh_key"
+	iacType = "aws_transfer_ssh_key"
+	iacProvider = "terraform"
+	name = "Transfer Ssh Key"
+	type = "transferSshKey"
+	morpheusType = "accountResource"
+	resourceType = "transferSshKey"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_transfer_user" {
+	code = "terraform.aws.aws_transfer_user"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_transfer_user"
+	iacType = "aws_transfer_user"
+	iacProvider = "terraform"
+	name = "Transfer User"
+	type = "transferUser"
+	morpheusType = "accountResource"
+	resourceType = "transferUser"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_worklink_fleet" {
+	code = "terraform.aws.aws_worklink_fleet"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_worklink_fleet"
+	iacType = "aws_worklink_fleet"
+	iacProvider = "terraform"
+	name = "Worklink Fleet"
+	type = "worklinkFleet"
+	morpheusType = "accountResource"
+	resourceType = "worklinkFleet"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_worklink_website_certificate_authority_association" {
+	code = "terraform.aws.aws_worklink_website_certificate_authority_association"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_worklink_website_certificate_authority_association"
+	iacType = "aws_worklink_website_certificate_authority_association"
+	iacProvider = "terraform"
+	name = "Worklink Website Certificate Authority Association"
+	type = "worklinkWebsiteCertificateAuthorityAssociation"
+	morpheusType = "accountResource"
+	resourceType = "worklinkWebsiteCertificateAuthorityAssociation"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_workspaces_directory" {
+	code = "terraform.aws.aws_workspaces_directory"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_workspaces_directory"
+	iacType = "aws_workspaces_directory"
+	iacProvider = "terraform"
+	name = "Workspaces Directory"
+	type = "workspacesDirectory"
+	morpheusType = "accountResource"
+	resourceType = "workspacesDirectory"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-workspaces"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_workspaces_ip_group" {
+	code = "terraform.aws.aws_workspaces_ip_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_workspaces_ip_group"
+	iacType = "aws_workspaces_ip_group"
+	iacProvider = "terraform"
+	name = "Workspaces Ip Group"
+	type = "workspacesIpGroup"
+	morpheusType = "accountResource"
+	resourceType = "workspacesIpGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-workspaces"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_xray_sampling_rule" {
+	code = "terraform.aws.aws_xray_sampling_rule"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_xray_sampling_rule"
+	iacType = "aws_xray_sampling_rule"
+	iacProvider = "terraform"
+	name = "Xray Sampling Rule"
+	type = "xraySamplingRule"
+	morpheusType = "accountResource"
+	resourceType = "xraySamplingRule"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+

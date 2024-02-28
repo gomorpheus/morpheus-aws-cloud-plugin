@@ -33,6 +33,7 @@ import com.morpheusdata.aws.sync.VpcPeeringConnectionSync
 import com.morpheusdata.aws.sync.VpnGatewaySync
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.data.DataQuery
+import com.morpheusdata.core.providers.IacResourceMappingProvider
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.core.backup.AbstractBackupProvider
 import com.morpheusdata.core.providers.CloudProvider
@@ -944,6 +945,10 @@ class AWSCloudProvider implements CloudProvider {
 
 	EC2ProvisionProvider ec2ProvisionProvider() {
 		this.plugin.getProviderByCode('amazon-ec2-provision-provider')
+	}
+
+	IacResourceMappingProvider getIacResourceMappingProvider() {
+		this.plugin.getProviderByCode('aws-iac-resource-mapping-provider') as AWSIacResourceMappingProvider
 	}
 
 }

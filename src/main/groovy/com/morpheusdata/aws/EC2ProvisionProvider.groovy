@@ -4,9 +4,11 @@ import com.amazonaws.services.ec2.AmazonEC2
 import com.amazonaws.services.ec2.AmazonEC2Client
 import com.morpheusdata.PrepareHostResponse
 import com.morpheusdata.aws.backup.AWSSnapshotBackupProvider
+import com.morpheusdata.aws.sync.VirtualMachineSync
 import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.AbstractProvisionProvider
 import com.morpheusdata.core.MorpheusContext
+import com.morpheusdata.core.data.DataFilter
 import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.providers.HostProvisionProvider
 import com.morpheusdata.core.providers.ProvisionProvider
@@ -15,6 +17,7 @@ import com.morpheusdata.core.providers.WorkloadProvisionProvider
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.core.util.MorpheusUtils
 import com.morpheusdata.model.Account
+import com.morpheusdata.model.AccountResource
 import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.CloudPool
 import com.morpheusdata.model.CloudRegion
@@ -50,7 +53,7 @@ import com.morpheusdata.response.ProvisionResponse
 import groovy.util.logging.Slf4j
 
 @Slf4j
-class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvisionProvider, WorkloadProvisionProvider.ResizeFacet, HostProvisionProvider.ResizeFacet, ProvisionProvider.BlockDeviceNameFacet {
+class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvisionProvider, WorkloadProvisionProvider.ResizeFacet, HostProvisionProvider.ResizeFacet, ProvisionProvider.BlockDeviceNameFacet, ProvisionProvider.IacResourceFacet {
 	AWSPlugin plugin
 	MorpheusContext morpheusContext
 
@@ -1703,6 +1706,63 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	@Override
 	String getName() {
 		'Amazon EC2'
+	}
+
+	/**
+	 * Called after an IaC instance or app is provisioned to do finalize steps
+	 *
+	 * @return either an English name of a Provider or an i18n based key that can be scanned for in a properties file.
+	 */
+	@Override
+	ServiceResponse finalizeResourceWorkload(Workload workload, AccountResource resource) {
+		ComputeServer server = workload.server
+
+		def cloud = server.cloud
+		def regionCode =  server.region?.code ?: server.resourcePool?.regionCode ?: cloud.regionCode
+
+		def amazonClient = plugin.getAmazonClient(cloud, false, regionCode)
+
+		def runConfig = [
+				amazonClient:amazonClient,
+				serverId:server.externalId,
+				name:server.name,
+				forceFetchAmazonClient: [
+						enabled        : !server.resourcePool?.regionCode, // if we don't have a region code, need to refetch the amazonClient
+						server         : server,
+						morpheusContext: morpheusContext
+				]
+		]
+
+		def serverDetails = AmazonComputeUtility.checkServerReady(runConfig)
+
+		//wait for ready
+		if(serverDetails.success) {
+			//apply tags
+			runConfig.tagList = EC2ProvisionProvider.buildMetadataTagList(server, workload, [maxNameLength: 128, maxValueLength: 256])
+			AmazonComputeUtility.applyEc2Tags(runConfig)
+			updateVirtualMachine(cloud, server, regionCode)
+			return ServiceResponse.success()
+
+		} else {
+			return ServiceResponse.error("Server not ready/does not exist")
+		}
+	}
+
+	def updateVirtualMachine(Cloud cloud, ComputeServer server, String regionCode = null) {
+		// Update a single virtual machine
+		def opts = [cloud: cloud]
+		opts.amazonClient = plugin.getAmazonClient(cloud, false, regionCode)
+		def serverResults = AmazonComputeUtility.listVpcServers(opts + [filterInstanceId: server.externalId, includeAllVPCs: true])
+		def masterItem = serverResults.serverList?.size() == 1 ? serverResults.serverList[0] : null
+		if(serverResults.success == true && masterItem) {
+			CloudRegion region = morpheusContext.async.cloud.region.find(new DataQuery().withFilters([
+					new DataFilter('regionCode', regionCode),
+					new DataFilter('cloud', cloud)
+			])).blockingGet()
+			server.status = 'running'
+			List updateList = [[masterItem: masterItem, existingItem: server]]
+			new VirtualMachineSync(this.plugin, cloud).updateMatchedVirtualMachines(updateList, region, serverResults.volumeList, 'full')
+		}
 	}
 
 	protected getWorkloadImage(AmazonEC2 amazonClient, String regionCode, Workload workload, Map opts = [:]) {

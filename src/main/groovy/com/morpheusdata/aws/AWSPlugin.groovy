@@ -41,11 +41,12 @@ class AWSPlugin extends Plugin {
 		def albProvider = new ALBLoadBalancerProvider(this, this.morpheus)
 		def elbProvider = new ELBLoadBalancerProvider(this, this.morpheus)
 		def lbOptionSourceProvider = new LoadBalancerOptionSourceProvider(this, this.morpheus)
+		def iacResourceMappingProvider = new AWSIacResourceMappingProvider(this, this.morpheus)
 
 		registerProviders(
 			albProvider, elbProvider, provisionProvider, cloudFormationProvisionProvider, cloudProvider,
 			lbOptionSourceProvider, optionSourceProvider, networkProvider, dnsProvider, scaleProvider,
-			backupProvider, rdsProvisionProvider, s3StorageProvider
+			backupProvider, rdsProvisionProvider, s3StorageProvider, iacResourceMappingProvider
 		)
 
 		cloudProviderCode = cloudProvider.code
@@ -69,7 +70,20 @@ class AWSPlugin extends Plugin {
 			// s3
 			"application.AmazonStorageVolumeTypeSeed",
 			"application.AmazonStorageServerTypeSeed",
-			"application.AmazonNetworkTypeSeed"
+			"application.AmazonNetworkTypeSeed",
+			//terraform
+			"application.TerraformAwsSeed",
+			"application.TerraformAwsApiSeed",
+			"application.TerraformAwsAppSeed",
+			"application.TerraformAwsAutomationSeed",
+			"application.TerraformAwsCodeSeed",
+			"application.TerraformAwsComputeSeed",
+			"application.TerraformAwsDatabaseSeed",
+			"application.TerraformAwsDataSeed",
+			"application.TerraformAwsMessagingSeed",
+			"application.TerraformAwsNetworkSeed",
+			"application.TerraformAwsSeed",
+			"application.TerraformAwsStorageSeed"
 
 		]
 		morpheus.services.seed.reinstallSeedData(seedsToRun) // needs to be synchronous to prevent seeds from running during plugin install
