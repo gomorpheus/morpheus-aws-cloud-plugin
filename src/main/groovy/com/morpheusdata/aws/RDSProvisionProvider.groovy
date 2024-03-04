@@ -238,7 +238,7 @@ class RDSProvisionProvider extends AbstractProvisionProvider implements Workload
         try {
             Cloud cloud = server.cloud
             VirtualImage virtualImage = server.sourceImage
-            amazonClient = getAmazonRdsClient(cloud,false, server.resourcePool.regionCode)
+            amazonClient = getAmazonRdsClient(cloud,false, server.resourcePool?.regionCode)
 
             def runConfig = buildWorkloadRunConfig(workload, workloadRequest, opts)
             runConfig.amazonClient = amazonClient

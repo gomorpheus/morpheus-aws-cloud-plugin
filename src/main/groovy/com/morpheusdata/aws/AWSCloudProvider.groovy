@@ -412,20 +412,20 @@ class AWSCloudProvider implements CloudProvider {
 		vmType.provisionTypeCode = 'amazon'
 		vmType.guestVm = true
 
-		ComputeServerType windwsVmType = new ComputeServerType()
-		windwsVmType.name = 'Amazon Windows Instance'
-		windwsVmType.code = 'amazonWindowsVm'
-		windwsVmType.nodeType = 'morpheus-windows-vm-node'
-		windwsVmType.description = 'Amazon Windows Instance'
-		windwsVmType.reconfigureSupported = true
-		windwsVmType.hasAutomation = true
-		windwsVmType.supportsConsoleKeymap = false
-		windwsVmType.platform = PlatformType.windows
-		windwsVmType.managed = true
-		windwsVmType.provisionTypeCode = 'amazon'
-		windwsVmType.guestVm = true
+		ComputeServerType windowsVmType = new ComputeServerType()
+		windowsVmType.name = 'Amazon Windows Instance'
+		windowsVmType.code = 'amazonWindowsVm'
+		windowsVmType.nodeType = 'morpheus-windows-vm-node'
+		windowsVmType.description = 'Amazon Windows Instance'
+		windowsVmType.reconfigureSupported = true
+		windowsVmType.hasAutomation = true
+		windowsVmType.supportsConsoleKeymap = false
+		windowsVmType.platform = PlatformType.windows
+		windowsVmType.managed = true
+		windowsVmType.provisionTypeCode = 'amazon'
+		windowsVmType.guestVm = true
 
-		[unmanaged, unmanagedWindows, dockerType, vmType, windwsVmType] //TODO: More types for RDS and K8s
+		[unmanaged, unmanagedWindows, dockerType, vmType, windowsVmType] //TODO: More types for RDS and K8s
 	}
 
 	@Override

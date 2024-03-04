@@ -812,7 +812,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	}
 
 	@Override
-	//TODO - AC
 	ServiceResponse<ProvisionResponse> runHost(ComputeServer server, HostRequest hostRequest, Map opts) {
 		log.debug "runHost: ${server} ${hostRequest} ${opts}"
 		AmazonEC2 amazonClient
@@ -820,7 +819,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		try {
 			Cloud cloud = server.cloud
 			VirtualImage virtualImage = server.sourceImage
-			amazonClient = plugin.getAmazonClient(cloud,false, server.resourcePool.regionCode)
+			amazonClient = plugin.getAmazonClient(cloud,false, server?.resourcePool?.regionCode)
 
 			def runConfig = buildHostRunConfig(server, hostRequest, virtualImage, amazonClient, opts)
 			runVirtualMachine(runConfig, provisionResponse, opts + [amazonClient: amazonClient])
@@ -994,7 +993,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		//runConfig.tagList = buildMetadataTagList(container, [maxNameLength: 128, maxValueLength: 256])
 		//TODO - licenses
 		//runConfig.licenses = licenseService.applyLicense(vImage, 'ComputeServer', opts.server.id, opts.server.account)?.data?.licenses
-		runConfig.virtualImageLocation = ensureVirtualImageLocation(amazonClient,server.resourcePool.regionCode,virtualImage,server.cloud)
+		runConfig.virtualImageLocation = ensureVirtualImageLocation(amazonClient,server.resourcePool?.regionCode,virtualImage,server.cloud)
 
 		log.debug("Setting snapshot image refs opts.snapshotImageRef: ${opts.snapshotImageRef},  ${opts.rootSnapshotId}")
 		if(opts.snapshotImageRef) {
