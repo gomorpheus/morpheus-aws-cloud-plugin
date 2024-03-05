@@ -1,0 +1,260 @@
+resource "account-resource-type" "terraform.aws.aws_appautoscaling_policy" {
+	code = "terraform.aws.aws_appautoscaling_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_appautoscaling_policy"
+	iacType = "aws_appautoscaling_policy"
+	iacProvider = "terraform"
+	name = "Appautoscaling Policy"
+	type = "appautoscalingPolicy"
+	morpheusType = "accountResource"
+	resourceType = "appautoscalingPolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-autoscaling"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_appautoscaling_scheduled_action" {
+	code = "terraform.aws.aws_appautoscaling_scheduled_action"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_appautoscaling_scheduled_action"
+	iacType = "aws_appautoscaling_scheduled_action"
+	iacProvider = "terraform"
+	name = "Appautoscaling Scheduled Action"
+	type = "appautoscalingScheduledAction"
+	morpheusType = "accountResource"
+	resourceType = "appautoscalingScheduledAction"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-autoscaling"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_appautoscaling_target" {
+	code = "terraform.aws.aws_appautoscaling_target"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_appautoscaling_target"
+	iacType = "aws_appautoscaling_target"
+	iacProvider = "terraform"
+	name = "Appautoscaling Target"
+	type = "appautoscalingTarget"
+	morpheusType = "accountResource"
+	resourceType = "appautoscalingTarget"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-autoscaling"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_appmesh_mesh" {
+	code = "terraform.aws.aws_appmesh_mesh"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_appmesh_mesh"
+	iacType = "aws_appmesh_mesh"
+	iacProvider = "terraform"
+	name = "Appmesh Mesh"
+	type = "appmeshMesh"
+	morpheusType = "accountResource"
+	resourceType = "appmeshMesh"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_appmesh_route" {
+	code = "terraform.aws.aws_appmesh_route"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_appmesh_route"
+	iacType = "aws_appmesh_route"
+	iacProvider = "terraform"
+	name = "Appmesh Route"
+	type = "appmeshRoute"
+	morpheusType = "accountResource"
+	resourceType = "appmeshRoute"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_appmesh_virtual_node" {
+	code = "terraform.aws.aws_appmesh_virtual_node"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_appmesh_virtual_node"
+	iacType = "aws_appmesh_virtual_node"
+	iacProvider = "terraform"
+	name = "Appmesh Virtual Node"
+	type = "appmeshVirtualNode"
+	morpheusType = "accountResource"
+	resourceType = "appmeshVirtualNode"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_appmesh_virtual_router" {
+	code = "terraform.aws.aws_appmesh_virtual_router"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_appmesh_virtual_router"
+	iacType = "aws_appmesh_virtual_router"
+	iacProvider = "terraform"
+	name = "Appmesh Virtual Router"
+	type = "appmeshVirtualRouter"
+	morpheusType = "accountResource"
+	resourceType = "appmeshVirtualRouter"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_appmesh_virtual_service" {
+	code = "terraform.aws.aws_appmesh_virtual_service"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_appmesh_virtual_service"
+	iacType = "aws_appmesh_virtual_service"
+	iacProvider = "terraform"
+	name = "Appmesh Virtual Service"
+	type = "appmeshVirtualService"
+	morpheusType = "accountResource"
+	resourceType = "appmeshVirtualService"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_appsync_datasource" {
+	code = "terraform.aws.aws_appsync_datasource"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_appsync_datasource"
+	iacType = "aws_appsync_datasource"
+	iacProvider = "terraform"
+	name = "Appsync Datasource"
+	type = "appsyncDatasource"
+	morpheusType = "accountResource"
+	resourceType = "appsyncDatasource"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-appsync"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_appsync_function" {
+	code = "terraform.aws.aws_appsync_function"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_appsync_function"
+	iacType = "aws_appsync_function"
+	iacProvider = "terraform"
+	name = "Appsync Function"
+	type = "appsyncFunction"
+	morpheusType = "accountResource"
+	resourceType = "appsyncFunction"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-appsync"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_appsync_graphql_api" {
+	code = "terraform.aws.aws_appsync_graphql_api"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_appsync_graphql_api"
+	iacType = "aws_appsync_graphql_api"
+	iacProvider = "terraform"
+	name = "Appsync Graphql Api"
+	type = "appsyncGraphqlApi"
+	morpheusType = "accountResource"
+	resourceType = "appsyncGraphqlApi"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-appsync"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_appsync_api_key" {
+	code = "terraform.aws.aws_appsync_api_key"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_appsync_api_key"
+	iacType = "aws_appsync_api_key"
+	iacProvider = "terraform"
+	name = "Appsync Api Key"
+	type = "appsyncApiKey"
+	morpheusType = "accountResource"
+	resourceType = "appsyncApiKey"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-appsync"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_appsync_resolver" {
+	code = "terraform.aws.aws_appsync_resolver"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_appsync_resolver"
+	iacType = "aws_appsync_resolver"
+	iacProvider = "terraform"
+	name = "Appsync Resolver"
+	type = "appsyncResolver"
+	morpheusType = "accountResource"
+	resourceType = "appsyncResolver"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-appsync"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+

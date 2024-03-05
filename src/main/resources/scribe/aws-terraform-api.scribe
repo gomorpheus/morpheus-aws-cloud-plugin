@@ -1,0 +1,700 @@
+resource "account-resource-type" "terraform.aws.aws_api_gateway_account" {
+	code = "terraform.aws.aws_api_gateway_account"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_api_gateway_account"
+	iacType = "aws_api_gateway_account"
+	iacProvider = "terraform"
+	name = "Api Gateway Account"
+	type = "apiGatewayAccount"
+	morpheusType = "accountResource"
+	resourceType = "apiGatewayAccount"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_api_gateway_api_key" {
+	code = "terraform.aws.aws_api_gateway_api_key"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_api_gateway_api_key"
+	iacType = "aws_api_gateway_api_key"
+	iacProvider = "terraform"
+	name = "Api Gateway Api Key"
+	type = "apiGatewayApiKey"
+	morpheusType = "accountResource"
+	resourceType = "apiGatewayApiKey"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_api_gateway_authorizer" {
+	code = "terraform.aws.aws_api_gateway_authorizer"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_api_gateway_authorizer"
+	iacType = "aws_api_gateway_authorizer"
+	iacProvider = "terraform"
+	name = "Api Gateway Authorizer"
+	type = "apiGatewayAuthorizer"
+	morpheusType = "accountResource"
+	resourceType = "apiGatewayAuthorizer"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_api_gateway_base_path_mapping" {
+	code = "terraform.aws.aws_api_gateway_base_path_mapping"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_api_gateway_base_path_mapping"
+	iacType = "aws_api_gateway_base_path_mapping"
+	iacProvider = "terraform"
+	name = "Api Gateway Base Path Mapping"
+	type = "apiGatewayBasePathMapping"
+	morpheusType = "accountResource"
+	resourceType = "apiGatewayBasePathMapping"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_api_gateway_client_certificate" {
+	code = "terraform.aws.aws_api_gateway_client_certificate"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_api_gateway_client_certificate"
+	iacType = "aws_api_gateway_client_certificate"
+	iacProvider = "terraform"
+	name = "Api Gateway Client Certificate"
+	type = "apiGatewayClientCertificate"
+	morpheusType = "accountResource"
+	resourceType = "apiGatewayClientCertificate"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_api_gateway_deployment" {
+	code = "terraform.aws.aws_api_gateway_deployment"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_api_gateway_deployment"
+	iacType = "aws_api_gateway_deployment"
+	iacProvider = "terraform"
+	name = "Api Gateway Deployment"
+	type = "apiGatewayDeployment"
+	morpheusType = "accountResource"
+	resourceType = "apiGatewayDeployment"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_api_gateway_documentation_part" {
+	code = "terraform.aws.aws_api_gateway_documentation_part"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_api_gateway_documentation_part"
+	iacType = "aws_api_gateway_documentation_part"
+	iacProvider = "terraform"
+	name = "Api Gateway Documentation Part"
+	type = "apiGatewayDocumentationPart"
+	morpheusType = "accountResource"
+	resourceType = "apiGatewayDocumentationPart"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_api_gateway_documentation_version" {
+	code = "terraform.aws.aws_api_gateway_documentation_version"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_api_gateway_documentation_version"
+	iacType = "aws_api_gateway_documentation_version"
+	iacProvider = "terraform"
+	name = "Api Gateway Documentation Version"
+	type = "apiGatewayDocumentationVersion"
+	morpheusType = "accountResource"
+	resourceType = "apiGatewayDocumentationVersion"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_api_gateway_domain_name" {
+	code = "terraform.aws.aws_api_gateway_domain_name"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_api_gateway_domain_name"
+	iacType = "aws_api_gateway_domain_name"
+	iacProvider = "terraform"
+	name = "Api Gateway Domain Name"
+	type = "apiGatewayDomainName"
+	morpheusType = "accountResource"
+	resourceType = "apiGatewayDomainName"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_api_gateway_gateway_response" {
+	code = "terraform.aws.aws_api_gateway_gateway_response"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_api_gateway_gateway_response"
+	iacType = "aws_api_gateway_gateway_response"
+	iacProvider = "terraform"
+	name = "Api Gateway Gateway Response"
+	type = "apiGatewayGatewayResponse"
+	morpheusType = "accountResource"
+	resourceType = "apiGatewayGatewayResponse"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_api_gateway_integration" {
+	code = "terraform.aws.aws_api_gateway_integration"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_api_gateway_integration"
+	iacType = "aws_api_gateway_integration"
+	iacProvider = "terraform"
+	name = "Api Gateway Integration"
+	type = "apiGatewayIntegration"
+	morpheusType = "accountResource"
+	resourceType = "apiGatewayIntegration"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_api_gateway_integration_response" {
+	code = "terraform.aws.aws_api_gateway_integration_response"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_api_gateway_integration_response"
+	iacType = "aws_api_gateway_integration_response"
+	iacProvider = "terraform"
+	name = "Api Gateway Integration Response"
+	type = "apiGatewayIntegrationResponse"
+	morpheusType = "accountResource"
+	resourceType = "apiGatewayIntegrationResponse"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_api_gateway_method" {
+	code = "terraform.aws.aws_api_gateway_method"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_api_gateway_method"
+	iacType = "aws_api_gateway_method"
+	iacProvider = "terraform"
+	name = "Api Gateway Method"
+	type = "apiGatewayMethod"
+	morpheusType = "accountResource"
+	resourceType = "apiGatewayMethod"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_api_gateway_method_response" {
+	code = "terraform.aws.aws_api_gateway_method_response"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_api_gateway_method_response"
+	iacType = "aws_api_gateway_method_response"
+	iacProvider = "terraform"
+	name = "Api Gateway Method Response"
+	type = "apiGatewayMethodResponse"
+	morpheusType = "accountResource"
+	resourceType = "apiGatewayMethodResponse"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_api_gateway_method_settings" {
+	code = "terraform.aws.aws_api_gateway_method_settings"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_api_gateway_method_settings"
+	iacType = "aws_api_gateway_method_settings"
+	iacProvider = "terraform"
+	name = "Api Gateway Method Settings"
+	type = "apiGatewayMethodSettings"
+	morpheusType = "accountResource"
+	resourceType = "apiGatewayMethodSettings"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_api_gateway_model" {
+	code = "terraform.aws.aws_api_gateway_model"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_api_gateway_model"
+	iacType = "aws_api_gateway_model"
+	iacProvider = "terraform"
+	name = "Api Gateway Model"
+	type = "apiGatewayModel"
+	morpheusType = "accountResource"
+	resourceType = "apiGatewayModel"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_api_gateway_request_validator" {
+	code = "terraform.aws.aws_api_gateway_request_validator"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_api_gateway_request_validator"
+	iacType = "aws_api_gateway_request_validator"
+	iacProvider = "terraform"
+	name = "Api Gateway Request Validator"
+	type = "apiGatewayRequestValidator"
+	morpheusType = "accountResource"
+	resourceType = "apiGatewayRequestValidator"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_api_gateway_resource" {
+	code = "terraform.aws.aws_api_gateway_resource"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_api_gateway_resource"
+	iacType = "aws_api_gateway_resource"
+	iacProvider = "terraform"
+	name = "Api Gateway Resource"
+	type = "apiGatewayResource"
+	morpheusType = "accountResource"
+	resourceType = "apiGatewayResource"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_api_gateway_rest_api" {
+	code = "terraform.aws.aws_api_gateway_rest_api"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_api_gateway_rest_api"
+	iacType = "aws_api_gateway_rest_api"
+	iacProvider = "terraform"
+	name = "Api Gateway Rest Api"
+	type = "apiGatewayRestApi"
+	morpheusType = "accountResource"
+	resourceType = "apiGatewayRestApi"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_api_gateway_stage" {
+	code = "terraform.aws.aws_api_gateway_stage"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_api_gateway_stage"
+	iacType = "aws_api_gateway_stage"
+	iacProvider = "terraform"
+	name = "Api Gateway Stage"
+	type = "apiGatewayStage"
+	morpheusType = "accountResource"
+	resourceType = "apiGatewayStage"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_api_gateway_usage_plan" {
+	code = "terraform.aws.aws_api_gateway_usage_plan"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_api_gateway_usage_plan"
+	iacType = "aws_api_gateway_usage_plan"
+	iacProvider = "terraform"
+	name = "Api Gateway Usage Plan"
+	type = "apiGatewayUsagePlan"
+	morpheusType = "accountResource"
+	resourceType = "apiGatewayUsagePlan"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_api_gateway_usage_plan_key" {
+	code = "terraform.aws.aws_api_gateway_usage_plan_key"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_api_gateway_usage_plan_key"
+	iacType = "aws_api_gateway_usage_plan_key"
+	iacProvider = "terraform"
+	name = "Api Gateway Usage Plan Key"
+	type = "apiGatewayUsagePlanKey"
+	morpheusType = "accountResource"
+	resourceType = "apiGatewayUsagePlanKey"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_api_gateway_vpc_link" {
+	code = "terraform.aws.aws_api_gateway_vpc_link"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_api_gateway_vpc_link"
+	iacType = "aws_api_gateway_vpc_link"
+	iacProvider = "terraform"
+	name = "Api Gateway Vpc Link"
+	type = "apiGatewayVpcLink"
+	morpheusType = "accountResource"
+	resourceType = "apiGatewayVpcLink"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_apigatewayv2_api" {
+	code = "terraform.aws.aws_apigatewayv2_api"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_apigatewayv2_api"
+	iacType = "aws_apigatewayv2_api"
+	iacProvider = "terraform"
+	name = "Apigatewayv2 Api"
+	type = "apigatewayv2Api"
+	morpheusType = "accountResource"
+	resourceType = "apigatewayv2Api"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_apigatewayv2_api_mapping" {
+	code = "terraform.aws.aws_apigatewayv2_api_mapping"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_apigatewayv2_api_mapping"
+	iacType = "aws_apigatewayv2_api_mapping"
+	iacProvider = "terraform"
+	name = "Apigatewayv2 Api Mapping"
+	type = "apigatewayv2ApiMapping"
+	morpheusType = "accountResource"
+	resourceType = "apigatewayv2ApiMapping"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_apigatewayv2_authorizer" {
+	code = "terraform.aws.aws_apigatewayv2_authorizer"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_apigatewayv2_authorizer"
+	iacType = "aws_apigatewayv2_authorizer"
+	iacProvider = "terraform"
+	name = "Apigatewayv2 Authorizer"
+	type = "apigatewayv2Authorizer"
+	morpheusType = "accountResource"
+	resourceType = "apigatewayv2Authorizer"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_apigatewayv2_deployment" {
+	code = "terraform.aws.aws_apigatewayv2_deployment"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_apigatewayv2_deployment"
+	iacType = "aws_apigatewayv2_deployment"
+	iacProvider = "terraform"
+	name = "Apigatewayv2 Deployment"
+	type = "apigatewayv2Deployment"
+	morpheusType = "accountResource"
+	resourceType = "apigatewayv2Deployment"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_apigatewayv2_domain_name" {
+	code = "terraform.aws.aws_apigatewayv2_domain_name"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_apigatewayv2_domain_name"
+	iacType = "aws_apigatewayv2_domain_name"
+	iacProvider = "terraform"
+	name = "Apigatewayv2 Domain Name"
+	type = "apigatewayv2DomainName"
+	morpheusType = "accountResource"
+	resourceType = "apigatewayv2DomainName"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_apigatewayv2_integration" {
+	code = "terraform.aws.aws_apigatewayv2_integration"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_apigatewayv2_integration"
+	iacType = "aws_apigatewayv2_integration"
+	iacProvider = "terraform"
+	name = "Apigatewayv2 Integration"
+	type = "apigatewayv2Integration"
+	morpheusType = "accountResource"
+	resourceType = "apigatewayv2Integration"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_apigatewayv2_integration_response" {
+	code = "terraform.aws.aws_apigatewayv2_integration_response"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_apigatewayv2_integration_response"
+	iacType = "aws_apigatewayv2_integration_response"
+	iacProvider = "terraform"
+	name = "Apigatewayv2 Integration Response"
+	type = "apigatewayv2IntegrationResponse"
+	morpheusType = "accountResource"
+	resourceType = "apigatewayv2IntegrationResponse"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_apigatewayv2_model" {
+	code = "terraform.aws.aws_apigatewayv2_model"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_apigatewayv2_model"
+	iacType = "aws_apigatewayv2_model"
+	iacProvider = "terraform"
+	name = "Apigatewayv2 Model"
+	type = "apigatewayv2Model"
+	morpheusType = "accountResource"
+	resourceType = "apigatewayv2Model"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_apigatewayv2_route" {
+	code = "terraform.aws.aws_apigatewayv2_route"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_apigatewayv2_route"
+	iacType = "aws_apigatewayv2_route"
+	iacProvider = "terraform"
+	name = "Apigatewayv2 Route"
+	type = "apigatewayv2Route"
+	morpheusType = "accountResource"
+	resourceType = "apigatewayv2Route"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_apigatewayv2_route_response" {
+	code = "terraform.aws.aws_apigatewayv2_route_response"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_apigatewayv2_route_response"
+	iacType = "aws_apigatewayv2_route_response"
+	iacProvider = "terraform"
+	name = "Apigatewayv2 Route Response"
+	type = "apigatewayv2RouteResponse"
+	morpheusType = "accountResource"
+	resourceType = "apigatewayv2RouteResponse"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_apigatewayv2_stage" {
+	code = "terraform.aws.aws_apigatewayv2_stage"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_apigatewayv2_stage"
+	iacType = "aws_apigatewayv2_stage"
+	iacProvider = "terraform"
+	name = "Apigatewayv2 Stage"
+	type = "apigatewayv2Stage"
+	morpheusType = "accountResource"
+	resourceType = "apigatewayv2Stage"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_apigatewayv2_vpc_link" {
+	code = "terraform.aws.aws_apigatewayv2_vpc_link"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_apigatewayv2_vpc_link"
+	iacType = "aws_apigatewayv2_vpc_link"
+	iacProvider = "terraform"
+	name = "Apigatewayv2 Vpc Link"
+	type = "apigatewayv2VpcLink"
+	morpheusType = "accountResource"
+	resourceType = "apigatewayv2VpcLink"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-api-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+

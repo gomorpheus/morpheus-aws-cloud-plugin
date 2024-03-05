@@ -1,0 +1,220 @@
+resource "account-resource-type" "terraform.aws.aws_codebuild_project" {
+	code = "terraform.aws.aws_codebuild_project"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_codebuild_project"
+	iacType = "aws_codebuild_project"
+	iacProvider = "terraform"
+	name = "Codebuild Project"
+	type = "codebuildProject"
+	morpheusType = "accountResource"
+	resourceType = "codebuildProject"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-codebuild"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_codebuild_source_credential" {
+	code = "terraform.aws.aws_codebuild_source_credential"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_codebuild_source_credential"
+	iacType = "aws_codebuild_source_credential"
+	iacProvider = "terraform"
+	name = "Codebuild Source Credential"
+	type = "codebuildSourceCredential"
+	morpheusType = "accountResource"
+	resourceType = "codebuildSourceCredential"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-codebuild"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_codebuild_webhook" {
+	code = "terraform.aws.aws_codebuild_webhook"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_codebuild_webhook"
+	iacType = "aws_codebuild_webhook"
+	iacProvider = "terraform"
+	name = "Codebuild Webhook"
+	type = "codebuildWebhook"
+	morpheusType = "accountResource"
+	resourceType = "codebuildWebhook"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-codebuild"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_codecommit_repository" {
+	code = "terraform.aws.aws_codecommit_repository"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_codecommit_repository"
+	iacType = "aws_codecommit_repository"
+	iacProvider = "terraform"
+	name = "Codecommit Repository"
+	type = "codecommitRepository"
+	morpheusType = "accountResource"
+	resourceType = "codecommitRepository"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-codecommit"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_codecommit_trigger" {
+	code = "terraform.aws.aws_codecommit_trigger"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_codecommit_trigger"
+	iacType = "aws_codecommit_trigger"
+	iacProvider = "terraform"
+	name = "Codecommit Trigger"
+	type = "codecommitTrigger"
+	morpheusType = "accountResource"
+	resourceType = "codecommitTrigger"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-codecommit"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_codedeploy_app" {
+	code = "terraform.aws.aws_codedeploy_app"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_codedeploy_app"
+	iacType = "aws_codedeploy_app"
+	iacProvider = "terraform"
+	name = "Codedeploy App"
+	type = "codedeployApp"
+	morpheusType = "accountResource"
+	resourceType = "codedeployApp"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-codedeploy"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_codedeploy_deployment_config" {
+	code = "terraform.aws.aws_codedeploy_deployment_config"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_codedeploy_deployment_config"
+	iacType = "aws_codedeploy_deployment_config"
+	iacProvider = "terraform"
+	name = "Codedeploy Deployment Config"
+	type = "codedeployDeploymentConfig"
+	morpheusType = "accountResource"
+	resourceType = "codedeployDeploymentConfig"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-codedeploy"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_codedeploy_deployment_group" {
+	code = "terraform.aws.aws_codedeploy_deployment_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_codedeploy_deployment_group"
+	iacType = "aws_codedeploy_deployment_group"
+	iacProvider = "terraform"
+	name = "Codedeploy Deployment Group"
+	type = "codedeployDeploymentGroup"
+	morpheusType = "accountResource"
+	resourceType = "codedeployDeploymentGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-codedeploy"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_codepipeline" {
+	code = "terraform.aws.aws_codepipeline"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_codepipeline"
+	iacType = "aws_codepipeline"
+	iacProvider = "terraform"
+	name = "Codepipeline"
+	type = "codepipeline"
+	morpheusType = "accountResource"
+	resourceType = "codepipeline"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-codepipeline"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_codepipeline_webhook" {
+	code = "terraform.aws.aws_codepipeline_webhook"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_codepipeline_webhook"
+	iacType = "aws_codepipeline_webhook"
+	iacProvider = "terraform"
+	name = "Codepipeline Webhook"
+	type = "codepipelineWebhook"
+	morpheusType = "accountResource"
+	resourceType = "codepipelineWebhook"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-codepipeline"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_codestarnotifications_notification_rule" {
+	code = "terraform.aws.aws_codestarnotifications_notification_rule"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_codestarnotifications_notification_rule"
+	iacType = "aws_codestarnotifications_notification_rule"
+	iacProvider = "terraform"
+	name = "Codestarnotifications Notification Rule"
+	type = "codestarnotificationsNotificationRule"
+	morpheusType = "accountResource"
+	resourceType = "codestarnotificationsNotificationRule"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-codestar"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+

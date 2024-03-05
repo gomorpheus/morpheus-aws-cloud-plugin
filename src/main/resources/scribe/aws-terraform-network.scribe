@@ -1,0 +1,2340 @@
+resource "account-resource-type" "terraform.aws.aws_directory_service_directory" {
+	code = "terraform.aws.aws_directory_service_directory"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_directory_service_directory"
+	iacType = "aws_directory_service_directory"
+	iacProvider = "terraform"
+	name = "Directory Service Directory"
+	type = "directoryServiceDirectory"
+	morpheusType = "accountResource"
+	resourceType = "directoryServiceDirectory"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_directory_service_conditional_forwarder" {
+	code = "terraform.aws.aws_directory_service_conditional_forwarder"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_directory_service_conditional_forwarder"
+	iacType = "aws_directory_service_conditional_forwarder"
+	iacProvider = "terraform"
+	name = "Directory Service Conditional Forwarder"
+	type = "directoryServiceConditionalForwarder"
+	morpheusType = "accountResource"
+	resourceType = "directoryServiceConditionalForwarder"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_directory_service_log_subscription" {
+	code = "terraform.aws.aws_directory_service_log_subscription"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_directory_service_log_subscription"
+	iacType = "aws_directory_service_log_subscription"
+	iacProvider = "terraform"
+	name = "Directory Service Log Subscription"
+	type = "directoryServiceLogSubscription"
+	morpheusType = "accountResource"
+	resourceType = "directoryServiceLogSubscription"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dx_bgp_peer" {
+	code = "terraform.aws.aws_dx_bgp_peer"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dx_bgp_peer"
+	iacType = "aws_dx_bgp_peer"
+	iacProvider = "terraform"
+	name = "Dx Bgp Peer"
+	type = "dxBgpPeer"
+	morpheusType = "accountResource"
+	resourceType = "dxBgpPeer"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-directconnect"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dx_connection" {
+	code = "terraform.aws.aws_dx_connection"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dx_connection"
+	iacType = "aws_dx_connection"
+	iacProvider = "terraform"
+	name = "Dx Connection"
+	type = "dxConnection"
+	morpheusType = "accountResource"
+	resourceType = "dxConnection"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-directconnect"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dx_connection_association" {
+	code = "terraform.aws.aws_dx_connection_association"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dx_connection_association"
+	iacType = "aws_dx_connection_association"
+	iacProvider = "terraform"
+	name = "Dx Connection Association"
+	type = "dxConnectionAssociation"
+	morpheusType = "accountResource"
+	resourceType = "dxConnectionAssociation"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-directconnect"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dx_gateway" {
+	code = "terraform.aws.aws_dx_gateway"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dx_gateway"
+	iacType = "aws_dx_gateway"
+	iacProvider = "terraform"
+	name = "Dx Gateway"
+	type = "dxGateway"
+	morpheusType = "accountResource"
+	resourceType = "dxGateway"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-directconnect"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dx_gateway_association" {
+	code = "terraform.aws.aws_dx_gateway_association"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dx_gateway_association"
+	iacType = "aws_dx_gateway_association"
+	iacProvider = "terraform"
+	name = "Dx Gateway Association"
+	type = "dxGatewayAssociation"
+	morpheusType = "accountResource"
+	resourceType = "dxGatewayAssociation"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-directconnect"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dx_gateway_association_proposal" {
+	code = "terraform.aws.aws_dx_gateway_association_proposal"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dx_gateway_association_proposal"
+	iacType = "aws_dx_gateway_association_proposal"
+	iacProvider = "terraform"
+	name = "Dx Gateway Association Proposal"
+	type = "dxGatewayAssociationProposal"
+	morpheusType = "accountResource"
+	resourceType = "dxGatewayAssociationProposal"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-directconnect"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dx_hosted_private_virtual_interface" {
+	code = "terraform.aws.aws_dx_hosted_private_virtual_interface"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dx_hosted_private_virtual_interface"
+	iacType = "aws_dx_hosted_private_virtual_interface"
+	iacProvider = "terraform"
+	name = "Dx Hosted Private Virtual Interface"
+	type = "dxHostedPrivateVirtualInterface"
+	morpheusType = "accountResource"
+	resourceType = "dxHostedPrivateVirtualInterface"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-directconnect"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dx_hosted_private_virtual_interface_accepter" {
+	code = "terraform.aws.aws_dx_hosted_private_virtual_interface_accepter"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dx_hosted_private_virtual_interface_accepter"
+	iacType = "aws_dx_hosted_private_virtual_interface_accepter"
+	iacProvider = "terraform"
+	name = "Dx Hosted Private Virtual Interface Accepter"
+	type = "dxHostedPrivateVirtualInterfaceAccepter"
+	morpheusType = "accountResource"
+	resourceType = "dxHostedPrivateVirtualInterfaceAccepter"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-directconnect"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dx_hosted_public_virtual_interface" {
+	code = "terraform.aws.aws_dx_hosted_public_virtual_interface"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dx_hosted_public_virtual_interface"
+	iacType = "aws_dx_hosted_public_virtual_interface"
+	iacProvider = "terraform"
+	name = "Dx Hosted Public Virtual Interface"
+	type = "dxHostedPublicVirtualInterface"
+	morpheusType = "accountResource"
+	resourceType = "dxHostedPublicVirtualInterface"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-directconnect"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dx_hosted_public_virtual_interface_accepter" {
+	code = "terraform.aws.aws_dx_hosted_public_virtual_interface_accepter"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dx_hosted_public_virtual_interface_accepter"
+	iacType = "aws_dx_hosted_public_virtual_interface_accepter"
+	iacProvider = "terraform"
+	name = "Dx Hosted Public Virtual Interface Accepter"
+	type = "dxHostedPublicVirtualInterfaceAccepter"
+	morpheusType = "accountResource"
+	resourceType = "dxHostedPublicVirtualInterfaceAccepter"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-directconnect"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dx_hosted_transit_virtual_interface" {
+	code = "terraform.aws.aws_dx_hosted_transit_virtual_interface"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dx_hosted_transit_virtual_interface"
+	iacType = "aws_dx_hosted_transit_virtual_interface"
+	iacProvider = "terraform"
+	name = "Dx Hosted Transit Virtual Interface"
+	type = "dxHostedTransitVirtualInterface"
+	morpheusType = "accountResource"
+	resourceType = "dxHostedTransitVirtualInterface"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-directconnect"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dx_hosted_transit_virtual_interface_accepter" {
+	code = "terraform.aws.aws_dx_hosted_transit_virtual_interface_accepter"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dx_hosted_transit_virtual_interface_accepter"
+	iacType = "aws_dx_hosted_transit_virtual_interface_accepter"
+	iacProvider = "terraform"
+	name = "Dx Hosted Transit Virtual Interface Accepter"
+	type = "dxHostedTransitVirtualInterfaceAccepter"
+	morpheusType = "accountResource"
+	resourceType = "dxHostedTransitVirtualInterfaceAccepter"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-directconnect"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dx_lag" {
+	code = "terraform.aws.aws_dx_lag"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dx_lag"
+	iacType = "aws_dx_lag"
+	iacProvider = "terraform"
+	name = "Dx Lag"
+	type = "dxLag"
+	morpheusType = "accountResource"
+	resourceType = "dxLag"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-directconnect"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dx_private_virtual_interface" {
+	code = "terraform.aws.aws_dx_private_virtual_interface"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dx_private_virtual_interface"
+	iacType = "aws_dx_private_virtual_interface"
+	iacProvider = "terraform"
+	name = "Dx Private Virtual Interface"
+	type = "dxPrivateVirtualInterface"
+	morpheusType = "accountResource"
+	resourceType = "dxPrivateVirtualInterface"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-directconnect"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dx_public_virtual_interface" {
+	code = "terraform.aws.aws_dx_public_virtual_interface"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dx_public_virtual_interface"
+	iacType = "aws_dx_public_virtual_interface"
+	iacProvider = "terraform"
+	name = "Dx Public Virtual Interface"
+	type = "dxPublicVirtualInterface"
+	morpheusType = "accountResource"
+	resourceType = "dxPublicVirtualInterface"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-directconnect"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dx_transit_virtual_interface" {
+	code = "terraform.aws.aws_dx_transit_virtual_interface"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dx_transit_virtual_interface"
+	iacType = "aws_dx_transit_virtual_interface"
+	iacProvider = "terraform"
+	name = "Dx Transit Virtual Interface"
+	type = "dxTransitVirtualInterface"
+	morpheusType = "accountResource"
+	resourceType = "dxTransitVirtualInterface"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-directconnect"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_app_cookie_stickiness_policy" {
+	code = "terraform.aws.aws_app_cookie_stickiness_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_app_cookie_stickiness_policy"
+	iacType = "aws_app_cookie_stickiness_policy"
+	iacProvider = "terraform"
+	name = "App Cookie Stickiness Policy"
+	type = "appCookieStickinessPolicy"
+	morpheusType = "accountResource"
+	resourceType = "appCookieStickinessPolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-elastic-load-balancing"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_elb" {
+	code = "terraform.aws.aws_elb"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_elb"
+	iacType = "aws_elb"
+	iacProvider = "terraform"
+	name = "Elb"
+	type = "elb"
+	morpheusType = "accountResource"
+	resourceType = "elb"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-elastic-load-balancing"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_elb_attachment" {
+	code = "terraform.aws.aws_elb_attachment"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_elb_attachment"
+	iacType = "aws_elb_attachment"
+	iacProvider = "terraform"
+	name = "Elb Attachment"
+	type = "elbAttachment"
+	morpheusType = "accountResource"
+	resourceType = "elbAttachment"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-elastic-load-balancing"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_lb_cookie_stickiness_policy" {
+	code = "terraform.aws.aws_lb_cookie_stickiness_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_lb_cookie_stickiness_policy"
+	iacType = "aws_lb_cookie_stickiness_policy"
+	iacProvider = "terraform"
+	name = "Lb Cookie Stickiness Policy"
+	type = "lbCookieStickinessPolicy"
+	morpheusType = "accountResource"
+	resourceType = "lbCookieStickinessPolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-elastic-load-balancing"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_lb_ssl_negotiation_policy" {
+	code = "terraform.aws.aws_lb_ssl_negotiation_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_lb_ssl_negotiation_policy"
+	iacType = "aws_lb_ssl_negotiation_policy"
+	iacProvider = "terraform"
+	name = "Lb Ssl Negotiation Policy"
+	type = "lbSslNegotiationPolicy"
+	morpheusType = "accountResource"
+	resourceType = "lbSslNegotiationPolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-elastic-load-balancing"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_load_balancer_backend_server_policy" {
+	code = "terraform.aws.aws_load_balancer_backend_server_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_load_balancer_backend_server_policy"
+	iacType = "aws_load_balancer_backend_server_policy"
+	iacProvider = "terraform"
+	name = "Load Balancer Backend Server Policy"
+	type = "loadBalancerBackendServerPolicy"
+	morpheusType = "accountResource"
+	resourceType = "loadBalancerBackendServerPolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-elastic-load-balancing"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_load_balancer_listener_policy" {
+	code = "terraform.aws.aws_load_balancer_listener_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_load_balancer_listener_policy"
+	iacType = "aws_load_balancer_listener_policy"
+	iacProvider = "terraform"
+	name = "Load Balancer Listener Policy"
+	type = "loadBalancerListenerPolicy"
+	morpheusType = "accountResource"
+	resourceType = "loadBalancerListenerPolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-elastic-load-balancing"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_load_balancer_policy" {
+	code = "terraform.aws.aws_load_balancer_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_load_balancer_policy"
+	iacType = "aws_load_balancer_policy"
+	iacProvider = "terraform"
+	name = "Load Balancer Policy"
+	type = "loadBalancerPolicy"
+	morpheusType = "accountResource"
+	resourceType = "loadBalancerPolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-elastic-load-balancing"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_proxy_protocol_policy" {
+	code = "terraform.aws.aws_proxy_protocol_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_proxy_protocol_policy"
+	iacType = "aws_proxy_protocol_policy"
+	iacProvider = "terraform"
+	name = "Proxy Protocol Policy"
+	type = "proxyProtocolPolicy"
+	morpheusType = "accountResource"
+	resourceType = "proxyProtocolPolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-elastic-load-balancing"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_lb" {
+	code = "terraform.aws.aws_lb"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_lb"
+	iacType = "aws_lb"
+	iacProvider = "terraform"
+	name = "Lb"
+	type = "lb"
+	morpheusType = "accountResource"
+	resourceType = "lb"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-elastic-load-balancing"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_lb_listener" {
+	code = "terraform.aws.aws_lb_listener"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_lb_listener"
+	iacType = "aws_lb_listener"
+	iacProvider = "terraform"
+	name = "Lb Listener"
+	type = "lbListener"
+	morpheusType = "accountResource"
+	resourceType = "lbListener"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-elastic-load-balancing"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_lb_listener_certificate" {
+	code = "terraform.aws.aws_lb_listener_certificate"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_lb_listener_certificate"
+	iacType = "aws_lb_listener_certificate"
+	iacProvider = "terraform"
+	name = "Lb Listener Certificate"
+	type = "lbListenerCertificate"
+	morpheusType = "accountResource"
+	resourceType = "lbListenerCertificate"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-elastic-load-balancing"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_lb_listener_rule" {
+	code = "terraform.aws.aws_lb_listener_rule"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_lb_listener_rule"
+	iacType = "aws_lb_listener_rule"
+	iacProvider = "terraform"
+	name = "Lb Listener Rule"
+	type = "lbListenerRule"
+	morpheusType = "accountResource"
+	resourceType = "lbListenerRule"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-elastic-load-balancing"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_lb_target_group" {
+	code = "terraform.aws.aws_lb_target_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_lb_target_group"
+	iacType = "aws_lb_target_group"
+	iacProvider = "terraform"
+	name = "Lb Target Group"
+	type = "lbTargetGroup"
+	morpheusType = "accountResource"
+	resourceType = "lbTargetGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-elastic-load-balancing"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_lb_target_group_attachment" {
+	code = "terraform.aws.aws_lb_target_group_attachment"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_lb_target_group_attachment"
+	iacType = "aws_lb_target_group_attachment"
+	iacProvider = "terraform"
+	name = "Lb Target Group Attachment"
+	type = "lbTargetGroupAttachment"
+	morpheusType = "accountResource"
+	resourceType = "lbTargetGroupAttachment"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-elastic-load-balancing"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_fms_admin_account" {
+	code = "terraform.aws.aws_fms_admin_account"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_fms_admin_account"
+	iacType = "aws_fms_admin_account"
+	iacProvider = "terraform"
+	name = "Fms Admin Account"
+	type = "fmsAdminAccount"
+	morpheusType = "accountResource"
+	resourceType = "fmsAdminAccount"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_guardduty_detector" {
+	code = "terraform.aws.aws_guardduty_detector"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_guardduty_detector"
+	iacType = "aws_guardduty_detector"
+	iacProvider = "terraform"
+	name = "Guardduty Detector"
+	type = "guarddutyDetector"
+	morpheusType = "accountResource"
+	resourceType = "guarddutyDetector"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_guardduty_invite_accepter" {
+	code = "terraform.aws.aws_guardduty_invite_accepter"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_guardduty_invite_accepter"
+	iacType = "aws_guardduty_invite_accepter"
+	iacProvider = "terraform"
+	name = "Guardduty Invite Accepter"
+	type = "guarddutyInviteAccepter"
+	morpheusType = "accountResource"
+	resourceType = "guarddutyInviteAccepter"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_guardduty_ipset" {
+	code = "terraform.aws.aws_guardduty_ipset"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_guardduty_ipset"
+	iacType = "aws_guardduty_ipset"
+	iacProvider = "terraform"
+	name = "Guardduty Ipset"
+	type = "guarddutyIpset"
+	morpheusType = "accountResource"
+	resourceType = "guarddutyIpset"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_guardduty_member" {
+	code = "terraform.aws.aws_guardduty_member"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_guardduty_member"
+	iacType = "aws_guardduty_member"
+	iacProvider = "terraform"
+	name = "Guardduty Member"
+	type = "guarddutyMember"
+	morpheusType = "accountResource"
+	resourceType = "guarddutyMember"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_guardduty_organization_admin_account" {
+	code = "terraform.aws.aws_guardduty_organization_admin_account"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_guardduty_organization_admin_account"
+	iacType = "aws_guardduty_organization_admin_account"
+	iacProvider = "terraform"
+	name = "Guardduty Organization Admin Account"
+	type = "guarddutyOrganizationAdminAccount"
+	morpheusType = "accountResource"
+	resourceType = "guarddutyOrganizationAdminAccount"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_guardduty_organization_configuration" {
+	code = "terraform.aws.aws_guardduty_organization_configuration"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_guardduty_organization_configuration"
+	iacType = "aws_guardduty_organization_configuration"
+	iacProvider = "terraform"
+	name = "Guardduty Organization Configuration"
+	type = "guarddutyOrganizationConfiguration"
+	morpheusType = "accountResource"
+	resourceType = "guarddutyOrganizationConfiguration"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_guardduty_threatintelset" {
+	code = "terraform.aws.aws_guardduty_threatintelset"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_guardduty_threatintelset"
+	iacType = "aws_guardduty_threatintelset"
+	iacProvider = "terraform"
+	name = "Guardduty Threatintelset"
+	type = "guarddutyThreatintelset"
+	morpheusType = "accountResource"
+	resourceType = "guarddutyThreatintelset"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_route53_delegation_set" {
+	code = "terraform.aws.aws_route53_delegation_set"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_route53_delegation_set"
+	iacType = "aws_route53_delegation_set"
+	iacProvider = "terraform"
+	name = "Route53 Delegation Set"
+	type = "route53DelegationSet"
+	morpheusType = "accountResource"
+	resourceType = "route53DelegationSet"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-route53"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_route53_health_check" {
+	code = "terraform.aws.aws_route53_health_check"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_route53_health_check"
+	iacType = "aws_route53_health_check"
+	iacProvider = "terraform"
+	name = "Route53 Health Check"
+	type = "route53HealthCheck"
+	morpheusType = "accountResource"
+	resourceType = "route53HealthCheck"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-route53"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_route53_query_log" {
+	code = "terraform.aws.aws_route53_query_log"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_route53_query_log"
+	iacType = "aws_route53_query_log"
+	iacProvider = "terraform"
+	name = "Route53 Query Log"
+	type = "route53QueryLog"
+	morpheusType = "accountResource"
+	resourceType = "route53QueryLog"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-route53"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_route53_record" {
+	code = "terraform.aws.aws_route53_record"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_route53_record"
+	iacType = "aws_route53_record"
+	iacProvider = "terraform"
+	name = "Route53 Record"
+	type = "route53Record"
+	morpheusType = "accountResource"
+	resourceType = "route53Record"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-route53"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_route53_zone" {
+	code = "terraform.aws.aws_route53_zone"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_route53_zone"
+	iacType = "aws_route53_zone"
+	iacProvider = "terraform"
+	name = "Route53 Zone"
+	type = "route53Zone"
+	morpheusType = "accountResource"
+	resourceType = "route53Zone"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-route53"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_route53_zone_association" {
+	code = "terraform.aws.aws_route53_zone_association"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_route53_zone_association"
+	iacType = "aws_route53_zone_association"
+	iacProvider = "terraform"
+	name = "Route53 Zone Association"
+	type = "route53ZoneAssociation"
+	morpheusType = "accountResource"
+	resourceType = "route53ZoneAssociation"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-route53"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_route53_resolver_endpoint" {
+	code = "terraform.aws.aws_route53_resolver_endpoint"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_route53_resolver_endpoint"
+	iacType = "aws_route53_resolver_endpoint"
+	iacProvider = "terraform"
+	name = "Route53 Resolver Endpoint"
+	type = "route53ResolverEndpoint"
+	morpheusType = "accountResource"
+	resourceType = "route53ResolverEndpoint"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-route53"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_route53_resolver_rule" {
+	code = "terraform.aws.aws_route53_resolver_rule"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_route53_resolver_rule"
+	iacType = "aws_route53_resolver_rule"
+	iacProvider = "terraform"
+	name = "Route53 Resolver Rule"
+	type = "route53ResolverRule"
+	morpheusType = "accountResource"
+	resourceType = "route53ResolverRule"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-route53"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_route53_resolver_rule_association" {
+	code = "terraform.aws.aws_route53_resolver_rule_association"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_route53_resolver_rule_association"
+	iacType = "aws_route53_resolver_rule_association"
+	iacProvider = "terraform"
+	name = "Route53 Resolver Rule Association"
+	type = "route53ResolverRuleAssociation"
+	morpheusType = "accountResource"
+	resourceType = "route53ResolverRuleAssociation"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-route53"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_customer_gateway" {
+	code = "terraform.aws.aws_customer_gateway"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_customer_gateway"
+	iacType = "aws_customer_gateway"
+	iacProvider = "terraform"
+	name = "Customer Gateway"
+	type = "customerGateway"
+	morpheusType = "accountResource"
+	resourceType = "customerGateway"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_default_network_acl" {
+	code = "terraform.aws.aws_default_network_acl"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_default_network_acl"
+	iacType = "aws_default_network_acl"
+	iacProvider = "terraform"
+	name = "Default Network Acl"
+	type = "defaultNetworkAcl"
+	morpheusType = "accountResource"
+	resourceType = "defaultNetworkAcl"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_default_route_table" {
+	code = "terraform.aws.aws_default_route_table"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_default_route_table"
+	iacType = "aws_default_route_table"
+	iacProvider = "terraform"
+	name = "Default Route Table"
+	type = "defaultRouteTable"
+	morpheusType = "accountResource"
+	resourceType = "defaultRouteTable"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_default_security_group" {
+	code = "terraform.aws.aws_default_security_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_default_security_group"
+	iacType = "aws_default_security_group"
+	iacProvider = "terraform"
+	name = "Default Security Group"
+	type = "defaultSecurityGroup"
+	morpheusType = "accountResource"
+	resourceType = "defaultSecurityGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_default_subnet" {
+	code = "terraform.aws.aws_default_subnet"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_default_subnet"
+	iacType = "aws_default_subnet"
+	iacProvider = "terraform"
+	name = "Default Subnet"
+	type = "defaultSubnet"
+	morpheusType = "accountResource"
+	resourceType = "defaultSubnet"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_default_vpc" {
+	code = "terraform.aws.aws_default_vpc"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_default_vpc"
+	iacType = "aws_default_vpc"
+	iacProvider = "terraform"
+	name = "Default Vpc"
+	type = "defaultVpc"
+	morpheusType = "accountResource"
+	resourceType = "defaultVpc"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_default_vpc_dhcp_options" {
+	code = "terraform.aws.aws_default_vpc_dhcp_options"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_default_vpc_dhcp_options"
+	iacType = "aws_default_vpc_dhcp_options"
+	iacProvider = "terraform"
+	name = "Default Vpc Dhcp Options"
+	type = "defaultVpcDhcpOptions"
+	morpheusType = "accountResource"
+	resourceType = "defaultVpcDhcpOptions"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_egress_only_internet_gateway" {
+	code = "terraform.aws.aws_egress_only_internet_gateway"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_egress_only_internet_gateway"
+	iacType = "aws_egress_only_internet_gateway"
+	iacProvider = "terraform"
+	name = "Egress Only Internet Gateway"
+	type = "egressOnlyInternetGateway"
+	morpheusType = "accountResource"
+	resourceType = "egressOnlyInternetGateway"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_flow_log" {
+	code = "terraform.aws.aws_flow_log"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_flow_log"
+	iacType = "aws_flow_log"
+	iacProvider = "terraform"
+	name = "Flow Log"
+	type = "flowLog"
+	morpheusType = "accountResource"
+	resourceType = "flowLog"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_internet_gateway" {
+	code = "terraform.aws.aws_internet_gateway"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_internet_gateway"
+	iacType = "aws_internet_gateway"
+	iacProvider = "terraform"
+	name = "Internet Gateway"
+	type = "internetGateway"
+	morpheusType = "accountResource"
+	resourceType = "internetGateway"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_main_route_table_association" {
+	code = "terraform.aws.aws_main_route_table_association"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_main_route_table_association"
+	iacType = "aws_main_route_table_association"
+	iacProvider = "terraform"
+	name = "Main Route Table Association"
+	type = "mainRouteTableAssociation"
+	morpheusType = "accountResource"
+	resourceType = "mainRouteTableAssociation"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_nat_gateway" {
+	code = "terraform.aws.aws_nat_gateway"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_nat_gateway"
+	iacType = "aws_nat_gateway"
+	iacProvider = "terraform"
+	name = "Nat Gateway"
+	type = "natGateway"
+	morpheusType = "accountResource"
+	resourceType = "natGateway"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_network_acl" {
+	code = "terraform.aws.aws_network_acl"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_network_acl"
+	iacType = "aws_network_acl"
+	iacProvider = "terraform"
+	name = "Network Acl"
+	type = "networkAcl"
+	morpheusType = "accountResource"
+	resourceType = "networkAcl"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_network_acl_rule" {
+	code = "terraform.aws.aws_network_acl_rule"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_network_acl_rule"
+	iacType = "aws_network_acl_rule"
+	iacProvider = "terraform"
+	name = "Network Acl Rule"
+	type = "networkAclRule"
+	morpheusType = "accountResource"
+	resourceType = "networkAclRule"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_network_interface" {
+	code = "terraform.aws.aws_network_interface"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_network_interface"
+	iacType = "aws_network_interface"
+	iacProvider = "terraform"
+	name = "Network Interface"
+	type = "networkInterface"
+	morpheusType = "accountResource"
+	resourceType = "networkInterface"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_network_interface_attachment" {
+	code = "terraform.aws.aws_network_interface_attachment"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_network_interface_attachment"
+	iacType = "aws_network_interface_attachment"
+	iacProvider = "terraform"
+	name = "Network Interface Attachment"
+	type = "networkInterfaceAttachment"
+	morpheusType = "accountResource"
+	resourceType = "networkInterfaceAttachment"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_route" {
+	code = "terraform.aws.aws_route"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_route"
+	iacType = "aws_route"
+	iacProvider = "terraform"
+	name = "Route"
+	type = "route"
+	morpheusType = "accountResource"
+	resourceType = "route"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_route_table" {
+	code = "terraform.aws.aws_route_table"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_route_table"
+	iacType = "aws_route_table"
+	iacProvider = "terraform"
+	name = "Route Table"
+	type = "routeTable"
+	morpheusType = "accountResource"
+	resourceType = "routeTable"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_route_table_association" {
+	code = "terraform.aws.aws_route_table_association"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_route_table_association"
+	iacType = "aws_route_table_association"
+	iacProvider = "terraform"
+	name = "Route Table Association"
+	type = "routeTableAssociation"
+	morpheusType = "accountResource"
+	resourceType = "routeTableAssociation"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_security_group" {
+	code = "terraform.aws.aws_security_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_security_group"
+	iacType = "aws_security_group"
+	iacProvider = "terraform"
+	name = "Security Group"
+	type = "securityGroup"
+	morpheusType = "accountResource"
+	resourceType = "securityGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_network_interface_sg_attachment" {
+	code = "terraform.aws.aws_network_interface_sg_attachment"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_network_interface_sg_attachment"
+	iacType = "aws_network_interface_sg_attachment"
+	iacProvider = "terraform"
+	name = "Network Interface Sg Attachment"
+	type = "networkInterfaceSgAttachment"
+	morpheusType = "accountResource"
+	resourceType = "networkInterfaceSgAttachment"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_security_group_rule" {
+	code = "terraform.aws.aws_security_group_rule"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_security_group_rule"
+	iacType = "aws_security_group_rule"
+	iacProvider = "terraform"
+	name = "Security Group Rule"
+	type = "securityGroupRule"
+	morpheusType = "accountResource"
+	resourceType = "securityGroupRule"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_subnet" {
+	code = "terraform.aws.aws_subnet"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_subnet"
+	iacType = "aws_subnet"
+	iacProvider = "terraform"
+	name = "Subnet"
+	type = "subnet"
+	morpheusType = "accountResource"
+	resourceType = "subnet"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_vpc" {
+	code = "terraform.aws.aws_vpc"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_vpc"
+	iacType = "aws_vpc"
+	iacProvider = "terraform"
+	name = "Vpc"
+	type = "vpc"
+	morpheusType = "accountResource"
+	resourceType = "vpc"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_vpc_dhcp_options" {
+	code = "terraform.aws.aws_vpc_dhcp_options"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_vpc_dhcp_options"
+	iacType = "aws_vpc_dhcp_options"
+	iacProvider = "terraform"
+	name = "Vpc Dhcp Options"
+	type = "vpcDhcpOptions"
+	morpheusType = "accountResource"
+	resourceType = "vpcDhcpOptions"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_vpc_dhcp_options_association" {
+	code = "terraform.aws.aws_vpc_dhcp_options_association"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_vpc_dhcp_options_association"
+	iacType = "aws_vpc_dhcp_options_association"
+	iacProvider = "terraform"
+	name = "Vpc Dhcp Options Association"
+	type = "vpcDhcpOptionsAssociation"
+	morpheusType = "accountResource"
+	resourceType = "vpcDhcpOptionsAssociation"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_vpc_endpoint" {
+	code = "terraform.aws.aws_vpc_endpoint"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_vpc_endpoint"
+	iacType = "aws_vpc_endpoint"
+	iacProvider = "terraform"
+	name = "Vpc Endpoint"
+	type = "vpcEndpoint"
+	morpheusType = "accountResource"
+	resourceType = "vpcEndpoint"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_vpc_endpoint_connection_notification" {
+	code = "terraform.aws.aws_vpc_endpoint_connection_notification"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_vpc_endpoint_connection_notification"
+	iacType = "aws_vpc_endpoint_connection_notification"
+	iacProvider = "terraform"
+	name = "Vpc Endpoint Connection Notification"
+	type = "vpcEndpointConnectionNotification"
+	morpheusType = "accountResource"
+	resourceType = "vpcEndpointConnectionNotification"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_vpc_endpoint_route_table_association" {
+	code = "terraform.aws.aws_vpc_endpoint_route_table_association"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_vpc_endpoint_route_table_association"
+	iacType = "aws_vpc_endpoint_route_table_association"
+	iacProvider = "terraform"
+	name = "Vpc Endpoint Route Table Association"
+	type = "vpcEndpointRouteTableAssociation"
+	morpheusType = "accountResource"
+	resourceType = "vpcEndpointRouteTableAssociation"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_vpc_endpoint_service" {
+	code = "terraform.aws.aws_vpc_endpoint_service"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_vpc_endpoint_service"
+	iacType = "aws_vpc_endpoint_service"
+	iacProvider = "terraform"
+	name = "Vpc Endpoint Service"
+	type = "vpcEndpointService"
+	morpheusType = "accountResource"
+	resourceType = "vpcEndpointService"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_vpc_endpoint_service_allowed_principal" {
+	code = "terraform.aws.aws_vpc_endpoint_service_allowed_principal"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_vpc_endpoint_service_allowed_principal"
+	iacType = "aws_vpc_endpoint_service_allowed_principal"
+	iacProvider = "terraform"
+	name = "Vpc Endpoint Service Allowed Principal"
+	type = "vpcEndpointServiceAllowedPrincipal"
+	morpheusType = "accountResource"
+	resourceType = "vpcEndpointServiceAllowedPrincipal"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_vpc_endpoint_subnet_association" {
+	code = "terraform.aws.aws_vpc_endpoint_subnet_association"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_vpc_endpoint_subnet_association"
+	iacType = "aws_vpc_endpoint_subnet_association"
+	iacProvider = "terraform"
+	name = "Vpc Endpoint Subnet Association"
+	type = "vpcEndpointSubnetAssociation"
+	morpheusType = "accountResource"
+	resourceType = "vpcEndpointSubnetAssociation"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_vpc_ipv4_cidr_block_association" {
+	code = "terraform.aws.aws_vpc_ipv4_cidr_block_association"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_vpc_ipv4_cidr_block_association"
+	iacType = "aws_vpc_ipv4_cidr_block_association"
+	iacProvider = "terraform"
+	name = "Vpc Ipv4 Cidr Block Association"
+	type = "vpcIpv4CidrBlockAssociation"
+	morpheusType = "accountResource"
+	resourceType = "vpcIpv4CidrBlockAssociation"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_vpc_peering_connection" {
+	code = "terraform.aws.aws_vpc_peering_connection"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_vpc_peering_connection"
+	iacType = "aws_vpc_peering_connection"
+	iacProvider = "terraform"
+	name = "Vpc Peering Connection"
+	type = "vpcPeeringConnection"
+	morpheusType = "accountResource"
+	resourceType = "vpcPeeringConnection"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_vpc_peering_connection_accepter" {
+	code = "terraform.aws.aws_vpc_peering_connection_accepter"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_vpc_peering_connection_accepter"
+	iacType = "aws_vpc_peering_connection_accepter"
+	iacProvider = "terraform"
+	name = "Vpc Peering Connection Accepter"
+	type = "vpcPeeringConnectionAccepter"
+	morpheusType = "accountResource"
+	resourceType = "vpcPeeringConnectionAccepter"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_vpc_peering_connection_options" {
+	code = "terraform.aws.aws_vpc_peering_connection_options"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_vpc_peering_connection_options"
+	iacType = "aws_vpc_peering_connection_options"
+	iacProvider = "terraform"
+	name = "Vpc Peering Connection Options"
+	type = "vpcPeeringConnectionOptions"
+	morpheusType = "accountResource"
+	resourceType = "vpcPeeringConnectionOptions"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_vpn_connection" {
+	code = "terraform.aws.aws_vpn_connection"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_vpn_connection"
+	iacType = "aws_vpn_connection"
+	iacProvider = "terraform"
+	name = "Vpn Connection"
+	type = "vpnConnection"
+	morpheusType = "accountResource"
+	resourceType = "vpnConnection"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_vpn_connection_route" {
+	code = "terraform.aws.aws_vpn_connection_route"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_vpn_connection_route"
+	iacType = "aws_vpn_connection_route"
+	iacProvider = "terraform"
+	name = "Vpn Connection Route"
+	type = "vpnConnectionRoute"
+	morpheusType = "accountResource"
+	resourceType = "vpnConnectionRoute"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_vpn_gateway" {
+	code = "terraform.aws.aws_vpn_gateway"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_vpn_gateway"
+	iacType = "aws_vpn_gateway"
+	iacProvider = "terraform"
+	name = "Vpn Gateway"
+	type = "vpnGateway"
+	morpheusType = "accountResource"
+	resourceType = "vpnGateway"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_vpn_gateway_attachment" {
+	code = "terraform.aws.aws_vpn_gateway_attachment"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_vpn_gateway_attachment"
+	iacType = "aws_vpn_gateway_attachment"
+	iacProvider = "terraform"
+	name = "Vpn Gateway Attachment"
+	type = "vpnGatewayAttachment"
+	morpheusType = "accountResource"
+	resourceType = "vpnGatewayAttachment"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_vpn_gateway_route_propagation" {
+	code = "terraform.aws.aws_vpn_gateway_route_propagation"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_vpn_gateway_route_propagation"
+	iacType = "aws_vpn_gateway_route_propagation"
+	iacProvider = "terraform"
+	name = "Vpn Gateway Route Propagation"
+	type = "vpnGatewayRoutePropagation"
+	morpheusType = "accountResource"
+	resourceType = "vpnGatewayRoutePropagation"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-vpc"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_waf_byte_match_set" {
+	code = "terraform.aws.aws_waf_byte_match_set"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_waf_byte_match_set"
+	iacType = "aws_waf_byte_match_set"
+	iacProvider = "terraform"
+	name = "Waf Byte Match Set"
+	type = "wafByteMatchSet"
+	morpheusType = "accountResource"
+	resourceType = "wafByteMatchSet"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_waf_geo_match_set" {
+	code = "terraform.aws.aws_waf_geo_match_set"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_waf_geo_match_set"
+	iacType = "aws_waf_geo_match_set"
+	iacProvider = "terraform"
+	name = "Waf Geo Match Set"
+	type = "wafGeoMatchSet"
+	morpheusType = "accountResource"
+	resourceType = "wafGeoMatchSet"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_waf_ipset" {
+	code = "terraform.aws.aws_waf_ipset"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_waf_ipset"
+	iacType = "aws_waf_ipset"
+	iacProvider = "terraform"
+	name = "Waf Ipset"
+	type = "wafIpset"
+	morpheusType = "accountResource"
+	resourceType = "wafIpset"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_waf_rate_based_rule" {
+	code = "terraform.aws.aws_waf_rate_based_rule"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_waf_rate_based_rule"
+	iacType = "aws_waf_rate_based_rule"
+	iacProvider = "terraform"
+	name = "Waf Rate Based Rule"
+	type = "wafRateBasedRule"
+	morpheusType = "accountResource"
+	resourceType = "wafRateBasedRule"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_waf_regex_match_set" {
+	code = "terraform.aws.aws_waf_regex_match_set"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_waf_regex_match_set"
+	iacType = "aws_waf_regex_match_set"
+	iacProvider = "terraform"
+	name = "Waf Regex Match Set"
+	type = "wafRegexMatchSet"
+	morpheusType = "accountResource"
+	resourceType = "wafRegexMatchSet"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_waf_regex_pattern_set" {
+	code = "terraform.aws.aws_waf_regex_pattern_set"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_waf_regex_pattern_set"
+	iacType = "aws_waf_regex_pattern_set"
+	iacProvider = "terraform"
+	name = "Waf Regex Pattern Set"
+	type = "wafRegexPatternSet"
+	morpheusType = "accountResource"
+	resourceType = "wafRegexPatternSet"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_waf_rule" {
+	code = "terraform.aws.aws_waf_rule"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_waf_rule"
+	iacType = "aws_waf_rule"
+	iacProvider = "terraform"
+	name = "Waf Rule"
+	type = "wafRule"
+	morpheusType = "accountResource"
+	resourceType = "wafRule"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_waf_rule_group" {
+	code = "terraform.aws.aws_waf_rule_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_waf_rule_group"
+	iacType = "aws_waf_rule_group"
+	iacProvider = "terraform"
+	name = "Waf Rule Group"
+	type = "wafRuleGroup"
+	morpheusType = "accountResource"
+	resourceType = "wafRuleGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_waf_size_constraint_set" {
+	code = "terraform.aws.aws_waf_size_constraint_set"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_waf_size_constraint_set"
+	iacType = "aws_waf_size_constraint_set"
+	iacProvider = "terraform"
+	name = "Waf Size Constraint Set"
+	type = "wafSizeConstraintSet"
+	morpheusType = "accountResource"
+	resourceType = "wafSizeConstraintSet"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_waf_sql_injection_match_set" {
+	code = "terraform.aws.aws_waf_sql_injection_match_set"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_waf_sql_injection_match_set"
+	iacType = "aws_waf_sql_injection_match_set"
+	iacProvider = "terraform"
+	name = "Waf Sql Injection Match Set"
+	type = "wafSqlInjectionMatchSet"
+	morpheusType = "accountResource"
+	resourceType = "wafSqlInjectionMatchSet"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_waf_web_acl" {
+	code = "terraform.aws.aws_waf_web_acl"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_waf_web_acl"
+	iacType = "aws_waf_web_acl"
+	iacProvider = "terraform"
+	name = "Waf Web Acl"
+	type = "wafWebAcl"
+	morpheusType = "accountResource"
+	resourceType = "wafWebAcl"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_waf_xss_match_set" {
+	code = "terraform.aws.aws_waf_xss_match_set"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_waf_xss_match_set"
+	iacType = "aws_waf_xss_match_set"
+	iacProvider = "terraform"
+	name = "Waf Xss Match Set"
+	type = "wafXssMatchSet"
+	morpheusType = "accountResource"
+	resourceType = "wafXssMatchSet"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_wafregional_byte_match_set" {
+	code = "terraform.aws.aws_wafregional_byte_match_set"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_wafregional_byte_match_set"
+	iacType = "aws_wafregional_byte_match_set"
+	iacProvider = "terraform"
+	name = "Wafregional Byte Match Set"
+	type = "wafregionalByteMatchSet"
+	morpheusType = "accountResource"
+	resourceType = "wafregionalByteMatchSet"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_wafregional_geo_match_set" {
+	code = "terraform.aws.aws_wafregional_geo_match_set"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_wafregional_geo_match_set"
+	iacType = "aws_wafregional_geo_match_set"
+	iacProvider = "terraform"
+	name = "Wafregional Geo Match Set"
+	type = "wafregionalGeoMatchSet"
+	morpheusType = "accountResource"
+	resourceType = "wafregionalGeoMatchSet"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_wafregional_ipset" {
+	code = "terraform.aws.aws_wafregional_ipset"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_wafregional_ipset"
+	iacType = "aws_wafregional_ipset"
+	iacProvider = "terraform"
+	name = "Wafregional Ipset"
+	type = "wafregionalIpset"
+	morpheusType = "accountResource"
+	resourceType = "wafregionalIpset"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_wafregional_rate_based_rule" {
+	code = "terraform.aws.aws_wafregional_rate_based_rule"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_wafregional_rate_based_rule"
+	iacType = "aws_wafregional_rate_based_rule"
+	iacProvider = "terraform"
+	name = "Wafregional Rate Based Rule"
+	type = "wafregionalRateBasedRule"
+	morpheusType = "accountResource"
+	resourceType = "wafregionalRateBasedRule"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_wafregional_regex_match_set" {
+	code = "terraform.aws.aws_wafregional_regex_match_set"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_wafregional_regex_match_set"
+	iacType = "aws_wafregional_regex_match_set"
+	iacProvider = "terraform"
+	name = "Wafregional Regex Match Set"
+	type = "wafregionalRegexMatchSet"
+	morpheusType = "accountResource"
+	resourceType = "wafregionalRegexMatchSet"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_wafregional_regex_pattern_set" {
+	code = "terraform.aws.aws_wafregional_regex_pattern_set"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_wafregional_regex_pattern_set"
+	iacType = "aws_wafregional_regex_pattern_set"
+	iacProvider = "terraform"
+	name = "Wafregional Regex Pattern Set"
+	type = "wafregionalRegexPatternSet"
+	morpheusType = "accountResource"
+	resourceType = "wafregionalRegexPatternSet"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_wafregional_rule" {
+	code = "terraform.aws.aws_wafregional_rule"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_wafregional_rule"
+	iacType = "aws_wafregional_rule"
+	iacProvider = "terraform"
+	name = "Wafregional Rule"
+	type = "wafregionalRule"
+	morpheusType = "accountResource"
+	resourceType = "wafregionalRule"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_wafregional_rule_group" {
+	code = "terraform.aws.aws_wafregional_rule_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_wafregional_rule_group"
+	iacType = "aws_wafregional_rule_group"
+	iacProvider = "terraform"
+	name = "Wafregional Rule Group"
+	type = "wafregionalRuleGroup"
+	morpheusType = "accountResource"
+	resourceType = "wafregionalRuleGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_wafregional_size_constraint_set" {
+	code = "terraform.aws.aws_wafregional_size_constraint_set"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_wafregional_size_constraint_set"
+	iacType = "aws_wafregional_size_constraint_set"
+	iacProvider = "terraform"
+	name = "Wafregional Size Constraint Set"
+	type = "wafregionalSizeConstraintSet"
+	morpheusType = "accountResource"
+	resourceType = "wafregionalSizeConstraintSet"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_wafregional_sql_injection_match_set" {
+	code = "terraform.aws.aws_wafregional_sql_injection_match_set"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_wafregional_sql_injection_match_set"
+	iacType = "aws_wafregional_sql_injection_match_set"
+	iacProvider = "terraform"
+	name = "Wafregional Sql Injection Match Set"
+	type = "wafregionalSqlInjectionMatchSet"
+	morpheusType = "accountResource"
+	resourceType = "wafregionalSqlInjectionMatchSet"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_wafregional_web_acl" {
+	code = "terraform.aws.aws_wafregional_web_acl"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_wafregional_web_acl"
+	iacType = "aws_wafregional_web_acl"
+	iacProvider = "terraform"
+	name = "Wafregional Web Acl"
+	type = "wafregionalWebAcl"
+	morpheusType = "accountResource"
+	resourceType = "wafregionalWebAcl"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_wafregional_web_acl_association" {
+	code = "terraform.aws.aws_wafregional_web_acl_association"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_wafregional_web_acl_association"
+	iacType = "aws_wafregional_web_acl_association"
+	iacProvider = "terraform"
+	name = "Wafregional Web Acl Association"
+	type = "wafregionalWebAclAssociation"
+	morpheusType = "accountResource"
+	resourceType = "wafregionalWebAclAssociation"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_wafregional_xss_match_set" {
+	code = "terraform.aws.aws_wafregional_xss_match_set"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_wafregional_xss_match_set"
+	iacType = "aws_wafregional_xss_match_set"
+	iacProvider = "terraform"
+	name = "Wafregional Xss Match Set"
+	type = "wafregionalXssMatchSet"
+	morpheusType = "accountResource"
+	resourceType = "wafregionalXssMatchSet"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-waf"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+

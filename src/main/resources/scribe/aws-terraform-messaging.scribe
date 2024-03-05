@@ -1,0 +1,500 @@
+resource "account-resource-type" "terraform.aws.aws_mq_broker" {
+	code = "terraform.aws.aws_mq_broker"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_mq_broker"
+	iacType = "aws_mq_broker"
+	iacProvider = "terraform"
+	name = "Mq Broker"
+	type = "mqBroker"
+	morpheusType = "accountResource"
+	resourceType = "mqBroker"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-mq"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_mq_configuration" {
+	code = "terraform.aws.aws_mq_configuration"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_mq_configuration"
+	iacType = "aws_mq_configuration"
+	iacProvider = "terraform"
+	name = "Mq Configuration"
+	type = "mqConfiguration"
+	morpheusType = "accountResource"
+	resourceType = "mqConfiguration"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-mq"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_msk_cluster" {
+	code = "terraform.aws.aws_msk_cluster"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_msk_cluster"
+	iacType = "aws_msk_cluster"
+	iacProvider = "terraform"
+	name = "Msk Cluster"
+	type = "mskCluster"
+	morpheusType = "accountResource"
+	resourceType = "mskCluster"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_msk_configuration" {
+	code = "terraform.aws.aws_msk_configuration"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_msk_configuration"
+	iacType = "aws_msk_configuration"
+	iacProvider = "terraform"
+	name = "Msk Configuration"
+	type = "mskConfiguration"
+	morpheusType = "accountResource"
+	resourceType = "mskConfiguration"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_ses_active_receipt_rule_set" {
+	code = "terraform.aws.aws_ses_active_receipt_rule_set"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_ses_active_receipt_rule_set"
+	iacType = "aws_ses_active_receipt_rule_set"
+	iacProvider = "terraform"
+	name = "Ses Active Receipt Rule Set"
+	type = "sesActiveReceiptRuleSet"
+	morpheusType = "accountResource"
+	resourceType = "sesActiveReceiptRuleSet"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_ses_domain_identity" {
+	code = "terraform.aws.aws_ses_domain_identity"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_ses_domain_identity"
+	iacType = "aws_ses_domain_identity"
+	iacProvider = "terraform"
+	name = "Ses Domain Identity"
+	type = "sesDomainIdentity"
+	morpheusType = "accountResource"
+	resourceType = "sesDomainIdentity"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_ses_domain_identity_verification" {
+	code = "terraform.aws.aws_ses_domain_identity_verification"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_ses_domain_identity_verification"
+	iacType = "aws_ses_domain_identity_verification"
+	iacProvider = "terraform"
+	name = "Ses Domain Identity Verification"
+	type = "sesDomainIdentityVerification"
+	morpheusType = "accountResource"
+	resourceType = "sesDomainIdentityVerification"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_ses_domain_dkim" {
+	code = "terraform.aws.aws_ses_domain_dkim"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_ses_domain_dkim"
+	iacType = "aws_ses_domain_dkim"
+	iacProvider = "terraform"
+	name = "Ses Domain Dkim"
+	type = "sesDomainDkim"
+	morpheusType = "accountResource"
+	resourceType = "sesDomainDkim"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_ses_domain_mail_from" {
+	code = "terraform.aws.aws_ses_domain_mail_from"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_ses_domain_mail_from"
+	iacType = "aws_ses_domain_mail_from"
+	iacProvider = "terraform"
+	name = "Ses Domain Mail From"
+	type = "sesDomainMailFrom"
+	morpheusType = "accountResource"
+	resourceType = "sesDomainMailFrom"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_ses_email_identity" {
+	code = "terraform.aws.aws_ses_email_identity"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_ses_email_identity"
+	iacType = "aws_ses_email_identity"
+	iacProvider = "terraform"
+	name = "Ses Email Identity"
+	type = "sesEmailIdentity"
+	morpheusType = "accountResource"
+	resourceType = "sesEmailIdentity"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_ses_receipt_filter" {
+	code = "terraform.aws.aws_ses_receipt_filter"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_ses_receipt_filter"
+	iacType = "aws_ses_receipt_filter"
+	iacProvider = "terraform"
+	name = "Ses Receipt Filter"
+	type = "sesReceiptFilter"
+	morpheusType = "accountResource"
+	resourceType = "sesReceiptFilter"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_ses_receipt_rule" {
+	code = "terraform.aws.aws_ses_receipt_rule"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_ses_receipt_rule"
+	iacType = "aws_ses_receipt_rule"
+	iacProvider = "terraform"
+	name = "Ses Receipt Rule"
+	type = "sesReceiptRule"
+	morpheusType = "accountResource"
+	resourceType = "sesReceiptRule"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_ses_receipt_rule_set" {
+	code = "terraform.aws.aws_ses_receipt_rule_set"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_ses_receipt_rule_set"
+	iacType = "aws_ses_receipt_rule_set"
+	iacProvider = "terraform"
+	name = "Ses Receipt Rule Set"
+	type = "sesReceiptRuleSet"
+	morpheusType = "accountResource"
+	resourceType = "sesReceiptRuleSet"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_ses_configuration_set" {
+	code = "terraform.aws.aws_ses_configuration_set"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_ses_configuration_set"
+	iacType = "aws_ses_configuration_set"
+	iacProvider = "terraform"
+	name = "Ses Configuration Set"
+	type = "sesConfigurationSet"
+	morpheusType = "accountResource"
+	resourceType = "sesConfigurationSet"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_ses_event_destination" {
+	code = "terraform.aws.aws_ses_event_destination"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_ses_event_destination"
+	iacType = "aws_ses_event_destination"
+	iacProvider = "terraform"
+	name = "Ses Event Destination"
+	type = "sesEventDestination"
+	morpheusType = "accountResource"
+	resourceType = "sesEventDestination"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_ses_identity_notification_topic" {
+	code = "terraform.aws.aws_ses_identity_notification_topic"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_ses_identity_notification_topic"
+	iacType = "aws_ses_identity_notification_topic"
+	iacProvider = "terraform"
+	name = "Ses Identity Notification Topic"
+	type = "sesIdentityNotificationTopic"
+	morpheusType = "accountResource"
+	resourceType = "sesIdentityNotificationTopic"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_ses_identity_policy" {
+	code = "terraform.aws.aws_ses_identity_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_ses_identity_policy"
+	iacType = "aws_ses_identity_policy"
+	iacProvider = "terraform"
+	name = "Ses Identity Policy"
+	type = "sesIdentityPolicy"
+	morpheusType = "accountResource"
+	resourceType = "sesIdentityPolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_ses_template" {
+	code = "terraform.aws.aws_ses_template"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_ses_template"
+	iacType = "aws_ses_template"
+	iacProvider = "terraform"
+	name = "Ses Template"
+	type = "sesTemplate"
+	morpheusType = "accountResource"
+	resourceType = "sesTemplate"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_sns_platform_application" {
+	code = "terraform.aws.aws_sns_platform_application"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_sns_platform_application"
+	iacType = "aws_sns_platform_application"
+	iacProvider = "terraform"
+	name = "Sns Platform Application"
+	type = "snsPlatformApplication"
+	morpheusType = "accountResource"
+	resourceType = "snsPlatformApplication"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_sns_sms_preferences" {
+	code = "terraform.aws.aws_sns_sms_preferences"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_sns_sms_preferences"
+	iacType = "aws_sns_sms_preferences"
+	iacProvider = "terraform"
+	name = "Sns Sms Preferences"
+	type = "snsSmsPreferences"
+	morpheusType = "accountResource"
+	resourceType = "snsSmsPreferences"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_sns_topic" {
+	code = "terraform.aws.aws_sns_topic"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_sns_topic"
+	iacType = "aws_sns_topic"
+	iacProvider = "terraform"
+	name = "Sns Topic"
+	type = "snsTopic"
+	morpheusType = "accountResource"
+	resourceType = "snsTopic"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_sns_topic_policy" {
+	code = "terraform.aws.aws_sns_topic_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_sns_topic_policy"
+	iacType = "aws_sns_topic_policy"
+	iacProvider = "terraform"
+	name = "Sns Topic Policy"
+	type = "snsTopicPolicy"
+	morpheusType = "accountResource"
+	resourceType = "snsTopicPolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_sns_topic_subscription" {
+	code = "terraform.aws.aws_sns_topic_subscription"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_sns_topic_subscription"
+	iacType = "aws_sns_topic_subscription"
+	iacProvider = "terraform"
+	name = "Sns Topic Subscription"
+	type = "snsTopicSubscription"
+	morpheusType = "accountResource"
+	resourceType = "snsTopicSubscription"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_sqs_queue" {
+	code = "terraform.aws.aws_sqs_queue"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_sqs_queue"
+	iacType = "aws_sqs_queue"
+	iacProvider = "terraform"
+	name = "Sqs Queue"
+	type = "sqsQueue"
+	morpheusType = "accountResource"
+	resourceType = "sqsQueue"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_sqs_queue_policy" {
+	code = "terraform.aws.aws_sqs_queue_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_sqs_queue_policy"
+	iacType = "aws_sqs_queue_policy"
+	iacProvider = "terraform"
+	name = "Sqs Queue Policy"
+	type = "sqsQueuePolicy"
+	morpheusType = "accountResource"
+	resourceType = "sqsQueuePolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+

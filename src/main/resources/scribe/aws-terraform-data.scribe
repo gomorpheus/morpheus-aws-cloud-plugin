@@ -1,0 +1,160 @@
+resource "account-resource-type" "terraform.aws.aws_dlm_lifecycle_policy" {
+	code = "terraform.aws.aws_dlm_lifecycle_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dlm_lifecycle_policy"
+	iacType = "aws_dlm_lifecycle_policy"
+	iacProvider = "terraform"
+	name = "Dlm Lifecycle Policy"
+	type = "dlmLifecyclePolicy"
+	morpheusType = "accountResource"
+	resourceType = "dlmLifecyclePolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_datapipeline_pipeline" {
+	code = "terraform.aws.aws_datapipeline_pipeline"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_datapipeline_pipeline"
+	iacType = "aws_datapipeline_pipeline"
+	iacProvider = "terraform"
+	name = "Datapipeline Pipeline"
+	type = "datapipelinePipeline"
+	morpheusType = "accountResource"
+	resourceType = "datapipelinePipeline"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_datasync_agent" {
+	code = "terraform.aws.aws_datasync_agent"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_datasync_agent"
+	iacType = "aws_datasync_agent"
+	iacProvider = "terraform"
+	name = "Datasync Agent"
+	type = "datasyncAgent"
+	morpheusType = "accountResource"
+	resourceType = "datasyncAgent"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_datasync_location_efs" {
+	code = "terraform.aws.aws_datasync_location_efs"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_datasync_location_efs"
+	iacType = "aws_datasync_location_efs"
+	iacProvider = "terraform"
+	name = "Datasync Location Efs"
+	type = "datasyncLocationEfs"
+	morpheusType = "accountResource"
+	resourceType = "datasyncLocationEfs"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_datasync_location_nfs" {
+	code = "terraform.aws.aws_datasync_location_nfs"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_datasync_location_nfs"
+	iacType = "aws_datasync_location_nfs"
+	iacProvider = "terraform"
+	name = "Datasync Location Nfs"
+	type = "datasyncLocationNfs"
+	morpheusType = "accountResource"
+	resourceType = "datasyncLocationNfs"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_datasync_location_s3" {
+	code = "terraform.aws.aws_datasync_location_s3"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_datasync_location_s3"
+	iacType = "aws_datasync_location_s3"
+	iacProvider = "terraform"
+	name = "Datasync Location S3"
+	type = "datasyncLocationS3"
+	morpheusType = "accountResource"
+	resourceType = "datasyncLocationS3"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_datasync_location_smb" {
+	code = "terraform.aws.aws_datasync_location_smb"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_datasync_location_smb"
+	iacType = "aws_datasync_location_smb"
+	iacProvider = "terraform"
+	name = "Datasync Location Smb"
+	type = "datasyncLocationSmb"
+	morpheusType = "accountResource"
+	resourceType = "datasyncLocationSmb"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_datasync_task" {
+	code = "terraform.aws.aws_datasync_task"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_datasync_task"
+	iacType = "aws_datasync_task"
+	iacProvider = "terraform"
+	name = "Datasync Task"
+	type = "datasyncTask"
+	morpheusType = "accountResource"
+	resourceType = "datasyncTask"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+

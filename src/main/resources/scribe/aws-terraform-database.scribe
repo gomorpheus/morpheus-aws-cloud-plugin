@@ -1,0 +1,1220 @@
+resource "account-resource-type" "terraform.aws.aws_athena_database" {
+	code = "terraform.aws.aws_athena_database"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_athena_database"
+	iacType = "aws_athena_database"
+	iacProvider = "terraform"
+	name = "Athena Database"
+	type = "athenaDatabase"
+	morpheusType = "accountResource"
+	resourceType = "athenaDatabase"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-athena"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_athena_named_query" {
+	code = "terraform.aws.aws_athena_named_query"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_athena_named_query"
+	iacType = "aws_athena_named_query"
+	iacProvider = "terraform"
+	name = "Athena Named Query"
+	type = "athenaNamedQuery"
+	morpheusType = "accountResource"
+	resourceType = "athenaNamedQuery"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-athena"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_athena_workgroup" {
+	code = "terraform.aws.aws_athena_workgroup"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_athena_workgroup"
+	iacType = "aws_athena_workgroup"
+	iacProvider = "terraform"
+	name = "Athena Workgroup"
+	type = "athenaWorkgroup"
+	morpheusType = "accountResource"
+	resourceType = "athenaWorkgroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-athena"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dms_certificate" {
+	code = "terraform.aws.aws_dms_certificate"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dms_certificate"
+	iacType = "aws_dms_certificate"
+	iacProvider = "terraform"
+	name = "Dms Certificate"
+	type = "dmsCertificate"
+	morpheusType = "accountResource"
+	resourceType = "dmsCertificate"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dms_endpoint" {
+	code = "terraform.aws.aws_dms_endpoint"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dms_endpoint"
+	iacType = "aws_dms_endpoint"
+	iacProvider = "terraform"
+	name = "Dms Endpoint"
+	type = "dmsEndpoint"
+	morpheusType = "accountResource"
+	resourceType = "dmsEndpoint"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dms_event_subscription" {
+	code = "terraform.aws.aws_dms_event_subscription"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dms_event_subscription"
+	iacType = "aws_dms_event_subscription"
+	iacProvider = "terraform"
+	name = "Dms Event Subscription"
+	type = "dmsEventSubscription"
+	morpheusType = "accountResource"
+	resourceType = "dmsEventSubscription"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dms_replication_instance" {
+	code = "terraform.aws.aws_dms_replication_instance"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dms_replication_instance"
+	iacType = "aws_dms_replication_instance"
+	iacProvider = "terraform"
+	name = "Dms Replication Instance"
+	type = "dmsReplicationInstance"
+	morpheusType = "accountResource"
+	resourceType = "dmsReplicationInstance"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dms_replication_subnet_group" {
+	code = "terraform.aws.aws_dms_replication_subnet_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dms_replication_subnet_group"
+	iacType = "aws_dms_replication_subnet_group"
+	iacProvider = "terraform"
+	name = "Dms Replication Subnet Group"
+	type = "dmsReplicationSubnetGroup"
+	morpheusType = "accountResource"
+	resourceType = "dmsReplicationSubnetGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dms_replication_task" {
+	code = "terraform.aws.aws_dms_replication_task"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dms_replication_task"
+	iacType = "aws_dms_replication_task"
+	iacProvider = "terraform"
+	name = "Dms Replication Task"
+	type = "dmsReplicationTask"
+	morpheusType = "accountResource"
+	resourceType = "dmsReplicationTask"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dynamodb_global_table" {
+	code = "terraform.aws.aws_dynamodb_global_table"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dynamodb_global_table"
+	iacType = "aws_dynamodb_global_table"
+	iacProvider = "terraform"
+	name = "Dynamodb Global Table"
+	type = "dynamodbGlobalTable"
+	morpheusType = "accountResource"
+	resourceType = "dynamodbGlobalTable"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-dynamodb"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dynamodb_table" {
+	code = "terraform.aws.aws_dynamodb_table"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dynamodb_table"
+	iacType = "aws_dynamodb_table"
+	iacProvider = "terraform"
+	name = "Dynamodb Table"
+	type = "dynamodbTable"
+	morpheusType = "accountResource"
+	resourceType = "dynamodbTable"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-dynamodb"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dynamodb_table_item" {
+	code = "terraform.aws.aws_dynamodb_table_item"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dynamodb_table_item"
+	iacType = "aws_dynamodb_table_item"
+	iacProvider = "terraform"
+	name = "Dynamodb Table Item"
+	type = "dynamodbTableItem"
+	morpheusType = "accountResource"
+	resourceType = "dynamodbTableItem"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-dynamodb"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dax_cluster" {
+	code = "terraform.aws.aws_dax_cluster"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dax_cluster"
+	iacType = "aws_dax_cluster"
+	iacProvider = "terraform"
+	name = "Dax Cluster"
+	type = "daxCluster"
+	morpheusType = "accountResource"
+	resourceType = "daxCluster"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-dynamodb"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dax_parameter_group" {
+	code = "terraform.aws.aws_dax_parameter_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dax_parameter_group"
+	iacType = "aws_dax_parameter_group"
+	iacProvider = "terraform"
+	name = "Dax Parameter Group"
+	type = "daxParameterGroup"
+	morpheusType = "accountResource"
+	resourceType = "daxParameterGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-dynamodb"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_dax_subnet_group" {
+	code = "terraform.aws.aws_dax_subnet_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_dax_subnet_group"
+	iacType = "aws_dax_subnet_group"
+	iacProvider = "terraform"
+	name = "Dax Subnet Group"
+	type = "daxSubnetGroup"
+	morpheusType = "accountResource"
+	resourceType = "daxSubnetGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-dynamodb"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_docdb_cluster" {
+	code = "terraform.aws.aws_docdb_cluster"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_docdb_cluster"
+	iacType = "aws_docdb_cluster"
+	iacProvider = "terraform"
+	name = "Docdb Cluster"
+	type = "docdbCluster"
+	morpheusType = "accountResource"
+	resourceType = "docdbCluster"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_docdb_cluster_instance" {
+	code = "terraform.aws.aws_docdb_cluster_instance"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_docdb_cluster_instance"
+	iacType = "aws_docdb_cluster_instance"
+	iacProvider = "terraform"
+	name = "Docdb Cluster Instance"
+	type = "docdbClusterInstance"
+	morpheusType = "accountResource"
+	resourceType = "docdbClusterInstance"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_docdb_cluster_parameter_group" {
+	code = "terraform.aws.aws_docdb_cluster_parameter_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_docdb_cluster_parameter_group"
+	iacType = "aws_docdb_cluster_parameter_group"
+	iacProvider = "terraform"
+	name = "Docdb Cluster Parameter Group"
+	type = "docdbClusterParameterGroup"
+	morpheusType = "accountResource"
+	resourceType = "docdbClusterParameterGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_docdb_cluster_snapshot" {
+	code = "terraform.aws.aws_docdb_cluster_snapshot"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_docdb_cluster_snapshot"
+	iacType = "aws_docdb_cluster_snapshot"
+	iacProvider = "terraform"
+	name = "Docdb Cluster Snapshot"
+	type = "docdbClusterSnapshot"
+	morpheusType = "accountResource"
+	resourceType = "docdbClusterSnapshot"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_docdb_subnet_group" {
+	code = "terraform.aws.aws_docdb_subnet_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_docdb_subnet_group"
+	iacType = "aws_docdb_subnet_group"
+	iacProvider = "terraform"
+	name = "Docdb Subnet Group"
+	type = "docdbSubnetGroup"
+	morpheusType = "accountResource"
+	resourceType = "docdbSubnetGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_elasticache_cluster" {
+	code = "terraform.aws.aws_elasticache_cluster"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_elasticache_cluster"
+	iacType = "aws_elasticache_cluster"
+	iacProvider = "terraform"
+	name = "Elasticache Cluster"
+	type = "elasticacheCluster"
+	morpheusType = "accountResource"
+	resourceType = "elasticacheCluster"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-elasticache"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_elasticache_parameter_group" {
+	code = "terraform.aws.aws_elasticache_parameter_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_elasticache_parameter_group"
+	iacType = "aws_elasticache_parameter_group"
+	iacProvider = "terraform"
+	name = "Elasticache Parameter Group"
+	type = "elasticacheParameterGroup"
+	morpheusType = "accountResource"
+	resourceType = "elasticacheParameterGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-elasticache"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_elasticache_replication_group" {
+	code = "terraform.aws.aws_elasticache_replication_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_elasticache_replication_group"
+	iacType = "aws_elasticache_replication_group"
+	iacProvider = "terraform"
+	name = "Elasticache Replication Group"
+	type = "elasticacheReplicationGroup"
+	morpheusType = "accountResource"
+	resourceType = "elasticacheReplicationGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-elasticache"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_elasticache_security_group" {
+	code = "terraform.aws.aws_elasticache_security_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_elasticache_security_group"
+	iacType = "aws_elasticache_security_group"
+	iacProvider = "terraform"
+	name = "Elasticache Security Group"
+	type = "elasticacheSecurityGroup"
+	morpheusType = "accountResource"
+	resourceType = "elasticacheSecurityGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-elasticache"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_elasticache_subnet_group" {
+	code = "terraform.aws.aws_elasticache_subnet_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_elasticache_subnet_group"
+	iacType = "aws_elasticache_subnet_group"
+	iacProvider = "terraform"
+	name = "Elasticache Subnet Group"
+	type = "elasticacheSubnetGroup"
+	morpheusType = "accountResource"
+	resourceType = "elasticacheSubnetGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-elasticache"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_emr_cluster" {
+	code = "terraform.aws.aws_emr_cluster"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_emr_cluster"
+	iacType = "aws_emr_cluster"
+	iacProvider = "terraform"
+	name = "Emr Cluster"
+	type = "emrCluster"
+	morpheusType = "accountResource"
+	resourceType = "emrCluster"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-emr"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_emr_instance_group" {
+	code = "terraform.aws.aws_emr_instance_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_emr_instance_group"
+	iacType = "aws_emr_instance_group"
+	iacProvider = "terraform"
+	name = "Emr Instance Group"
+	type = "emrInstanceGroup"
+	morpheusType = "accountResource"
+	resourceType = "emrInstanceGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-emr"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_emr_security_configuration" {
+	code = "terraform.aws.aws_emr_security_configuration"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_emr_security_configuration"
+	iacType = "aws_emr_security_configuration"
+	iacProvider = "terraform"
+	name = "Emr Security Configuration"
+	type = "emrSecurityConfiguration"
+	morpheusType = "accountResource"
+	resourceType = "emrSecurityConfiguration"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-emr"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_elasticsearch_domain" {
+	code = "terraform.aws.aws_elasticsearch_domain"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_elasticsearch_domain"
+	iacType = "aws_elasticsearch_domain"
+	iacProvider = "terraform"
+	name = "Elasticsearch Domain"
+	type = "elasticsearchDomain"
+	morpheusType = "accountResource"
+	resourceType = "elasticsearchDomain"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-elasticsearch-service"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_elasticsearch_domain_policy" {
+	code = "terraform.aws.aws_elasticsearch_domain_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_elasticsearch_domain_policy"
+	iacType = "aws_elasticsearch_domain_policy"
+	iacProvider = "terraform"
+	name = "Elasticsearch Domain Policy"
+	type = "elasticsearchDomainPolicy"
+	morpheusType = "accountResource"
+	resourceType = "elasticsearchDomainPolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-elasticsearch-service"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_neptune_parameter_group" {
+	code = "terraform.aws.aws_neptune_parameter_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_neptune_parameter_group"
+	iacType = "aws_neptune_parameter_group"
+	iacProvider = "terraform"
+	name = "Neptune Parameter Group"
+	type = "neptuneParameterGroup"
+	morpheusType = "accountResource"
+	resourceType = "neptuneParameterGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-neptune"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_neptune_subnet_group" {
+	code = "terraform.aws.aws_neptune_subnet_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_neptune_subnet_group"
+	iacType = "aws_neptune_subnet_group"
+	iacProvider = "terraform"
+	name = "Neptune Subnet Group"
+	type = "neptuneSubnetGroup"
+	morpheusType = "accountResource"
+	resourceType = "neptuneSubnetGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-neptune"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_neptune_cluster_parameter_group" {
+	code = "terraform.aws.aws_neptune_cluster_parameter_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_neptune_cluster_parameter_group"
+	iacType = "aws_neptune_cluster_parameter_group"
+	iacProvider = "terraform"
+	name = "Neptune Cluster Parameter Group"
+	type = "neptuneClusterParameterGroup"
+	morpheusType = "accountResource"
+	resourceType = "neptuneClusterParameterGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-neptune"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_neptune_cluster" {
+	code = "terraform.aws.aws_neptune_cluster"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_neptune_cluster"
+	iacType = "aws_neptune_cluster"
+	iacProvider = "terraform"
+	name = "Neptune Cluster"
+	type = "neptuneCluster"
+	morpheusType = "accountResource"
+	resourceType = "neptuneCluster"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-neptune"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_neptune_cluster_instance" {
+	code = "terraform.aws.aws_neptune_cluster_instance"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_neptune_cluster_instance"
+	iacType = "aws_neptune_cluster_instance"
+	iacProvider = "terraform"
+	name = "Neptune Cluster Instance"
+	type = "neptuneClusterInstance"
+	morpheusType = "accountResource"
+	resourceType = "neptuneClusterInstance"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-neptune"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_neptune_cluster_snapshot" {
+	code = "terraform.aws.aws_neptune_cluster_snapshot"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_neptune_cluster_snapshot"
+	iacType = "aws_neptune_cluster_snapshot"
+	iacProvider = "terraform"
+	name = "Neptune Cluster Snapshot"
+	type = "neptuneClusterSnapshot"
+	morpheusType = "accountResource"
+	resourceType = "neptuneClusterSnapshot"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-neptune"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_neptune_event_subscription" {
+	code = "terraform.aws.aws_neptune_event_subscription"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_neptune_event_subscription"
+	iacType = "aws_neptune_event_subscription"
+	iacProvider = "terraform"
+	name = "Neptune Event Subscription"
+	type = "neptuneEventSubscription"
+	morpheusType = "accountResource"
+	resourceType = "neptuneEventSubscription"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-neptune"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_qldb_ledger" {
+	code = "terraform.aws.aws_qldb_ledger"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_qldb_ledger"
+	iacType = "aws_qldb_ledger"
+	iacProvider = "terraform"
+	name = "Qldb Ledger"
+	type = "qldbLedger"
+	morpheusType = "accountResource"
+	resourceType = "qldbLedger"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_db_cluster_snapshot" {
+	code = "terraform.aws.aws_db_cluster_snapshot"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_db_cluster_snapshot"
+	iacType = "aws_db_cluster_snapshot"
+	iacProvider = "terraform"
+	name = "Db Cluster Snapshot"
+	type = "dbClusterSnapshot"
+	morpheusType = "accountResource"
+	resourceType = "dbClusterSnapshot"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-rds"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_db_event_subscription" {
+	code = "terraform.aws.aws_db_event_subscription"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_db_event_subscription"
+	iacType = "aws_db_event_subscription"
+	iacProvider = "terraform"
+	name = "Db Event Subscription"
+	type = "dbEventSubscription"
+	morpheusType = "accountResource"
+	resourceType = "dbEventSubscription"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-rds"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_db_instance" {
+	code = "terraform.aws.aws_db_instance"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_db_instance"
+	iacType = "aws_db_instance"
+	iacProvider = "terraform"
+	name = "Db Instance"
+	type = "dbInstance"
+	morpheusType = "accountResource"
+	resourceType = "dbInstance"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-rds"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_db_instance_role_association" {
+	code = "terraform.aws.aws_db_instance_role_association"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_db_instance_role_association"
+	iacType = "aws_db_instance_role_association"
+	iacProvider = "terraform"
+	name = "Db Instance Role Association"
+	type = "dbInstanceRoleAssociation"
+	morpheusType = "accountResource"
+	resourceType = "dbInstanceRoleAssociation"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-rds"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_db_option_group" {
+	code = "terraform.aws.aws_db_option_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_db_option_group"
+	iacType = "aws_db_option_group"
+	iacProvider = "terraform"
+	name = "Db Option Group"
+	type = "dbOptionGroup"
+	morpheusType = "accountResource"
+	resourceType = "dbOptionGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-rds"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_db_parameter_group" {
+	code = "terraform.aws.aws_db_parameter_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_db_parameter_group"
+	iacType = "aws_db_parameter_group"
+	iacProvider = "terraform"
+	name = "Db Parameter Group"
+	type = "dbParameterGroup"
+	morpheusType = "accountResource"
+	resourceType = "dbParameterGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-rds"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_db_security_group" {
+	code = "terraform.aws.aws_db_security_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_db_security_group"
+	iacType = "aws_db_security_group"
+	iacProvider = "terraform"
+	name = "Db Security Group"
+	type = "dbSecurityGroup"
+	morpheusType = "accountResource"
+	resourceType = "dbSecurityGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-rds"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_db_snapshot" {
+	code = "terraform.aws.aws_db_snapshot"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_db_snapshot"
+	iacType = "aws_db_snapshot"
+	iacProvider = "terraform"
+	name = "Db Snapshot"
+	type = "dbSnapshot"
+	morpheusType = "accountResource"
+	resourceType = "dbSnapshot"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-rds"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_db_subnet_group" {
+	code = "terraform.aws.aws_db_subnet_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_db_subnet_group"
+	iacType = "aws_db_subnet_group"
+	iacProvider = "terraform"
+	name = "Db Subnet Group"
+	type = "dbSubnetGroup"
+	morpheusType = "accountResource"
+	resourceType = "dbSubnetGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-rds"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_rds_cluster" {
+	code = "terraform.aws.aws_rds_cluster"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_rds_cluster"
+	iacType = "aws_rds_cluster"
+	iacProvider = "terraform"
+	name = "Rds Cluster"
+	type = "rdsCluster"
+	morpheusType = "accountResource"
+	resourceType = "rdsCluster"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-rds"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_rds_cluster_endpoint" {
+	code = "terraform.aws.aws_rds_cluster_endpoint"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_rds_cluster_endpoint"
+	iacType = "aws_rds_cluster_endpoint"
+	iacProvider = "terraform"
+	name = "Rds Cluster Endpoint"
+	type = "rdsClusterEndpoint"
+	morpheusType = "accountResource"
+	resourceType = "rdsClusterEndpoint"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-rds"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_rds_cluster_instance" {
+	code = "terraform.aws.aws_rds_cluster_instance"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_rds_cluster_instance"
+	iacType = "aws_rds_cluster_instance"
+	iacProvider = "terraform"
+	name = "Rds Cluster Instance"
+	type = "rdsClusterInstance"
+	morpheusType = "accountResource"
+	resourceType = "rdsClusterInstance"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-rds"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_rds_cluster_parameter_group" {
+	code = "terraform.aws.aws_rds_cluster_parameter_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_rds_cluster_parameter_group"
+	iacType = "aws_rds_cluster_parameter_group"
+	iacProvider = "terraform"
+	name = "Rds Cluster Parameter Group"
+	type = "rdsClusterParameterGroup"
+	morpheusType = "accountResource"
+	resourceType = "rdsClusterParameterGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-rds"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_rds_global_cluster" {
+	code = "terraform.aws.aws_rds_global_cluster"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_rds_global_cluster"
+	iacType = "aws_rds_global_cluster"
+	iacProvider = "terraform"
+	name = "Rds Global Cluster"
+	type = "rdsGlobalCluster"
+	morpheusType = "accountResource"
+	resourceType = "rdsGlobalCluster"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-rds"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_redshift_cluster" {
+	code = "terraform.aws.aws_redshift_cluster"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_redshift_cluster"
+	iacType = "aws_redshift_cluster"
+	iacProvider = "terraform"
+	name = "Redshift Cluster"
+	type = "redshiftCluster"
+	morpheusType = "accountResource"
+	resourceType = "redshiftCluster"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-redshift"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_redshift_event_subscription" {
+	code = "terraform.aws.aws_redshift_event_subscription"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_redshift_event_subscription"
+	iacType = "aws_redshift_event_subscription"
+	iacProvider = "terraform"
+	name = "Redshift Event Subscription"
+	type = "redshiftEventSubscription"
+	morpheusType = "accountResource"
+	resourceType = "redshiftEventSubscription"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-redshift"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_redshift_parameter_group" {
+	code = "terraform.aws.aws_redshift_parameter_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_redshift_parameter_group"
+	iacType = "aws_redshift_parameter_group"
+	iacProvider = "terraform"
+	name = "Redshift Parameter Group"
+	type = "redshiftParameterGroup"
+	morpheusType = "accountResource"
+	resourceType = "redshiftParameterGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-redshift"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_redshift_security_group" {
+	code = "terraform.aws.aws_redshift_security_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_redshift_security_group"
+	iacType = "aws_redshift_security_group"
+	iacProvider = "terraform"
+	name = "Redshift Security Group"
+	type = "redshiftSecurityGroup"
+	morpheusType = "accountResource"
+	resourceType = "redshiftSecurityGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-redshift"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_redshift_snapshot_copy_grant" {
+	code = "terraform.aws.aws_redshift_snapshot_copy_grant"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_redshift_snapshot_copy_grant"
+	iacType = "aws_redshift_snapshot_copy_grant"
+	iacProvider = "terraform"
+	name = "Redshift Snapshot Copy Grant"
+	type = "redshiftSnapshotCopyGrant"
+	morpheusType = "accountResource"
+	resourceType = "redshiftSnapshotCopyGrant"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-redshift"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_redshift_snapshot_schedule_association" {
+	code = "terraform.aws.aws_redshift_snapshot_schedule_association"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_redshift_snapshot_schedule_association"
+	iacType = "aws_redshift_snapshot_schedule_association"
+	iacProvider = "terraform"
+	name = "Redshift Snapshot Schedule Association"
+	type = "redshiftSnapshotScheduleAssociation"
+	morpheusType = "accountResource"
+	resourceType = "redshiftSnapshotScheduleAssociation"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-redshift"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_redshift_snapshot_schedule" {
+	code = "terraform.aws.aws_redshift_snapshot_schedule"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_redshift_snapshot_schedule"
+	iacType = "aws_redshift_snapshot_schedule"
+	iacProvider = "terraform"
+	name = "Redshift Snapshot Schedule"
+	type = "redshiftSnapshotSchedule"
+	morpheusType = "accountResource"
+	resourceType = "redshiftSnapshotSchedule"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-redshift"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_redshift_subnet_group" {
+	code = "terraform.aws.aws_redshift_subnet_group"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_redshift_subnet_group"
+	iacType = "aws_redshift_subnet_group"
+	iacProvider = "terraform"
+	name = "Redshift Subnet Group"
+	type = "redshiftSubnetGroup"
+	morpheusType = "accountResource"
+	resourceType = "redshiftSubnetGroup"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-redshift"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_simpledb_domain" {
+	code = "terraform.aws.aws_simpledb_domain"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_simpledb_domain"
+	iacType = "aws_simpledb_domain"
+	iacProvider = "terraform"
+	name = "Simpledb Domain"
+	type = "simpledbDomain"
+	morpheusType = "accountResource"
+	resourceType = "simpledbDomain"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-resource"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+

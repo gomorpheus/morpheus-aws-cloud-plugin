@@ -1,0 +1,460 @@
+resource "account-resource-type" "terraform.aws.aws_efs_file_system" {
+	code = "terraform.aws.aws_efs_file_system"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_efs_file_system"
+	iacType = "aws_efs_file_system"
+	iacProvider = "terraform"
+	name = "Efs File System"
+	type = "efsFileSystem"
+	morpheusType = "accountResource"
+	resourceType = "efsFileSystem"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-efs"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_efs_mount_target" {
+	code = "terraform.aws.aws_efs_mount_target"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_efs_mount_target"
+	iacType = "aws_efs_mount_target"
+	iacProvider = "terraform"
+	name = "Efs Mount Target"
+	type = "efsMountTarget"
+	morpheusType = "accountResource"
+	resourceType = "efsMountTarget"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-efs"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_fsx_lustre_file_system" {
+	code = "terraform.aws.aws_fsx_lustre_file_system"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_fsx_lustre_file_system"
+	iacType = "aws_fsx_lustre_file_system"
+	iacProvider = "terraform"
+	name = "Fsx Lustre File System"
+	type = "fsxLustreFileSystem"
+	morpheusType = "accountResource"
+	resourceType = "fsxLustreFileSystem"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-fsx"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_fsx_windows_file_system" {
+	code = "terraform.aws.aws_fsx_windows_file_system"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_fsx_windows_file_system"
+	iacType = "aws_fsx_windows_file_system"
+	iacProvider = "terraform"
+	name = "Fsx Windows File System"
+	type = "fsxWindowsFileSystem"
+	morpheusType = "accountResource"
+	resourceType = "fsxWindowsFileSystem"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-fsx"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_glacier_vault" {
+	code = "terraform.aws.aws_glacier_vault"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_glacier_vault"
+	iacType = "aws_glacier_vault"
+	iacProvider = "terraform"
+	name = "Glacier Vault"
+	type = "glacierVault"
+	morpheusType = "accountResource"
+	resourceType = "glacierVault"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-s3-glacier"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_glacier_vault_lock" {
+	code = "terraform.aws.aws_glacier_vault_lock"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_glacier_vault_lock"
+	iacType = "aws_glacier_vault_lock"
+	iacProvider = "terraform"
+	name = "Glacier Vault Lock"
+	type = "glacierVaultLock"
+	morpheusType = "accountResource"
+	resourceType = "glacierVaultLock"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-s3-glacier"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_storagegateway_cache" {
+	code = "terraform.aws.aws_storagegateway_cache"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_storagegateway_cache"
+	iacType = "aws_storagegateway_cache"
+	iacProvider = "terraform"
+	name = "Storagegateway Cache"
+	type = "storagegatewayCache"
+	morpheusType = "accountResource"
+	resourceType = "storagegatewayCache"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-storage-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_storagegateway_cached_iscsi_volume" {
+	code = "terraform.aws.aws_storagegateway_cached_iscsi_volume"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_storagegateway_cached_iscsi_volume"
+	iacType = "aws_storagegateway_cached_iscsi_volume"
+	iacProvider = "terraform"
+	name = "Storagegateway Cached Iscsi Volume"
+	type = "storagegatewayCachedIscsiVolume"
+	morpheusType = "accountResource"
+	resourceType = "storagegatewayCachedIscsiVolume"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-storage-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_storagegateway_gateway" {
+	code = "terraform.aws.aws_storagegateway_gateway"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_storagegateway_gateway"
+	iacType = "aws_storagegateway_gateway"
+	iacProvider = "terraform"
+	name = "Storagegateway Gateway"
+	type = "storagegatewayGateway"
+	morpheusType = "accountResource"
+	resourceType = "storagegatewayGateway"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-storage-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_storagegateway_nfs_file_share" {
+	code = "terraform.aws.aws_storagegateway_nfs_file_share"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_storagegateway_nfs_file_share"
+	iacType = "aws_storagegateway_nfs_file_share"
+	iacProvider = "terraform"
+	name = "Storagegateway Nfs File Share"
+	type = "storagegatewayNfsFileShare"
+	morpheusType = "accountResource"
+	resourceType = "storagegatewayNfsFileShare"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-storage-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_storagegateway_smb_file_share" {
+	code = "terraform.aws.aws_storagegateway_smb_file_share"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_storagegateway_smb_file_share"
+	iacType = "aws_storagegateway_smb_file_share"
+	iacProvider = "terraform"
+	name = "Storagegateway Smb File Share"
+	type = "storagegatewaySmbFileShare"
+	morpheusType = "accountResource"
+	resourceType = "storagegatewaySmbFileShare"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-storage-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_storagegateway_upload_buffer" {
+	code = "terraform.aws.aws_storagegateway_upload_buffer"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_storagegateway_upload_buffer"
+	iacType = "aws_storagegateway_upload_buffer"
+	iacProvider = "terraform"
+	name = "Storagegateway Upload Buffer"
+	type = "storagegatewayUploadBuffer"
+	morpheusType = "accountResource"
+	resourceType = "storagegatewayUploadBuffer"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-storage-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_storagegateway_working_storage" {
+	code = "terraform.aws.aws_storagegateway_working_storage"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_storagegateway_working_storage"
+	iacType = "aws_storagegateway_working_storage"
+	iacProvider = "terraform"
+	name = "Storagegateway Working Storage"
+	type = "storagegatewayWorkingStorage"
+	morpheusType = "accountResource"
+	resourceType = "storagegatewayWorkingStorage"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-storage-gateway"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_s3_access_point" {
+	code = "terraform.aws.aws_s3_access_point"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_s3_access_point"
+	iacType = "aws_s3_access_point"
+	iacProvider = "terraform"
+	name = "S3 Access Point"
+	type = "s3AccessPoint"
+	morpheusType = "accountResource"
+	resourceType = "s3AccessPoint"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-simple-storage-service-s3"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_s3_account_public_access_block" {
+	code = "terraform.aws.aws_s3_account_public_access_block"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_s3_account_public_access_block"
+	iacType = "aws_s3_account_public_access_block"
+	iacProvider = "terraform"
+	name = "S3 Account Public Access Block"
+	type = "s3AccountPublicAccessBlock"
+	morpheusType = "accountResource"
+	resourceType = "s3AccountPublicAccessBlock"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-simple-storage-service-s3"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_s3_bucket" {
+	code = "terraform.aws.aws_s3_bucket"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_s3_bucket"
+	iacType = "aws_s3_bucket"
+	iacProvider = "terraform"
+	name = "S3 Bucket"
+	type = "s3Bucket"
+	morpheusType = "accountResource"
+	resourceType = "s3Bucket"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-simple-storage-service-s3"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_s3_bucket_analysis_configuration" {
+	code = "terraform.aws.aws_s3_bucket_analysis_configuration"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_s3_bucket_analysis_configuration"
+	iacType = "aws_s3_bucket_analysis_configuration"
+	iacProvider = "terraform"
+	name = "S3 Bucket Analysis Configuration"
+	type = "s3BucketAnalysisConfiguration"
+	morpheusType = "accountResource"
+	resourceType = "s3BucketAnalysisConfiguration"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-simple-storage-service-s3"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_s3_bucket_inventory" {
+	code = "terraform.aws.aws_s3_bucket_inventory"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_s3_bucket_inventory"
+	iacType = "aws_s3_bucket_inventory"
+	iacProvider = "terraform"
+	name = "S3 Bucket Inventory"
+	type = "s3BucketInventory"
+	morpheusType = "accountResource"
+	resourceType = "s3BucketInventory"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-simple-storage-service-s3"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_s3_bucket_metric" {
+	code = "terraform.aws.aws_s3_bucket_metric"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_s3_bucket_metric"
+	iacType = "aws_s3_bucket_metric"
+	iacProvider = "terraform"
+	name = "S3 Bucket Metric"
+	type = "s3BucketMetric"
+	morpheusType = "accountResource"
+	resourceType = "s3BucketMetric"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-simple-storage-service-s3"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_s3_bucket_notification" {
+	code = "terraform.aws.aws_s3_bucket_notification"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_s3_bucket_notification"
+	iacType = "aws_s3_bucket_notification"
+	iacProvider = "terraform"
+	name = "S3 Bucket Notification"
+	type = "s3BucketNotification"
+	morpheusType = "accountResource"
+	resourceType = "s3BucketNotification"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-simple-storage-service-s3"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_s3_bucket_object" {
+	code = "terraform.aws.aws_s3_bucket_object"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_s3_bucket_object"
+	iacType = "aws_s3_bucket_object"
+	iacProvider = "terraform"
+	name = "S3 Bucket Object"
+	type = "s3BucketObject"
+	morpheusType = "accountResource"
+	resourceType = "s3BucketObject"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-simple-storage-service-s3"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_s3_bucket_policy" {
+	code = "terraform.aws.aws_s3_bucket_policy"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_s3_bucket_policy"
+	iacType = "aws_s3_bucket_policy"
+	iacProvider = "terraform"
+	name = "S3 Bucket Policy"
+	type = "s3BucketPolicy"
+	morpheusType = "accountResource"
+	resourceType = "s3BucketPolicy"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-simple-storage-service-s3"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
+resource "account-resource-type" "terraform.aws.aws_s3_bucket_public_access_block" {
+	code = "terraform.aws.aws_s3_bucket_public_access_block"
+	category = "terraform"
+	apiCategory = "aws"
+	apiType = "aws_s3_bucket_public_access_block"
+	iacType = "aws_s3_bucket_public_access_block"
+	iacProvider = "terraform"
+	name = "S3 Bucket Public Access Block"
+	type = "s3BucketPublicAccessBlock"
+	morpheusType = "accountResource"
+	resourceType = "s3BucketPublicAccessBlock"
+	iacProviderType = "amazon"
+	rootType = true
+	resourceIcon = "aws-simple-storage-service-s3"
+	resourceVersion = "1.0"
+	displayOrder = 20
+	description = ""
+	isPlugin = true
+}
+
