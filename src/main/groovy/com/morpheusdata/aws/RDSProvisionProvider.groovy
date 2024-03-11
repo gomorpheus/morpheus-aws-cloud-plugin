@@ -101,6 +101,7 @@ class RDSProvisionProvider extends AbstractProvisionProvider implements Workload
             inputType:OptionType.InputType.SELECT,
             optionSource:'amazonDbSubnetGroup',
             optionSourceType:'amazon',
+            dependsOnCode: 'config.resourcePoolId',
             global:false,
             fieldContext:'config',
             category:'provisionType.rds'
@@ -630,6 +631,16 @@ class RDSProvisionProvider extends AbstractProvisionProvider implements Workload
      */
     @Override
     Boolean hasSecurityGroups() {
+        return true
+    }
+
+    @Override
+    Boolean hasComputeZonePools() {
+        return true
+    }
+
+    @Override
+    Boolean computeZonePoolRequired() {
         return true
     }
 
