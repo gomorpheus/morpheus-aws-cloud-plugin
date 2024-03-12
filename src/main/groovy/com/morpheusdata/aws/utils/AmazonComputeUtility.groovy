@@ -3442,8 +3442,21 @@ class AmazonComputeUtility {
 	
 	//route 53 stuff
 	static listDnsHostedZones(amazonClient) {
-		def rtn = [success:false]
+		def rtn = [success:false, zoneList:[]]
 		try {
+			def request = new ListHostedZonesRequest()
+			request.setMaxItems('100')
+			def hasMore = true
+			while(hasMore == true) {
+				def results = amazonClient.listHostedZones(request)
+				rtn.zoneList << results?.getHostedZones()
+
+				if(results.isTruncated()) {
+					request.setMarker(results.getNextMarker())
+				} else {
+					hasMore = false
+				}
+			}
 			rtn.zoneList = amazonClient.listHostedZones()?.getHostedZones()
 			rtn.success = true
 		} catch(e) {
