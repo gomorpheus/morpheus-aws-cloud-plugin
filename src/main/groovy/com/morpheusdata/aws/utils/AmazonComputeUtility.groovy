@@ -2752,58 +2752,54 @@ class AmazonComputeUtility {
 					rtn.errors += [field: 'publicIpType', msg: 'Not enough Elastic IPs available']
 				}
 			}
-			if(cloud?.configMap?.vpc) {
-				if(!opts.subnetId) {
-					if(opts.networkInterfaces?.size() > 0) {
-						def hasNetwork = true
-						def sameNetwork = true
-						def matchNetwork
-						opts.networkInterfaces?.each {
-							log.debug("availability cloud: ${it.network.availabilityZone}")
-							if(it.network.group != null) {
-								hasNetwork = true
-							} else if(it.network.id == null || it.network.id == '') {
-								hasNetwork = false
-							} else {
-								def networkId
-								def networkObj
-								networkId = it.network.id.toLong()
-								try {
-									networkObj = morpheusContext.async.network.listById([networkId]).firstOrError().blockingGet()
-								} catch(e) {
-									log.error("Error finding network ${it.network.name}")
-								}
 
-								if(matchNetwork == null) {
-									matchNetwork = networkObj.availabilityZone
-								} else {
-									if(networkObj.availabilityZone != matchNetwork)
-										sameNetwork = false
-								}
+			if(!opts.subnetId) {
+				if(opts.networkInterfaces?.size() > 0) {
+					def hasNetwork = true
+					def sameNetwork = true
+					def matchNetwork
+					opts.networkInterfaces?.each {
+						log.debug("availability cloud: ${it.network.availabilityZone}")
+						if(it.network.group != null) {
+							hasNetwork = true
+						} else if(it.network.id == null || it.network.id == '') {
+							hasNetwork = false
+						} else {
+							def networkId
+							def networkObj
+							networkId = it.network.id.toLong()
+							try {
+								networkObj = morpheusContext.async.network.listById([networkId]).firstOrError().blockingGet()
+							} catch(e) {
+								log.error("Error finding network ${it.network.name}")
+							}
+
+							if(matchNetwork == null) {
+								matchNetwork = networkObj.availabilityZone
+							} else {
+								if(networkObj.availabilityZone != matchNetwork)
+									sameNetwork = false
 							}
 						}
-						if(!(opts.resourcePool || opts.resourcePoolId)) {
-							rtn.errors += [field:'resourcePoolId', msg: 'You must choose a VPC']
-						}
-						if(hasNetwork != true)
-							rtn.errors += [field:'networkInterface', msg:'You must choose a subnet for each network']
-						if(sameNetwork != true)
-							rtn.errors += [field:'networkInterface', msg:'You must choose subnets in the same availability cloud']
-					} else {
-						rtn.errors += [field:'subnetId', msg:'You must choose a subnet']
 					}
-				}
-				if(!opts.securityId) {
-					if(opts.securityGroups) {
-						if(opts.securityGroups.findAll {it?.id != ''}?.size < 1)
-							rtn.errors += [field:'securityGroup', msg: 'You must choose a security group']
-					} else {
-						rtn.errors += [field:'securityId', msg: 'You must choose a security group']
+					if(!(opts.resourcePool || opts.resourcePoolId)) {
+						rtn.errors += [field:'resourcePoolId', msg: 'You must choose a VPC']
 					}
+					if(hasNetwork != true)
+						rtn.errors += [field:'networkInterface', msg:'You must choose a subnet for each network']
+					if(sameNetwork != true)
+						rtn.errors += [field:'networkInterface', msg:'You must choose subnets in the same availability cloud']
+				} else {
+					rtn.errors += [field:'subnetId', msg:'You must choose a subnet']
 				}
 			}
-			else if(!opts.availabilityId) {
-				rtn.errors += [field: 'availabilityId', msg: 'You must choose a cloud']
+			if(!opts.securityId) {
+				if(opts.securityGroups) {
+					if(opts.securityGroups.findAll {it?.id != ''}?.size < 1)
+						rtn.errors += [field:'securityGroup', msg: 'You must choose a security group']
+				} else {
+					rtn.errors += [field:'securityId', msg: 'You must choose a security group']
+				}
 			}
 			if(opts.imageType && !opts.isMigration) {
 				if(opts.imageType == 'private' && !opts.imageId) {
