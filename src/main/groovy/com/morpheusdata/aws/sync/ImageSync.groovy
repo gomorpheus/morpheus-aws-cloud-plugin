@@ -10,7 +10,6 @@ import com.morpheusdata.aws.utils.AmazonComputeUtility
 import com.morpheusdata.core.MorpheusContext
 import com.morpheusdata.core.util.SyncTask
 import com.morpheusdata.model.Cloud
-import com.morpheusdata.model.ImageType
 import com.morpheusdata.model.MetadataTag
 import com.morpheusdata.model.OsType
 import com.morpheusdata.model.VirtualImage
@@ -48,9 +47,15 @@ class ImageSync {
 						new DataFilter<String>("refId", cloud.id)
 					)
 				)
+				Map<String, VirtualImageLocationIdentityProjection> firstMatch = [:]
+				existingRecords.toList().blockingGet().sort { it.id }.each {
+					if(!firstMatch[it.externalId]) {
+						firstMatch[it.externalId] = it
+					}
+				}
 				SyncTask<VirtualImageLocationIdentityProjection, Image, VirtualImageLocation> syncTask = new SyncTask<>(existingRecords, cloudItems)
 				syncTask.addMatchFunction { VirtualImageLocationIdentityProjection existingItem, Image cloudItem ->
-					existingItem.externalId == cloudItem.imageId
+					existingItem.externalId == cloudItem.imageId && firstMatch[existingItem.externalId].id == existingItem.id
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<VirtualImageLocationIdentityProjection, VirtualImageLocation>> updateItems ->
 					morpheusContext.async.virtualImage.location.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 				}.onAdd { itemsToAdd ->
