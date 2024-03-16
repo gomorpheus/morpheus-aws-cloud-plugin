@@ -254,6 +254,7 @@ class AWSNetworkProvider implements NetworkProvider, CloudInitializationProvider
 				if(apiResults?.success && apiResults?.error != true) {
 					rtn.success = true
 					network.externalId = apiResults.externalId
+					network.uniqueId = apiResults.externalId
 					network.regionCode = resourcePool?.regionCode
 				}
 				rtn.data = network

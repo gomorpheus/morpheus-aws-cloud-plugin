@@ -4942,7 +4942,7 @@ class AmazonComputeUtility {
 			for(cacheKey in clients.keySet()) {
 				if(clients[cacheKey]?.clientExpires && clients[cacheKey]?.clientExpires < new Date(new Date().time - (10l*60l*1000l))) {
 					clients[cacheKey].each { clientKey, client ->
-						if(clientKey != 'clientExpires') {
+						if(clientKey != 'clientExpires' && clientKey != 'credentialsProvider') {
 							try {
 								client.shutdown()
 							} catch(ex2) {

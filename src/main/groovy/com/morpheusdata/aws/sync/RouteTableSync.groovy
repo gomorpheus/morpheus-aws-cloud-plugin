@@ -53,9 +53,15 @@ class RouteTableSync {
 				def amazonClient = plugin.getAmazonClient(cloud, false, zonePool.regionCode)
 				def cloudItems = AmazonComputeUtility.listRouteTables(amazonClient: amazonClient, filterVpcId: zonePool.externalId).routeTableList
 				Observable<NetworkRouteTableIdentityProjection> existingRecords = morpheusContext.async.network.routeTable.listIdentityProjections(zonePool.id)
+				Map<String, NetworkRouteTableIdentityProjection> firstMatch = [:]
+				existingRecords.toList().blockingGet().sort { it.id }.each {
+					if(!firstMatch[it.externalId]) {
+						firstMatch[it.externalId] = it
+					}
+				}
 				SyncTask<NetworkRouteTableIdentityProjection, RouteTable, NetworkRouteTable> syncTask = new SyncTask<>(existingRecords, cloudItems)
 				syncTask.addMatchFunction { NetworkRouteTableIdentityProjection existingItem, RouteTable cloudItem ->
-					existingItem.externalId == cloudItem.routeTableId
+					existingItem.externalId == cloudItem.routeTableId && firstMatch[existingItem.externalId].id == existingItem.id
 				}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<NetworkRouteTableIdentityProjection, NetworkRouteTable>> updateItems ->
 					morpheusContext.async.network.routeTable.listById(updateItems.collect { it.existingItem.id } as Collection<Long>)
 				}.onAdd { itemsToAdd ->
