@@ -54,6 +54,15 @@ import groovy.util.logging.Slf4j
 
 @Slf4j
 class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvisionProvider, WorkloadProvisionProvider.ResizeFacet, HostProvisionProvider.ResizeFacet, ProvisionProvider.BlockDeviceNameFacet, ProvisionProvider.IacResourceFacet {
+	static class InstanceStates {
+		static final PENDING 			= 0
+		static final RUNNING 			= 16
+		static final SHUTTING_DOWN 		= 32
+		static final TERMINATED 		= 48
+		static final STOPPING     		= 64
+		static final STOPPED 			= 80
+	}
+
 	AWSPlugin plugin
 	MorpheusContext morpheusContext
 
@@ -1230,9 +1239,13 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		if(server?.externalId && (server.managed == true || server.computeServerType?.controlPower)) {
 			def client = plugin.getAmazonClient(server.cloud, false, server.resourcePool?.regionCode)
 			def stopResult = AmazonComputeUtility.stopServer([amazonClient: client, server: server])
-
 			if (stopResult.success) {
-				return ServiceResponse.success()
+				def waitResults = AmazonComputeUtility.waitForServerStatus([amazonClient: client, server: server], InstanceStates.STOPPED)
+				if(waitResults.success) {
+					return ServiceResponse.success()
+				} else {
+					return ServiceResponse.error('Failed to stop vm')
+				}
 			} else {
 				return ServiceResponse.error('Failed to stop vm')
 			}
@@ -1253,9 +1266,13 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		if(server?.externalId && (server.managed == true || server.computeServerType?.controlPower)) {
 			def client = plugin.getAmazonClient(server.cloud, false, server.resourcePool?.regionCode)
 			def startResult = AmazonComputeUtility.startServer([amazonClient: client, server: server])
-
 			if(startResult.success == true) {
-				return ServiceResponse.success()
+				def waitResults = AmazonComputeUtility.waitForServerStatus([amazonClient: client, server: server], InstanceStates.RUNNING)
+				if(waitResults.success) {
+					return ServiceResponse.success()
+				} else {
+					return ServiceResponse.error('Failed to start vm')
+				}
 			} else {
 				return ServiceResponse.error('Failed to start vm')
 			}
@@ -1298,7 +1315,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		log.debug("restartWorkload: ${workload}")
 		def client = plugin.getAmazonClient(workload.server.cloud, false, workload.server.resourcePool.regionCode)
 		AmazonComputeUtility.rebootServer([amazonClient: client, server: workload.server])
-		def waitResults = AmazonComputeUtility.waitForServerStatus([amazonClient: client, server: workload.server], 16)
+		def waitResults = AmazonComputeUtility.waitForServerStatus([amazonClient: client, server: workload.server], InstanceStates.RUNNING)
 		if (waitResults.success) {
 			return ServiceResponse.success()
 		} else {
@@ -1403,7 +1420,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 			amazonOpts.amazonClient = plugin.getAmazonClient(cloud,false, server.resourcePool.regionCode)
 			def serverId = server.id
 
-			def statusResults = AmazonComputeUtility.waitForServerStatus(amazonOpts, 80)
+			def statusResults = AmazonComputeUtility.waitForServerStatus(amazonOpts, InstanceStates.STOPPED)
 			if(statusResults.success == true) {
 
 				//instance size
@@ -1619,7 +1636,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 			}
 			def vmOpts = [amazonClient:amazonOpts.amazonClient, server:server, externalId:server.externalId]
 			def startResult = AmazonComputeUtility.startServer(vmOpts)
-			def waitResults = AmazonComputeUtility.waitForServerStatus(vmOpts, 16)
+			def waitResults = AmazonComputeUtility.waitForServerStatus(vmOpts, InstanceStates.RUNNING)
 			if(waitResults.success == true) {
 				refreshServerIp(server, vmOpts)
 			}
