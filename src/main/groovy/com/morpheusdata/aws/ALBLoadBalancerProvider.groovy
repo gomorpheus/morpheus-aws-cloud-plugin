@@ -182,7 +182,7 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
             global:true,
             fieldContext:'config',
             category:'zoneType.amazon',
-            helpBlock:'gomorpheus.help.lbSubnets',
+            helpTextI18nCode:'gomorpheus.help.lbSubnets',
             config:'{"recommendedCount":2}'
         )
         options << new OptionType(

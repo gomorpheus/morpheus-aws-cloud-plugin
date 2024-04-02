@@ -513,6 +513,25 @@ class S3StorageProvider implements StorageProvider, StorageProviderBuckets, Clou
         ["s3"]
     }
 
+    ServiceResponse writeToBucket(StorageBucket storageBucket, String path, String content) {
+        def rtn = [success:false]
+        try {
+            StorageServer storageServer = storageBucket.storageServer
+            def apiConfig = getApiConfig(storageServer, storageBucket.regionCode)
+            def providerMap = [provider: 's3'] + apiConfig
+            providerMap = providerMap + storageBucket.getConfigMap()
+            def targetFile = com.bertramlabs.plugins.karman.StorageProvider.create(providerMap)[storageBucket.bucketName][path]
+            targetFile.setContentLength(content.length())
+            targetFile.text(content)
+            targetFile.save()
+            rtn.success = true
+        } catch(e) {
+            log.error("error writing to bucket: ${e}", e)
+            rtn.msg = 'unknown error writing to bucket'
+        }
+        return ServiceResponse.create(rtn)
+    }
+
     protected def getApiConfig(StorageServer storageServer,String desiredRegion = null) {
         String accessKey = storageServer.credentialData?.username ?: storageServer.serviceUsername
         String secretKey = storageServer.credentialData?.password ?: storageServer.servicePassword
@@ -594,7 +613,7 @@ class S3StorageProvider implements StorageProvider, StorageProviderBuckets, Clou
     protected Cloud getStorageServerCloud(StorageServer storageServer) {
         if(storageServer.refType == 'ComputeZone' || storageServer.refType == 'Cloud') {
             // this could return null too if refId is missing
-            Cloud cloud = morpheus.cloud.getCloudById(storageServer.refId).blockingGet();
+            Cloud cloud = morpheus.cloud.getCloudById(storageServer.refId).blockingGet()
             return checkCloudCredentials(cloud)
         } else {
             return null

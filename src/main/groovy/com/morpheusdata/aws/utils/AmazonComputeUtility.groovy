@@ -3731,17 +3731,16 @@ class AmazonComputeUtility {
 		return rtn
 	}
 
-	static updateCloudFormationStack(amazonClient, stackName, templateJson, parameters, capabilities=[], isYaml) {
+	static updateCloudFormationStack(amazonClient, stackName, payload, parameters, capabilities=[], isYaml, s3Url=null) {
 		def rtn = [success:false]
 		try {
-			def payload
-			if(isYaml) {
-				payload = asCloudFormationYaml(templateJson)
+			UpdateStackRequest request
+			if(s3Url) {
+				request = new UpdateStackRequest().withStackName(stackName).withTemplateURL(s3Url)
 			} else {
-				payload = new JsonOutput().toJson(templateJson)
+				request = new UpdateStackRequest().withStackName(stackName).withTemplateBody(payload)
 			}
-			com.amazonaws.services.cloudformation.model.UpdateStackRequest request = new com.amazonaws.services.cloudformation.model.UpdateStackRequest().withStackName(stackName).withTemplateBody(payload)
-			java.util.Collection<com.amazonaws.services.cloudformation.model.Parameter> awsParameters = new LinkedList<com.amazonaws.services.cloudformation.model.Parameter>()
+			Collection<com.amazonaws.services.cloudformation.model.Parameter> awsParameters = new LinkedList<com.amazonaws.services.cloudformation.model.Parameter>()
 			parameters.each { k, v ->
 				awsParameters.add(new com.amazonaws.services.cloudformation.model.Parameter().withParameterKey(k).withParameterValue(v.toString()))
 			}
@@ -3749,7 +3748,7 @@ class AmazonComputeUtility {
 			if(capabilities) {
 				request.setCapabilities(capabilities)
 			}
-			com.amazonaws.services.cloudformation.model.UpdateStackResult result = amazonClient.updateStack(request)
+			UpdateStackResult result = amazonClient.updateStack(request)
 			rtn.stackId = result.getStackId()
 			rtn.success = true
 		} catch(e) {
@@ -3759,17 +3758,16 @@ class AmazonComputeUtility {
 		return rtn
 	}
 
-	static createCloudFormationStack(amazonClient, stackName, templateJson, parameters, capabilities=[], isYaml) {
+	static createCloudFormationStack(amazonClient, stackName, payload, parameters, capabilities=[], isYaml, s3Url=null) {
 		def rtn = [success:false]
 		try {
-			def payload
-			if(isYaml) {
-				payload = asCloudFormationYaml(templateJson)
+			CreateStackRequest request
+			if(s3Url) {
+				request = new CreateStackRequest().withStackName(stackName).withTemplateURL(s3Url)
 			} else {
-				payload = new JsonOutput().toJson(templateJson)
+				request = new CreateStackRequest().withStackName(stackName).withTemplateBody(payload)
 			}
-			com.amazonaws.services.cloudformation.model.CreateStackRequest request = new com.amazonaws.services.cloudformation.model.CreateStackRequest().withStackName(stackName).withTemplateBody(payload)
-			java.util.Collection<com.amazonaws.services.cloudformation.model.Parameter> awsParameters = new LinkedList<com.amazonaws.services.cloudformation.model.Parameter>()
+			Collection<com.amazonaws.services.cloudformation.model.Parameter> awsParameters = new LinkedList<com.amazonaws.services.cloudformation.model.Parameter>()
 			parameters.each { k, v ->
 				awsParameters.add(new com.amazonaws.services.cloudformation.model.Parameter().withParameterKey(k).withParameterValue(v != null ? v.toString() : ''))
 			}
@@ -3777,7 +3775,7 @@ class AmazonComputeUtility {
 			if(capabilities) {
 				request.setCapabilities(capabilities)
 			}
-			com.amazonaws.services.cloudformation.model.CreateStackResult result = amazonClient.createStack(request)
+			CreateStackResult result = amazonClient.createStack(request)
 			rtn.stackId = result.getStackId()
 			rtn.success = true
 		} catch(e) {

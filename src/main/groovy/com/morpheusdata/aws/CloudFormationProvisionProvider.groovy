@@ -37,6 +37,7 @@ import com.morpheusdata.model.ResourceSpec
 import com.morpheusdata.model.ResourceSpecTemplate
 import com.morpheusdata.model.SecurityGroupLocation
 import com.morpheusdata.model.ServicePlan
+import com.morpheusdata.model.StorageBucket
 import com.morpheusdata.model.TemplateParameter
 import com.morpheusdata.model.VirtualImage
 import com.morpheusdata.model.Workload
@@ -83,7 +84,33 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 				optionSource: 'awsPluginCloudRegions',
 				required: true
 		)
-		[regionCode]
+		OptionType s3Bucket = new OptionType(
+				name: 's3Bucket',
+				code: 'aws-plugin-cloudFormation-s3Bucket',
+				displayOrder: 110,
+				fieldContext: 'config',
+				fieldGroup:'Options',
+				fieldLabel: 'Upload Template Bucket',
+				fieldCode: 'gomorpheus.label.cloudFormation.s3.bucket',
+				helpTextI18nCode: 'gomorpheus.help.cloudFormation.s3.bucket',
+				fieldName: 's3Bucket',
+				inputType: OptionType.InputType.SELECT,
+				optionSource: 'amazonS3Buckets',
+				required: false
+		)
+		OptionType stackName = new OptionType(
+				name: 'stackName',
+				code: 'aws-plugin-cloudFormation-stackName',
+				displayOrder: 115,
+				fieldContext: 'config',
+				fieldGroup:'Options',
+				fieldLabel: 'Stack Name',
+				fieldCode: 'gomorpheus.label.cloudFormation.stack.name',
+				fieldName: 'stackName',
+				inputType: OptionType.InputType.TEXT,
+				required: false
+		)
+		[regionCode, s3Bucket, stackName]
 	}
 
 	/**
@@ -426,7 +453,9 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 
 			])).blockingGet()
 			//each spec is a stack
-			def stackName = performingUpdate ? spec.resourceName : getUniqueStackName(cloud, instance.name, regionCode)
+			def instanceConfig = instance.getConfigMap()
+			def desiredStackName = instanceConfig.stackName ?: instance.name
+			def stackName = performingUpdate ? spec.getConfigProperty('stackName') : getUniqueStackName(cloud, desiredStackName, regionCode)
 
 
 			log.debug("cloud formation stack base template: {}", spec.templateContent)
@@ -442,10 +471,26 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 			def capabilities = parseCapabilities(spec.template?.getConfigProperty('cloudformation') as Map)
 			def specResults
 
-			if(performingUpdate) {
-				specResults = AmazonComputeUtility.updateCloudFormationStack(plugin.getAmazonCloudFormationClient(cloud, false, regionCode as String), stackName, templateJson, templateParams, capabilities, isYaml)
+			def payload
+			if(isYaml) {
+				payload = AmazonComputeUtility.asCloudFormationYaml(templateJson)
 			} else {
-				specResults = AmazonComputeUtility.createCloudFormationStack(plugin.getAmazonCloudFormationClient(cloud, false, regionCode as String), stackName, templateJson, templateParams, capabilities, isYaml)
+				payload = templateJson.encodeAsJSON().toString()
+			}
+
+			def s3Url
+			StorageBucket storageBucket = instanceConfig?.s3Bucket ? morpheus.services.storageBucket.get(instanceConfig.s3Bucket.toLong()) : null
+			if(storageBucket) {
+				def s3BucketName = storageBucket.bucketName
+				def s3BucketKey = "${instance.name}/${instance.uuid}".toString()
+				plugin.storageProvider.writeToBucket(storageBucket, s3BucketKey, payload)
+				s3Url = "https://${s3BucketName}.s3.amazonaws.com/${URLEncoder.encode(instance.name)}/${instance.uuid}".toString()
+			}
+
+			if(performingUpdate) {
+				specResults = AmazonComputeUtility.updateCloudFormationStack(plugin.getAmazonCloudFormationClient(cloud, false, regionCode as String), stackName, payload, templateParams, capabilities, isYaml, s3Url)
+			} else {
+				specResults = AmazonComputeUtility.createCloudFormationStack(plugin.getAmazonCloudFormationClient(cloud, false, regionCode as String), stackName, payload, templateParams, capabilities, isYaml, s3Url)
 			}
 
 			log.info("specResults: {}", specResults)
@@ -1068,15 +1113,36 @@ class CloudFormationProvisionProvider extends AbstractProvisionProvider implemen
 				}
 			}
 			if(!failedList) {
-				def stackName = performingUpdate ? app.getConfigProperty('stackName') : getUniqueStackName(cloud, app.name, appConfig.regionCode ?: regionCode)
+				def cloudFormationAppConfig = new JsonSlurper().parseText(app.getConfigMap().config)?.cloudFormation
+				def desiredStackName = cloudFormationAppConfig?.stackName ?: app.name
+
+				def stackName = performingUpdate ? app.getConfigProperty('stackName') : getUniqueStackName(cloud, desiredStackName, appConfig.regionCode ?: regionCode)
 				def amazonClient = plugin.getAmazonCloudFormationClient(cloud, false, appConfig.regionCode ?: regionCode)
 				log.debug "creating CloudFormation stack with template: ${JsonOutput.prettyPrint(templateJson.encodeAsJSON().toString())}"
 				def updateOrCreateResults
 				def capabilities = parseCapabilities(cloudFormationOpts)
-				if(performingUpdate) {
-					updateOrCreateResults = AmazonComputeUtility.updateCloudFormationStack(amazonClient, stackName, templateJson, templateParameters, capabilities, isYaml)
+
+				def payload
+				if(isYaml) {
+					payload = AmazonComputeUtility.asCloudFormationYaml(templateJson)
 				} else {
-					updateOrCreateResults = AmazonComputeUtility.createCloudFormationStack(amazonClient, stackName, templateJson, templateParameters, capabilities, isYaml)
+					payload = templateJson.encodeAsJSON().toString()
+				}
+
+				def s3Url
+				def bucketId = new groovy.json.JsonSlurper().parseText(app.getConfigMap().config)?.cloudFormation?.s3Bucket
+				StorageBucket storageBucket = bucketId ? morpheus.services.storageBucket.get(bucketId.toLong()) : null
+				if(storageBucket) {
+					def s3BucketName = storageBucket.bucketName
+					def s3BucketKey = "${app.name}/${app.uuid}".toString()
+					plugin.storageProvider.writeToBucket(storageBucket, s3BucketKey, payload)
+					s3Url = "https://${s3BucketName}.s3.amazonaws.com/${java.net.URLEncoder.encode(app.name)}/${app.uuid}".toString()
+				}
+
+				if(performingUpdate) {
+					updateOrCreateResults = AmazonComputeUtility.updateCloudFormationStack(plugin.getAmazonCloudFormationClient(cloud, false, regionCode as String), stackName, payload, templateParameters, capabilities, isYaml, s3Url)
+				} else {
+					updateOrCreateResults = AmazonComputeUtility.createCloudFormationStack(plugin.getAmazonCloudFormationClient(cloud, false, regionCode as String), stackName, payload, templateParameters, capabilities, isYaml, s3Url)
 				}
 				if(updateOrCreateResults.success == true) {
 					app.setConfigProperty('stackName', stackName)

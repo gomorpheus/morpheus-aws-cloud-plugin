@@ -56,7 +56,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 			'awsPluginVpc', 'awsPluginAllRegions', 'awsPluginRegions', 'awsPluginCloudRegions', 'awsPluginAvailabilityZones', 'awsRouteTable',
 			'awsRouteDestinationType', 'awsRouteDestination', 'awsPluginEc2SecurityGroup', 'awsPluginEc2PublicIpType',
 			'awsPluginInventoryLevels', 'awsPluginStorageProvider', 'awsPluginEbsEncryption', 'awsPluginCostingReports',
-			'awsPluginCostingBuckets', 'awsPluginInventoryLevels', 's3Regions', 'amazonEc2NodeAmiImage', 'amazonInstanceProfiles'
+			'awsPluginCostingBuckets', 'awsPluginInventoryLevels', 's3Regions', 'amazonEc2NodeAmiImage', 'amazonInstanceProfiles', 'amazonS3Buckets'
 		])
 	}
 
@@ -385,6 +385,16 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		return [select] + rtn
 	}
 
+	def amazonS3Buckets(args) {
+		def cloud = loadCloud(args)
+		return morpheus.services.storageBucket.list(new DataQuery().withFilters([
+			new DataFilter('account', cloud.account),
+			new DataFilter('providerType', 's3'),
+			new DataFilter('storageServer.refType', 'ComputeZone'),
+			new DataFilter('storageServer.refId', cloud.id)
+		])).collect{[name: it.name, value: it.id]}.sort {it.name}
+	}
+
 	def awsPluginCostingReports(args) {
 		def rtn = [[name:'Create New',value:'create-report']]
 		Cloud cloud = loadCloud(args)
@@ -431,7 +441,7 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 
 	private static getCloudId(args) {
 		args = args instanceof Object[] ? args[0] : args
-		def cloudId = args.cloudId ?: args.zoneId // ?: args.domain?.id
+		def cloudId = args.cloudId ?: args.zoneId ?: args.cloudFormation?.zoneId// ?: args.domain?.id
 		cloudId ? cloudId.toLong() : null
 	}
 
