@@ -918,7 +918,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		StorageVolume rootVolume = server.volumes?.find{it.rootVolume == true}
 
 		def maxMemory = server.maxMemory?.div(ComputeUtility.ONE_MEGABYTE)
-		def maxStorage = rootVolume.getMaxStorage()
+		def maxStorage = rootVolume?.getMaxStorage() ?: opts.config?.maxStorage ?: server.plan.maxStorage
 
 		def runConfig = [:] + opts + buildRunConfig(server, virtualImage, workloadRequest.networkConfiguration, amazonClient, workloadConfig, opts)
 
