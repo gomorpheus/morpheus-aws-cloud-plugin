@@ -623,16 +623,17 @@ class VirtualMachineSync {
 		if(changes) {
 			//lets see if we have any instance metadata that needs updated
 			//re-fetch server
-			server = morpheusContext.async.computeServer.get(server.id).blockingGet()
-			if(server.computeServerType?.containerHypervisor != true && server.computeServerType?.vmHypervisor != true) {
-				def instanceIds = morpheusContext.async.cloud.getStoppedContainerInstanceIds(server.id).map{it.id}.toList().blockingGet()
+			def updatedServer = morpheusContext.async.computeServer.get(server.id).blockingGet()
+			if(updatedServer.computeServerType?.containerHypervisor != true && updatedServer.computeServerType?.vmHypervisor != true) {
+				def instanceIds = morpheusContext.async.cloud.getStoppedContainerInstanceIds(updatedServer.id).map{it.id}.toList().blockingGet()
 
 				if(instanceIds) {
 					morpheusContext.async.instance.listById(instanceIds).blockingSubscribe { instance ->
-						syncTags(instance, server.metadata, opts)
+						syncTags(instance, updatedServer.metadata, opts)
 					}
 				}
 			}
+			server.metadata = updatedServer.metadata
 		}
 		changes
 	}

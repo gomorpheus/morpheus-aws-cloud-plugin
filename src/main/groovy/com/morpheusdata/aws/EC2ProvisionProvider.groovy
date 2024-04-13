@@ -1058,7 +1058,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		}
 
 		//tags
-		runConfig.tagList = runConfig.server.metadata.collect { [name: it.name, value: it.value] }
+		runConfig.tagList = (runConfig.tagList ?: []) + runConfig.server.metadata.collect { [name: it.name, value: it.value] }
 
 		//data volumes
 		if(runConfig.dataDisks)
@@ -1168,6 +1168,8 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 							}
 						}
 					}
+					//tags
+					AmazonComputeUtility.applyEc2Tags(runConfig)
 					taskResults.server = createResults.server
 					taskResults.success = true
 				} else {
@@ -2241,7 +2243,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				}
 
 			}
-
 			if(computeServer) {
 				rtn << [name: 'Morpheus Server Id', value: "${computeServer.id}"]
 			}
