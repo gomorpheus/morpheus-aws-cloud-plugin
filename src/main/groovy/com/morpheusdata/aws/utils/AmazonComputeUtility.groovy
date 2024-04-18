@@ -4693,6 +4693,7 @@ class AmazonComputeUtility {
 			rtn.credentials = creds
 		} catch(ex) {
 			log.error("Error acquiring Credentials ${ex.message}",ex)
+			throw new Exception(ex) //we want to throw this so we dont use the root account creds on accident
 		} finally {
 			if(sts) {
 				sts.shutdown()
@@ -4737,6 +4738,7 @@ class AmazonComputeUtility {
 			rtn.credentials = creds
 		} catch(ex) {
 			log.error("Error acquiring Credentials ${ex.message}",ex)
+			throw new Exception(ex) //we want to throw this so we dont use the root account creds on accident
 		} finally {
 			if(sts) {
 				sts.shutdown()

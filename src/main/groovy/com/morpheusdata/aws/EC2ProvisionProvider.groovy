@@ -53,6 +53,7 @@ import com.morpheusdata.response.ProvisionResponse
 import groovy.util.logging.Slf4j
 
 @Slf4j
+
 class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvisionProvider, WorkloadProvisionProvider.ResizeFacet, HostProvisionProvider.ResizeFacet, ProvisionProvider.BlockDeviceNameFacet, ProvisionProvider.IacResourceFacet {
 	static class InstanceStates {
 		static final PENDING 			= 0
