@@ -76,6 +76,11 @@ class AWSCloudProvider implements CloudProvider {
 	}
 
 	@Override
+	Boolean canCreateNetworks() {
+		return true
+	}
+
+	@Override
 	CloudCostingProvider getCloudCostingProvider() { return new AWSCloudCostingProvider(plugin,morpheusContext) };
 
 	@Override
