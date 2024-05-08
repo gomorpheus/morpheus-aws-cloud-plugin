@@ -65,7 +65,7 @@ class SubnetSync {
 			def vpcRecord = vpcRecords[cloudItem.getVpcId()]
 			def networkConfig = [owner: cloud.owner, category:"amazon.ec2.subnet.${cloud.id}", name:nameTag?.getValue() ? "${nameTag.getValue()} (${cloudItem.getSubnetId()})" : "${cloudItem.getCidrBlock()} (${cloudItem.getSubnetId()})", displayName: nameTag?.getValue() ? "${nameTag.getValue()} (${cloudItem.getSubnetId()})" : "${cloudItem.getCidrBlock()} (${cloudItem.getSubnetId()})",
 								 code          :"amazon.ec2.subnet.${cloud.id}.${cloudItem.getSubnetId()}", uniqueId:cloudItem.getSubnetId(), externalId:cloudItem.getSubnetId(), externalType: 'subnet', type: networkType,
-								 refType       :'ComputeZone', refId:cloud.id, cloudPool: new CloudPool(id: vpcRecord.id), description:nameTag?.getValue() ?: cloudItem.getCidrBlock(), active:true, cidr:cloudItem.getCidrBlock(), dhcpServer:true,
+								 refType       :'ComputeZone', refId:cloud.id, cloudPool: new CloudPool(id: vpcRecord.id), description:nameTag?.getValue() ?: cloudItem.getCidrBlock(), active:cloud.defaultNetworkSyncActive, cidr:cloudItem.getCidrBlock(), dhcpServer:true,
 								 assignPublicIp:cloudItem.isMapPublicIpOnLaunch(), networkServer: cloud.networkServer, availabilityZone:cloudItem.getAvailabilityZone(), cloud:cloud, regionCode: region]
 			def add = new Network(networkConfig)
 			adds << add

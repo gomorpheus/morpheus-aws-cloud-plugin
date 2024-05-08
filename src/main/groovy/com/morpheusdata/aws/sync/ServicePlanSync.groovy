@@ -8,6 +8,7 @@ import com.morpheusdata.core.data.DataFilter
 import com.morpheusdata.core.data.DataQuery
 import com.morpheusdata.core.util.ComputeUtility
 import com.morpheusdata.core.util.SyncTask
+import com.morpheusdata.model.Cloud
 import com.morpheusdata.model.ProvisionType
 import com.morpheusdata.model.ServicePlan
 import com.morpheusdata.model.projection.ServicePlanIdentityProjection
@@ -34,7 +35,7 @@ class ServicePlanSync {
 				if(!regionClouds[region.externalId])
 					regionClouds[region.externalId] = [region: region, cloud: clouds[region.cloud.id]]
 			}
-
+			def firstCloud = clouds.values().first()
 			// Get map of instance types to regions
 			def instanceTypeRegions = [:]
 			for(String regionCode : regionClouds.keySet()) {
@@ -61,7 +62,7 @@ class ServicePlanSync {
 			}.withLoadObjectDetailsFromFinder { List<SyncTask.UpdateItemDto<ServicePlanIdentityProjection, ServicePlan>> updateItems ->
 				morpheusContext.async.servicePlan.listById(updateItems.collect { it.existingItem.id } as List<Long>)
 			}.onAdd { itemsToAdd ->
-				addMissingServicePlans(itemsToAdd, instanceTypeRegions)
+				addMissingServicePlans(itemsToAdd, instanceTypeRegions,firstCloud)
 			}.onUpdate { List<SyncTask.UpdateItem<ServicePlan, InstanceTypeInfo>> updateItems ->
 				updateMatchedServicePlans(updateItems, instanceTypeRegions)
 			}.onDelete { removeItems ->
@@ -91,7 +92,7 @@ class ServicePlanSync {
 		}
 	}
 
-	private addMissingServicePlans(Collection<InstanceTypeInfo> addList, Map instanceTypeRegions) {
+	private addMissingServicePlans(Collection<InstanceTypeInfo> addList, Map instanceTypeRegions, Cloud cloud) {
 		log.debug "addMissingServicePlans: ${addList.size()}"
 		def adds = []
 
@@ -127,7 +128,7 @@ class ServicePlanSync {
 			def name = buildServicePlanName(cloudItem)
 			adds << new ServicePlan(
 				code: "amazon-${cloudItem.instanceType}",
-				active: cloudItem.currentGeneration == true,
+				active: cloudItem.currentGeneration == true && cloud?.defaultPlanSyncActive,
 				name: name,
 				description: name,
 				customMaxStorage: true,
