@@ -121,18 +121,17 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 		def zoneId = tmpZonePool?.cloud?.id ?: MorpheusUtils.getZoneId(args)
 		def tmpZone = zoneId ? morpheus.services.cloud.get(zoneId) : null
 		if(tmpZone) {
-			def results = []
+			def results
 			if(tmpZonePool && tmpZonePool.regionCode) {
 				def categories = ["amazon.ec2.zone.${tmpZone.id}.${tmpZonePool.regionCode}", "amazon.ec2.zone.${tmpZone.id}"]
 				results = morpheus.services.referenceData.list(new DataQuery(tmpZone.owner).withFilter("category", "in", categories))
 			} else {
 				results = morpheus.services.referenceData.list(new DataQuery(tmpZone.owner).withFilter("category", "=~", "amazon.ec2.zone.${tmpZone.id}"))
 			}
-			if(results.size() > 0) {
-				rtn = results?.collect { [name:it.name, value:it.name] }
+			if(results) {
+				rtn = results.collect { [name:it.name, value:it.name] }.unique { it.value }
 			}
 		}
-
 		return rtn
 	}
 
