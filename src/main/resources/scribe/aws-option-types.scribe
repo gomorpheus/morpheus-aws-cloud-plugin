@@ -22,7 +22,7 @@ resource "option-type" "aws-local-image-id" {
   type = "select"
   displayOrder = 3
   required = false
-  optionSource = "localImage"
+  optionSource = "localImages"
   dependsOnCode = "containerType.amazon.imageType:local"
 }
 
