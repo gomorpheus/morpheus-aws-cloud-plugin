@@ -28,6 +28,7 @@ import com.morpheusdata.model.ComputeServerInterfaceType
 import com.morpheusdata.model.ComputeTypeLayout
 import com.morpheusdata.model.ComputeTypeSet
 import com.morpheusdata.model.NetAddress
+import com.morpheusdata.model.VirtualImageType
 import com.morpheusdata.model.WorkloadType
 import com.morpheusdata.model.HostType
 import com.morpheusdata.model.Icon
@@ -2302,5 +2303,16 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 	@Override
 	String[] getDiskNameList() {
 		return ['xvda', 'xvdb', 'xvdc', 'xvdd', 'xvde', 'xvdf', 'xvdg', 'xvdh', 'xvdi', 'xvdj', 'xvdk', 'xvdl'] as String[]
+	}
+
+	@Override
+	Collection<VirtualImageType> getVirtualImageTypes() {
+		morpheusContext.services.virtualImage.type.list(
+			new DataQuery().withFilter(new DataFilter('code', 'in', ['vhd', 'vmdk', 'ovf']))
+		) +
+		[
+			new VirtualImageType(code:'vmware', name: 'VMware', nameCode: 'gomorpheus.virtualImage.types.vMware', active: true, visible: true, creatable: true),
+			new VirtualImageType(code:'ami', name: 'Amazon AMI', nameCode: 'gomorpheus.virtualImage.types.amazonAmi', active: true, visible: true, creatable: true)
+		]
 	}
 }
