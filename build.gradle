@@ -54,8 +54,11 @@ dependencies {
 	provided("com.bertramlabs.plugins:karman-core:${karmanVersion}") {
 		exclude module: 'groovy-all'
 	}
-
-	implementation 'commons-beanutils:commons-beanutils:1.9.3'
+        implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.1'
+        implementation 'com.fasterxml.jackson.core:jackson-annotations:2.15.1'
+        implementation 'com.fasterxml.jackson.core:jackson-core:2.15.1'
+        implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.15.1'
+	implementation 'commons-beanutils:commons-beanutils:1.9.4'
 	implementation "org.slf4j:slf4j-api:$slf4jVersion"
 	implementation "org.slf4j:slf4j-parent:$slf4jVersion"
 	implementation 'commons-net:commons-net:3.6'
