@@ -337,7 +337,7 @@ dependencies {
 	testRuntimeOnly 'net.bytebuddy:byte-buddy:1.12.17' // allows mocking of classes (in addition to interfaces)
 	testRuntimeOnly "org.objenesis:objenesis:3.3"      // allows mocking of classes without default constructor (together with ByteBuddy or CGLIB)
 	testImplementation "com.morpheusdata:morpheus-plugin-api:$morphPluginApiVersion"
-        testImplementation group: 'ch.qos.logback', name: 'logback-classic', version: '0.9.26'
+        testImplementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.4.12'
 }
 
 sourceSets {
