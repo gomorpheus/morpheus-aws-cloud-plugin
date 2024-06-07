@@ -320,7 +320,7 @@ dependencies {
         exclude module: 'aws-java-sdk'
     }
 
-	implementation 'org.yaml:snakeyaml:1.26'
+	implementation 'org.yaml:snakeyaml:2.2'
 
 	testImplementation platform("org.spockframework:spock-bom:$spockVersion")
 	testImplementation "org.spockframework:spock-core"
