@@ -391,6 +391,7 @@ test {
 }
 
 shadowJar {
+    setProperty("zip64", true)
 	// archiveFileName = "${baseName}-${version}.mpl"
 }
 
