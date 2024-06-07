@@ -63,7 +63,7 @@ dependencies {
 	implementation "org.slf4j:slf4j-parent:$slf4jVersion"
 	implementation 'commons-net:commons-net:3.6'
 	implementation 'de.siegmar:fastcsv:2.0.0' //need this for faster costing processing
-	implementation('com.amazonaws:aws-java-sdk:1.12.269') {
+	implementation('com.amazonaws:aws-java-sdk:1.12.738') {
         exclude module: 'aws-java-sdk-accessanalyzer'
         exclude module: 'aws-java-sdk-acmpca'
         exclude module: 'aws-java-sdk-alexaforbusiness'
