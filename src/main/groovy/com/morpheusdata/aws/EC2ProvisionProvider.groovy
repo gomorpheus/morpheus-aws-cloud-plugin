@@ -627,10 +627,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				workload.server.sourceImage = virtualImage
 				VirtualImageLocation location = ensureVirtualImageLocation(amazonClient,server.resourcePool.regionCode,virtualImage,server.cloud)
 				resp.data.setVirtualImageLocation(location)
-
-				if(virtualImage.osType?.name?.contains('ubuntu') && MorpheusUtils.compareVersions(virtualImage.osType?.osVersion, '16.04') >= 0) {
-					resp.data.disableAutoUpdates = true
-				}
 			}
 			resp.success = true
 		} else {
