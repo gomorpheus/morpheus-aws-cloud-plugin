@@ -1426,7 +1426,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 
 			def statusResults = AmazonComputeUtility.waitForServerStatus(amazonOpts, InstanceStates.STOPPED)
 			if(statusResults.success == true) {
-
 				//instance size
 				if (plan?.id != server.plan?.id) {
 					amazonOpts.flavorId = plan.externalId
@@ -1440,8 +1439,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				}
 
 				//disk sizes
-
-				def maxStorage = resizeRequest.maxStorage
 				def newCounter = server.volumes?.size()
 				def availabilityZone
 				def allStorageVolumeTypes
@@ -1513,9 +1510,9 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 								existing.maxIOPS = iops
 								existing.externalId = resizeResults.newVolumeId
 								existing.maxStorage = updateProps.maxStorage.toLong()
-								morpheusContext.async.storageVolume.save([existing]).blockingGet()
+								morpheusContext.services.storageVolume.save(existing)
 							} else {
-								rtn.setError("Failed to expand Disk: ${existing.name}")
+								throw new Exception("Failed to expand Disk: ${existing.name}")
 							}
 						}
 					} else {
@@ -1564,7 +1561,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 						server = morpheusContext.async.computeServer.get(server.id).blockingGet()
 						newCounter++
 					}
-
 				}
 
 				//delete any removed volumes
@@ -1582,7 +1578,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				def securityGroups = server.getConfigProperty('securityGroups')
 				//controllers
 				resizeRequest?.interfacesAdd?.eachWithIndex { networkAdd, index ->
-
 					log.info("adding network: ${networkAdd}")
 					def newIndex = server.interfaces?.size()
 					Network networkObj = morpheusContext.async.network.listById([networkAdd.network.id.toLong()]).firstOrError().blockingGet()
@@ -1621,7 +1616,6 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 							server = saveAndGet(server)
 						}
 					}
-
 				}
 				resizeRequest?.interfacesDelete?.eachWithIndex { networkDelete, index ->
 					def deleteConfig = [serverId    : server.externalId, amazonClient: amazonOpts.amazonClient, networkInterfaceId: networkDelete.internalId,
@@ -1638,6 +1632,9 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				}
 				rtn.success = true
 			}
+			// get fresh instance
+			server = morpheusContext.services.computeServer.get(server.id)
+
 			def vmOpts = [amazonClient:amazonOpts.amazonClient, server:server, externalId:server.externalId]
 			def startResult = AmazonComputeUtility.startServer(vmOpts)
 			def waitResults = AmazonComputeUtility.waitForServerStatus(vmOpts, InstanceStates.RUNNING)
@@ -1650,7 +1647,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 			rtn.msg = "Error resizing amazon instance to ${plan.name} ${ex.getMessage()}"
 			rtn.error= "Error resizing amazon instance to ${plan.name} ${ex.getMessage()}"
 		}
-		return new ServiceResponse(success: rtn.success, data: [supported: rtn.supported])
+		return new ServiceResponse(success: rtn.success, msg: rtn.error ?: rtn.msg, data: [supported: rtn.supported])
 
 	}
 
