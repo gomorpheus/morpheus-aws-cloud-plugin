@@ -463,7 +463,8 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 			def config = [
 				accessKey: args.accessKey ?: args.config?.accessKey,
 				secretKey: args.secretKey ?: args.config?.secretKey,
-				stsAssumeRole: (args.stsAssumeRole ?: args.config?.stsAssumeRole) in [true, 'true', 'on'],
+				stsAssumeRole: args.stsAssumeRole ?: args.config?.stsAssumeRole,
+				stsExternalId: args.stsExternalId ?: args.config?.stsExternalId,
 				useHostCredentials: args.useHostCredentials in [true, 'true', 'on'],
 				endpoint: args.endpoint ?: args.config?.endpoint
 			]
