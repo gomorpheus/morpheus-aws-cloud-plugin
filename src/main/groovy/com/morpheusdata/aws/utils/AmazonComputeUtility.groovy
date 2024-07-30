@@ -240,7 +240,12 @@ class AmazonComputeUtility {
 				awsNic.deviceIndex = 0
 				awsNic.deleteOnTermination = true
 				//assign a public ip
-				awsNic.associatePublicIpAddress = opts.networkConfig.primaryInterface.assignPublic
+				//assign a public ip
+				if(opts.turnOffPublicIps) {
+					awsNic.associatePublicIpAddress = false
+				} else {
+					awsNic.associatePublicIpAddress = opts.networkConfig.primaryInterface.assignPublic
+				}
 				//assign a static
 				if(opts.networkConfig.primaryInterface.doStatic)
 					awsNic.privateIpAddress = opts.networkConfig.primaryInterface.ipAddress

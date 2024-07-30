@@ -276,7 +276,8 @@ class AWSOptionSourceProvider extends AbstractOptionSourceProvider {
 	def awsPluginEc2PublicIpType(args) {
 		return [
 				[name:'Subnet Default', value:'subnet'],
-				[name:'Assign EIP', value:'elasticIp']
+				[name:'Assign EIP', value:'elasticIp'],
+				[name:'No EIP', value:'none']
 		]
 	}
 

@@ -1057,8 +1057,11 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 
 		//tags
 		runConfig.tagList = (runConfig.tagList ?: []) + runConfig.server.metadata.collect { [name: it.name, value: it.value] }
+		if(opts.config?.publicIpType?.toString() == 'none' || server.getConfigMap()?.customOptions?.publicIpType?.toString() == 'none') {
+			runConfig.turnOffPublicIps = true
+		}
 
-		//data volumes
+			//data volumes
 		if(runConfig.dataDisks)
 			runConfig.diskList = buildDataDiskList(server, runConfig.dataDisks, imageResults)
 
