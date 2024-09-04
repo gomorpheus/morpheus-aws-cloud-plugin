@@ -307,6 +307,7 @@ class ALBLoadBalancerProvider implements LoadBalancerProvider {
             fieldLabel:'SSL Certificate',
             fieldContext:'domain',
             displayOrder:14,
+            defaultValue:0,
             required:true,
             editable:true,
             inputType:OptionType.InputType.SELECT,
