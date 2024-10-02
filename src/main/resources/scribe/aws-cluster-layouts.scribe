@@ -18,6 +18,17 @@ resource "virtual-image" "aws-image-morpheus-ubuntu-20_04" {
   isPublic           = true
 }
 
+resource "os-type-image" "aws-image-morpheus-ubuntu-20_04" {
+  code               = "aws.image.morpheus.ubuntu.20.04"
+  provisionType      = "amazon"
+  virtualImage       = virtual-image.aws-image-morpheus-ubuntu-20_04
+  account            = null
+  osType = {
+     code = "ubuntu.20.04.64"
+     owner = null
+  }
+}
+
 resource "compute-server-type" "amazon-linux" {
   code = "amazon-linux" 
   name = "Amazon Docker Host" 
