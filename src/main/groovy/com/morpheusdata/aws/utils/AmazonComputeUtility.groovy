@@ -2800,8 +2800,10 @@ class AmazonComputeUtility {
 			}
 			if(!opts.securityId) {
 				if(opts.securityGroups) {
-					if(opts.securityGroups.findAll {it?.id != ''}?.size < 1)
+					def validSecurityGroups = opts.securityGroups.findAll { it?.id }
+					if (validSecurityGroups?.size() < 1) {
 						rtn.errors += [field:'securityGroup', msg: 'You must choose a security group']
+					}
 				} else {
 					rtn.errors += [field:'securityId', msg: 'You must choose a security group']
 				}

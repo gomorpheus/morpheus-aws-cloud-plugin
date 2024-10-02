@@ -194,9 +194,20 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				fieldContext : 'domain',
 				fieldLabel : 'AMI Image',
 				inputType : OptionType.InputType.TYPEAHEAD,
-				displayOrder : 100,
+				displayOrder : 99,
 				required : false,
 				optionSource : 'amazonEc2NodeAmiImage'
+		])
+		OptionType osType = new OptionType([
+				name : 'osType',
+				code : 'amazon-ec2-node-os-type',
+				fieldName : 'osType.id',
+				fieldContext : 'domain',
+				fieldLabel : 'OsType',
+				inputType : OptionType.InputType.SELECT,
+				displayOrder : 100,
+				required : false,
+				optionSource : 'osTypes'
 		])
 		OptionType logFolder = new OptionType([
 				name : 'mountLogs',
@@ -284,7 +295,7 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 				displayOrder : 105,
 				required : false,
 		])
-		return [amiImage, logFolder, configFolder, deployFolder,checkType,serverType,statType,logType,showServerLogs]
+		return [osType, amiImage, logFolder, configFolder, deployFolder,checkType,serverType,statType,logType,showServerLogs]
 	}
 
 	/**
@@ -766,7 +777,12 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 
 			VirtualImage virtualImage
 
-			if(layout && typeSet) {
+			if(server.sourceImage){
+				virtualImage = server.sourceImage
+				ensureVirtualImageLocation(amazonClient, server.resourcePool?.regionCode, virtualImage, cloud)
+				resp.success = true
+				return resp
+			} else if(layout && typeSet) {
 				Long computeTypeSetId = server.typeSet?.id
 				if(computeTypeSetId) {
 					ComputeTypeSet computeTypeSet = morpheus.services.computeTypeSet.get(computeTypeSetId)
@@ -1785,7 +1801,9 @@ class EC2ProvisionProvider extends AbstractProvisionProvider implements VmProvis
 		VirtualImage rtn
 		def containerConfig = workload.getConfigMap()
 		def imageType = containerConfig.imageType ?: 'default'
-		if(imageType == 'private' && containerConfig.imageId) {
+		if(opts.config?.imageId){
+			rtn = morpheusContext.async.virtualImage.get(opts.config.imageId as Long).blockingGet()
+		} else if(imageType == 'private' && containerConfig.imageId) {
 			rtn = morpheusContext.async.virtualImage.get(containerConfig.imageId as Long).blockingGet()
 		} else if(imageType == 'local' && (containerConfig.localImageId || containerConfig.template)) {
 			Long localImageId = getImageId(containerConfig.localImageId) ?: getImageId(containerConfig.template)
